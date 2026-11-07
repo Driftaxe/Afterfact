@@ -89,40 +89,37 @@ Unlike black-box LLM checkers that hallucinate verdicts or cite nonexistent sour
 
 ## Quick Start
 
-### Current Repository State (Planning Mode)
-Documentation and planning assets are fully established. No package installations, database provisioning, or external provider calls have been executed yet.
+### Prerequisites
+- **Node.js:** `^22.0.0` (pinned to `22.18.0` in `.nvmrc`)
+- **Package Manager:** `pnpm` (pinned to `11.9.0` in `package.json#packageManager`)
 
-To review project documentation and track execution:
+### Setup and Verification Workflow
 ```bash
-# View implementation tickets and daily merge gates
-cat docs/PHASE-TRACKER.md
+# 1. Install dependencies using pinned frozen lockfile
+pnpm install --frozen-lockfile
 
-# Verify documentation consistency
-git status
-```
+# 2. Run static linter
+pnpm lint
 
-### Planned Setup (Starting with Task B01)
-*The commands below represent the approved implementation workflow once Task B01 initiates:*
+# 3. Run TypeScript typecheck
+pnpm typecheck
 
-```bash
-# 1. Clone and install dependencies (Node 22 required)
-pnpm install
-
-# 2. Configure local environment variables
-cp .env.example .env.local
-# Edit .env.local with Neon, QStash, Bifrost, and Tavily credentials
-
-# 3. Apply database migrations
-pnpm db:migrate
-
-# 4. Run local development server
-pnpm dev
-
-# 5. Run test and evaluation suites
+# 4. Run contract and unit tests (Vitest)
 pnpm test
-pnpm eval:baseline
-pnpm eval:full
+
+# 5. Build production Next.js application
+pnpm build
+
+# 6. Install Playwright Chromium browser and run browser smoke tests
+pnpm exec playwright install chromium
+pnpm test:e2e
+
+# 7. Start local development server (serves root placeholder at http://localhost:3000)
+pnpm dev
 ```
+
+> [!NOTE]
+> External service integrations (Neon PostgreSQL, Bifrost model gateway, Tavily search, and Upstash QStash) are queued for Phase 1 (Tasks B02–B05). Core contracts, unit tests, local development, and production builds execute without requiring live service credentials.
 
 ---
 

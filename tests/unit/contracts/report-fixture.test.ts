@@ -4,18 +4,16 @@ import {
   ReportSchema,
   ClaimResultItemSchema,
   AssessedClaimResultSchema,
-  FailedClaimResultSchema,
 } from '../../../src/lib/contracts/report';
 import {
-  EvidenceItemSchema,
   HttpUrlSchema,
 } from '../../../src/lib/contracts/evidence';
 import {
   isValidCalendarDate,
   isValidIsoTimestamp,
+  IsoTimestampSchema,
 } from '../../../src/lib/contracts/dates';
 import {
-  VerificationEventSchema,
   ClaimResultEventSchema,
 } from '../../../src/lib/contracts/events';
 
@@ -112,6 +110,10 @@ describe('A02 Contracts — Evidence, Report, Events, and Golden Fixture', () =>
       expect(isValidIsoTimestamp('2024-09-01T12:00:00+05:60')).toBe(false);
       expect(isValidIsoTimestamp('2024-09-01T12:00:00+24:00')).toBe(false);
       expect(isValidIsoTimestamp('2024-09-01T12:00:00-24:00')).toBe(false);
+
+      expect(IsoTimestampSchema.safeParse('2024-09-01T12:00:00+99:99').success).toBe(false);
+      expect(IsoTimestampSchema.safeParse('2024-09-01T12:00:00+05:60').success).toBe(false);
+      expect(IsoTimestampSchema.safeParse('2024-09-01T12:00:00+05:30').success).toBe(true);
     });
 
     it('rejects timestamps without explicit timezone or malformed formats', () => {
@@ -233,7 +235,7 @@ describe('A02 Contracts — Evidence, Report, Events, and Golden Fixture', () =>
         rawText: 'Test text',
         state: 'assessed' as const,
         verdict: 'supported' as const,
-        score: 42 as any,
+        score: 42 as unknown as 100,
         scoreReason: 'Invalid score',
         reasonCode: 'TEST',
         evidenceIds: [],
@@ -246,7 +248,7 @@ describe('A02 Contracts — Evidence, Report, Events, and Golden Fixture', () =>
         seq: 1,
         claimId: 'clm_test',
         verdict: 'supported' as const,
-        score: 42 as any,
+        score: 42 as unknown as 100,
         reasonCode: 'TEST',
         scoreReason: 'Invalid score',
         timestamp: '2024-09-01T12:00:00Z',
@@ -314,6 +316,7 @@ describe('A02 Contracts — Evidence, Report, Events, and Golden Fixture', () =>
     });
 
     it('accepts valid combinations through both entry points', () => {
+      // 1. supported + 100
       const validSupportedClaim = {
         id: 'res_test',
         claimId: 'clm_test',
@@ -340,6 +343,30 @@ describe('A02 Contracts — Evidence, Report, Events, and Golden Fixture', () =>
         timestamp: '2024-09-01T12:00:00Z',
       };
       expect(ClaimResultEventSchema.safeParse(validSupportedEvent).success).toBe(true);
+
+      // 2. supported + 75 accepted at both boundaries
+      const valid75Claim = { ...validSupportedClaim, score: 75 };
+      expect(ClaimResultItemSchema.safeParse(valid75Claim).success).toBe(true);
+      const valid75Event = { ...validSupportedEvent, score: 75 };
+      expect(ClaimResultEventSchema.safeParse(valid75Event).success).toBe(true);
+
+      // 3. outdated + 0 accepted at both boundaries
+      const validOutdatedClaim = {
+        ...validSupportedClaim,
+        verdict: 'outdated' as const,
+        score: 0,
+        reasonCode: 'SUPERSEDED_HISTORICAL_CLAIM',
+        scoreReason: 'Historically valid claim now superseded',
+      };
+      expect(ClaimResultItemSchema.safeParse(validOutdatedClaim).success).toBe(true);
+      const validOutdatedEvent = {
+        ...validSupportedEvent,
+        verdict: 'outdated' as const,
+        score: 0,
+        reasonCode: 'SUPERSEDED_HISTORICAL_CLAIM',
+        scoreReason: 'Historically valid claim now superseded',
+      };
+      expect(ClaimResultEventSchema.safeParse(validOutdatedEvent).success).toBe(true);
     });
   });
 

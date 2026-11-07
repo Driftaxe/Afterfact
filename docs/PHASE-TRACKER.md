@@ -106,9 +106,9 @@ IPP gates govern code correctness across stateful, distributed, and external int
   - Extracted UTF-16 spans match unmodified input slice exactly.
   - Explicit scope stated in text is stored independently of requested search context.
 - **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/contracts/request-claim.test.ts`).
-- **Evidence:** Repaired and verified via Node runtime audit harness (20 assertions passing: strict wrong-mode rejection, 8000/800 limits, 8001/801 rejects, whitespace rejection, un-trimmed raw text preservation, emoji UTF-16 offsets, fractional/empty/inverted/negative bounds checks, and diagnostic text privacy; plus timezone offset range checks for INV-03). Repository `pnpm vitest` execution remains blocked pending Task B01 toolchain scaffolding.
+- **Evidence:** Verified natively via repository Vitest suite (`pnpm test`, 25 tests passing in `tests/unit/contracts/request-claim.test.ts`: strict wrong-mode rejection, 8000/800 character limits, complete calendar dates, non-trimmed raw text, UTF-16 emoji offset, fractional/empty/inverted/negative bounds checks, diagnostic text privacy). B01 toolchain prerequisite now resolved.
 - **Handoff:** Downstream to A02 (report/event schemas) and C01/C02 (UI component types).
-- **Blocker / Decision:** Blocked on B01 scaffold for repository-native `pnpm test` and `pnpm typecheck` execution.
+- **Blocker / Decision:** None (B01 toolchain scaffold landed; native `pnpm test` and `pnpm typecheck` passing).
 
 #### A02: Define report and event schemas and create shared fixture {#a02-report-and-event-schemas}
 - **Owner:** A / Verification
@@ -125,27 +125,27 @@ IPP gates govern code correctness across stateful, distributed, and external int
   - Golden fixture passes validation against Zod report schema without errors.
   - UI imports types from the exact same schema files that API route handlers validate.
 - **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/contracts/report-fixture.test.ts`).
-- **Evidence:** Repaired and verified via Node runtime audit harness (38 assertions passing: INV-01 claimId vs result ID uniqueness; INV-02 Ask answerText, pre-draft snapshots, and span requirements; INV-03 timezone offset hour/minute range bounds; INV-04 summary counter parity for failed and pending claims; shared score rubric enforcing supported 100/75, outdated/contradicted strictly 0, unresolved null with non-whitespace reason; HTTP(S) evidence URLs; duplicate claim/evidence ID rejection; partial reports with assessed and failed claims; and full golden fixture validation). Repository `pnpm vitest` execution remains blocked pending Task B01 toolchain scaffolding.
+- **Evidence:** Verified natively via repository Vitest suite (`pnpm test`, 30 tests passing in `tests/unit/contracts/report-fixture.test.ts`: full golden fixture validation; supported 100/75 accepted, supported 42 rejected at both report and event boundaries; outdated 0 accepted, outdated null rejected at both boundaries; unresolved null with machine reason accepted, numeric scores rejected; INV-01 claimId uniqueness; INV-02 Ask answerText and highlight span bounds; INV-03 timezone offsets; INV-04 summary counter parity). B01 toolchain prerequisite now resolved.
 - **Handoff:** Downstream to C01/C02 (design tokens & report skeleton) and B03/B04 (Tavily adapter & DB migrations).
-- **Blocker / Decision:** Blocked on B01 scaffold for repository-native `pnpm test` and `pnpm typecheck` execution.
+- **Blocker / Decision:** None (B01 toolchain scaffold landed; native `pnpm test` and `pnpm typecheck` passing).
 
 #### B01: Scaffold and pin the toolchain {#b01-scaffold-and-pin-the-toolchain}
 - **Owner:** B / Platform
 - **Planned Date:** Nov 8, 2026
 - **Dependencies:** None
-- **Status:** TODO
-- **Deliverable & Files:** `package.json` (proposed), `pnpm-lock.yaml` (proposed), `.nvmrc` (proposed), `tsconfig.json` (proposed), `vitest.config.ts` (proposed), `playwright.config.ts` (proposed), `.github/workflows/ci.yml` (proposed)
+- **Status:** REVIEW
+- **Deliverable & Files:** [package.json](package.json), [pnpm-lock.yaml](pnpm-lock.yaml), [pnpm-workspace.yaml](pnpm-workspace.yaml), [.nvmrc](.nvmrc), [tsconfig.json](tsconfig.json), [next.config.ts](next.config.ts), [postcss.config.mjs](postcss.config.mjs), [tailwind.config.ts](tailwind.config.ts), [eslint.config.mjs](eslint.config.mjs), [vitest.config.ts](vitest.config.ts), [playwright.config.ts](playwright.config.ts), [.github/workflows/ci.yml](.github/workflows/ci.yml), [.env.example](.env.example), [src/app/layout.tsx](src/app/layout.tsx), [src/app/page.tsx](src/app/page.tsx), [src/app/globals.css](src/app/globals.css), [tests/e2e/smoke.spec.ts](tests/e2e/smoke.spec.ts)
 - **Atomic Steps:**
-  - [ ] Initialize Next.js 15 App Router with TypeScript, Tailwind CSS, ESLint, `src/` directory, and `@/*` alias.
-  - [ ] Pin Node 22 in `.nvmrc` and pnpm in `packageManager` field of `package.json`.
-  - [ ] Install dependencies: `zod`, `drizzle-orm`, `pg`, `@upstash/qstash`.
-  - [ ] Install dev dependencies: `drizzle-kit`, `@types/pg`, `vitest`, `@playwright/test`, `tsx`.
-  - [ ] Configure GitHub Actions CI workflow for lint, typecheck, unit test, and build with frozen lockfile.
+  - [x] Initialize Next.js 15 App Router with TypeScript, Tailwind CSS, ESLint, `src/` directory, and `@/*` alias.
+  - [x] Pin Node 22 in `.nvmrc` and pnpm in `packageManager` field of `package.json`.
+  - [x] Install dependencies: `zod`, `drizzle-orm`, `pg`, `@upstash/qstash`.
+  - [x] Install dev dependencies: `drizzle-kit`, `@types/pg`, `vitest`, `@playwright/test`, `tsx`.
+  - [x] Configure GitHub Actions CI workflow for lint, typecheck, unit test, and build with frozen lockfile.
 - **Acceptance Criteria:**
   - Clean clone executes `pnpm install`, `pnpm dev`, `pnpm typecheck`, `pnpm test`, and `pnpm build` without errors.
   - Negative check: CI fails if dependencies are added without updating lockfile.
-- **Evidence Level & Entry Point:** E1 (Local CLI build and CI runner execution log).
-- **Evidence:** *Pending execution*
+- **Evidence Level & Entry Point:** E1 (Static analysis & build), E2 (Vitest unit tests), E5 (Playwright Chromium browser smoke test).
+- **Evidence:** Next.js 15.5.29 App Router scaffolded on Node 22.18.0 / pnpm 11.9.0 with TypeScript strict mode, Tailwind CSS v3, and ESLint flat config. All scripts verified locally: `pnpm install --frozen-lockfile` (1.5s), `pnpm lint` (0 errors, 0 warnings), `pnpm typecheck` (0 errors), `pnpm test` (55/55 tests passing across 2 suites), `pnpm build` (compiled in 11.5s, 4 static pages generated), and `pnpm test:e2e` (Playwright Chromium smoke test passed). Clean installation and build independently validated in disposable working copy. GitHub Actions CI workflow authored at `.github/workflows/ci.yml`.
 - **Handoff:** Unblocks A01, B02, and C01.
 - **Blocker / Decision:** None.
 
@@ -611,9 +611,9 @@ IPP gates govern code correctness across stateful, distributed, and external int
 | Date | Task ID | Command / Walkthrough | Environment | Observed Result | Link / Path |
 | :---: | :---: | :--- | :---: | :--- | :--- |
 | 2026-11-07 | DOC01 | `Select-String`, Markdown link validation, Git status check | Local Dev | All 14 markdown files created; `.gitignore` updated; link integrity verified; zero secrets exposed. | [DOC01](#doc01-repository-documentation) |
-| 2026-11-08 | A01 | Node runtime audit harness `run-invariants-audit.mjs` | Local Dev | 20 assertions passing (strict wrong-mode rejection, 8000/800 limits, complete calendar dates, non-trimmed raw text, UTF-16 emoji offset, bounds, diagnostic text privacy, INV-03 timezone offsets). Repository `pnpm vitest` blocked on B01. | [A01](#a01-request-and-claim-schemas) |
-| 2026-11-08 | A02 | Node runtime audit harness `run-invariants-audit.mjs` | Local Dev | 38 assertions passing (INV-01 claimId vs result ID uniqueness; INV-02 Ask answerText, pre-draft snapshots, and span requirements; INV-03 timezone bounds; INV-04 summary counter parity; shared score rubric; golden fixture). Repository `pnpm vitest` blocked on B01. | [A02](#a02-report-and-event-schemas) |
-| *Pending* | B01 | `pnpm build && pnpm test` | Local Dev | *Pending execution* | [B01](#b01-scaffold-and-pin-the-toolchain) |
+| 2026-11-08 | A01 | `pnpm test` (vitest run `tests/unit/contracts/request-claim.test.ts`) | Local Dev | 25/25 tests passing natively under repository toolchain. | [A01](#a01-request-and-claim-schemas) |
+| 2026-11-08 | A02 | `pnpm test` (vitest run `tests/unit/contracts/report-fixture.test.ts`) | Local Dev | 30/30 tests passing natively under repository toolchain; full golden fixture validated. | [A02](#a02-report-and-event-schemas) |
+| 2026-11-08 | B01 | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` | Local Dev & Disposable Copy | All 6 checks passed cleanly (0 lint/type errors, 55 vitest tests, production build 4/4 static pages, 1/1 Playwright Chromium smoke test). | [B01](#b01-scaffold-and-pin-the-toolchain) |
 | *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
 | *Pending* | B04 | `pnpm vitest run tests/integration/vertical-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | *Pending* | B07 | `pnpm tsx infra/smoke-staging.ts` | Vercel Staging | *Pending execution* | [B07](#b07-provision-staging-with-real-integrations) |

@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #182431;
+  --color-paper: #FAFBF8;
+  --color-panel: #FFFFFF;
+  --color-line: #DFE7E3;
+  --color-accent: #006F63;
+}
