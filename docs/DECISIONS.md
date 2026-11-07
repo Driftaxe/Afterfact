@@ -43,7 +43,7 @@ This document tracks the foundational architectural decisions made for **Afterfa
 ### ADR-005: Deterministic TypeScript Rules Over Probabilistic LLM Scoring
 - **Status:** Approved
 - **Date:** 2026-11-07
-- **Choice:** LLMs extract atomic claims and evaluate passage relevance; deterministic TypeScript code evaluates dates, checks scope, determines verdicts, and assigns scores.
+- **Choice:** LLMs extract atomic claims and evaluate passage relevance; deterministic TypeScript code evaluates dates, checks scope, determines verdicts, and assigns scores: `supported` -> 100 or 75; `outdated` or `contradicted` -> 0; unresolved (`depends_on_context`, `conflicting_evidence`, `insufficient_evidence`) -> `null` with machine reason code and explanation.
 - **Rationale:** LLMs are notoriously unreliable at arithmetic, temporal math, and consistent scoring rubrics. Deterministic code guarantees reproducibility, zero score drift, and auditable decision trees.
 - **Unresolved Questions:** None. Validated in UPPR Rev 4 experiments.
 

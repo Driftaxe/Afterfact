@@ -112,7 +112,7 @@ The verification engine produces a deterministic heuristic score (not an LLM-hal
 | **100** | **Direct Authoritative Support** | Authoritative primary source directly affirms entity, attribute, value, and scope. | `AUTHORITATIVE_PRIMARY_SUPPORT` |
 | **75** | **Indirect Applicable Support** | Secondary trusted source or indirect reference affirms claim under valid scope. | `INDIRECT_CREDIBLE_SUPPORT` |
 | **0** | **Decisive Contradiction** | Governing primary source explicitly disproves asserted value or affirms opposite. | `DECISIVE_CONTRADICTION` |
-| `null` | **Outdated (Prior Valid, Superseded)** | Evidence proves claim was once valid but has been explicitly superseded. | `SUPERSEDED_HISTORICAL_CLAIM` |
+| **0** | **Outdated (Prior Valid, Superseded)** | Evidence proves claim was once valid but has been explicitly superseded. | `SUPERSEDED_HISTORICAL_CLAIM` |
 | `null` | **Depends on Context** | Claim accuracy depends on missing qualifier (version, region, billing term). | `ESSENTIAL_CONTEXT_MISSING` |
 | `null` | **Conflicting Evidence** | Multiple credible sources from the same period provide contradictory facts. | `CREDIBLE_SOURCES_DISAGREE` |
 | `null` | **Insufficient Evidence** | Available search results do not contain relevant or authoritative proof. | `INSUFFICIENT_RETRIEVAL_DATA` |

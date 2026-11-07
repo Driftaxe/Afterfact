@@ -93,41 +93,41 @@ IPP gates govern code correctness across stateful, distributed, and external int
 - **Owner:** A / Verification
 - **Planned Date:** Nov 8, 2026
 - **Dependencies:** B01 (scaffold)
-- **Status:** TODO
-- **Deliverable & Files:** `src/lib/contracts/request.ts` (proposed), `src/lib/contracts/claim.ts` (proposed)
+- **Status:** REVIEW
+- **Deliverable & Files:** [src/lib/contracts/dates.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/dates.ts), [src/lib/contracts/request.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/request.ts), [src/lib/contracts/claim.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/claim.ts), [tests/unit/contracts/request-claim.test.ts](file:///C:/Users/Mayur/Desktop/Afterfact/tests/unit/contracts/request-claim.test.ts)
 - **Atomic Steps:**
-  - [ ] Define Zod schema for paste request (up to 8,000 characters, optional originalQuestion, context object).
-  - [ ] Define Zod schema for ask request (up to 800 characters, question, context object).
-  - [ ] Define Zod tagged union for request input (`mode: 'paste' | 'ask'`).
-  - [ ] Define Zod schema for atomic claim spec (entity, attribute, assertedValue, timeSensitivity, UTF-16 span offsets).
-  - [ ] Implement span validation helper ensuring `answer.slice(span.start, span.end) === claim.rawText`.
+  - [x] Define Zod schema for paste request (up to 8,000 characters, optional originalQuestion, context object).
+  - [x] Define Zod schema for ask request (up to 800 characters, question, context object).
+  - [x] Define Zod tagged union for request input (`mode: 'paste' | 'ask'`).
+  - [x] Define Zod schema for atomic claim spec (entity, attribute, assertedValue, timeSensitivity, UTF-16 span offsets).
+  - [x] Implement span validation helper ensuring `answer.slice(span.start, span.end) === claim.rawText`.
 - **Acceptance Criteria:**
   - Whitespace-only input fails validation (`400 Bad Request`).
   - Extracted UTF-16 spans match unmodified input slice exactly.
   - Explicit scope stated in text is stored independently of requested search context.
 - **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/contracts/request-claim.test.ts`).
-- **Evidence:** *Pending execution*
+- **Evidence:** Repaired and verified via Node runtime audit harness (20 assertions passing: strict wrong-mode rejection, 8000/800 limits, 8001/801 rejects, whitespace rejection, un-trimmed raw text preservation, emoji UTF-16 offsets, fractional/empty/inverted/negative bounds checks, and diagnostic text privacy; plus timezone offset range checks for INV-03). Repository `pnpm vitest` execution remains blocked pending Task B01 toolchain scaffolding.
 - **Handoff:** Downstream to A02 (report/event schemas) and C01/C02 (UI component types).
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** Blocked on B01 scaffold for repository-native `pnpm test` and `pnpm typecheck` execution.
 
 #### A02: Define report and event schemas and create shared fixture {#a02-report-and-event-schemas}
 - **Owner:** A / Verification
 - **Planned Date:** Nov 8, 2026
 - **Dependencies:** A01
-- **Status:** TODO
-- **Deliverable & Files:** `src/lib/contracts/evidence.ts` (proposed), `src/lib/contracts/report.ts` (proposed), `src/lib/contracts/events.ts` (proposed), `fixtures/golden-mixed-report.json` (proposed)
+- **Status:** REVIEW
+- **Deliverable & Files:** [src/lib/contracts/evidence.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/evidence.ts), [src/lib/contracts/report.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/report.ts), [src/lib/contracts/events.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/events.ts), [fixtures/golden-mixed-report.json](file:///C:/Users/Mayur/Desktop/Afterfact/fixtures/golden-mixed-report.json), [tests/unit/contracts/report-fixture.test.ts](file:///C:/Users/Mayur/Desktop/Afterfact/tests/unit/contracts/report-fixture.test.ts)
 - **Atomic Steps:**
-  - [ ] Define Zod schema for evidence metadata (url, title, publisher, passage, retrievedAt, publicationDate, effectiveDate).
-  - [ ] Define Zod schema for claim result (verdict enum, score heuristic, scoreReason, reasonCode, timeline, correction).
-  - [ ] Define discriminated union for SSE progress events (`run_started`, `claims_identified`, `claim_result`, `claim_failed`, `run_finished`).
-  - [ ] Construct `fixtures/golden-mixed-report.json` covering pricing, API, regulation, and leadership, including at least 1 future-effective event and 1 unknown/unresolved claim.
+  - [x] Define Zod schema for evidence metadata (url, title, publisher, passage, retrievedAt, publicationDate, effectiveDate).
+  - [x] Define Zod schema for claim result (verdict enum, score heuristic, scoreReason, reasonCode, timeline, correction).
+  - [x] Define discriminated union for SSE progress events (`run_started`, `claims_identified`, `claim_result`, `claim_failed`, `run_finished`).
+  - [x] Construct `fixtures/golden-mixed-report.json` covering pricing, API, regulation, and leadership, including at least 1 future-effective event and 1 unknown/unresolved claim.
 - **Acceptance Criteria:**
   - Golden fixture passes validation against Zod report schema without errors.
   - UI imports types from the exact same schema files that API route handlers validate.
 - **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/contracts/report-fixture.test.ts`).
-- **Evidence:** *Pending execution*
+- **Evidence:** Repaired and verified via Node runtime audit harness (38 assertions passing: INV-01 claimId vs result ID uniqueness; INV-02 Ask answerText, pre-draft snapshots, and span requirements; INV-03 timezone offset hour/minute range bounds; INV-04 summary counter parity for failed and pending claims; shared score rubric enforcing supported 100/75, outdated/contradicted strictly 0, unresolved null with non-whitespace reason; HTTP(S) evidence URLs; duplicate claim/evidence ID rejection; partial reports with assessed and failed claims; and full golden fixture validation). Repository `pnpm vitest` execution remains blocked pending Task B01 toolchain scaffolding.
 - **Handoff:** Downstream to C01/C02 (design tokens & report skeleton) and B03/B04 (Tavily adapter & DB migrations).
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** Blocked on B01 scaffold for repository-native `pnpm test` and `pnpm typecheck` execution.
 
 #### B01: Scaffold and pin the toolchain {#b01-scaffold-and-pin-the-toolchain}
 - **Owner:** B / Platform
@@ -611,9 +611,10 @@ IPP gates govern code correctness across stateful, distributed, and external int
 | Date | Task ID | Command / Walkthrough | Environment | Observed Result | Link / Path |
 | :---: | :---: | :--- | :---: | :--- | :--- |
 | 2026-11-07 | DOC01 | `Select-String`, Markdown link validation, Git status check | Local Dev | All 14 markdown files created; `.gitignore` updated; link integrity verified; zero secrets exposed. | [DOC01](#doc01-repository-documentation) |
+| 2026-11-08 | A01 | Node runtime audit harness `run-invariants-audit.mjs` | Local Dev | 20 assertions passing (strict wrong-mode rejection, 8000/800 limits, complete calendar dates, non-trimmed raw text, UTF-16 emoji offset, bounds, diagnostic text privacy, INV-03 timezone offsets). Repository `pnpm vitest` blocked on B01. | [A01](#a01-request-and-claim-schemas) |
+| 2026-11-08 | A02 | Node runtime audit harness `run-invariants-audit.mjs` | Local Dev | 38 assertions passing (INV-01 claimId vs result ID uniqueness; INV-02 Ask answerText, pre-draft snapshots, and span requirements; INV-03 timezone bounds; INV-04 summary counter parity; shared score rubric; golden fixture). Repository `pnpm vitest` blocked on B01. | [A02](#a02-report-and-event-schemas) |
 | *Pending* | B01 | `pnpm build && pnpm test` | Local Dev | *Pending execution* | [B01](#b01-scaffold-and-pin-the-toolchain) |
 | *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
-| *Pending* | A01 | `pnpm vitest run tests/unit/contracts/` | Local Dev | *Pending execution* | [A01](#a01-request-and-claim-schemas) |
 | *Pending* | B04 | `pnpm vitest run tests/integration/vertical-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | *Pending* | B07 | `pnpm tsx infra/smoke-staging.ts` | Vercel Staging | *Pending execution* | [B07](#b07-provision-staging-with-real-integrations) |
 | *Pending* | B08 | `pnpm tsx infra/smoke-production.ts` | Production | *Pending execution* | [B08](#b08-deploy-production-and-verify-fallbacks) |

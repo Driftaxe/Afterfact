@@ -94,7 +94,7 @@ Is essential scope ambiguous and do different scopes yield conflicting values?
 Does authoritative source directly contradict asserted value for the target time?
          ├─► YES:
          │   Did claim assert past validity that was historically true?
-         │   ├─► YES (Prior valid + Superseded): Return `outdated` (Score: null / 0, Code: SUPERSEDED_HISTORICAL_CLAIM)
+         │   ├─► YES (Prior valid + Superseded): Return `outdated` (Score: 0, Code: SUPERSEDED_HISTORICAL_CLAIM)
          │   └─► NO: Return `contradicted` (Score: 0, Code: DECISIVE_CONTRADICTION)
          ▼ NO
 [ Step 4: Irreconcilable Conflict? ]
@@ -118,8 +118,8 @@ Scores are deterministic heuristics representing epistemic certainty, **not stat
 
 - **`100`:** Direct primary authoritative support under matching scope and valid timeframe.
 - **`75`:** Indirect but sufficient credible support; no conflicting evidence found.
-- **`0`:** Decisive contradiction by governing source, or claim is demonstrably false.
-- **`null`:** Unresolved claims (`outdated`, `depends_on_context`, `conflicting_evidence`, `insufficient_evidence`). Every `null` score is accompanied by an explicit `scoreReason` and `reasonCode`.
+- **`0`:** Decisive contradiction by governing source, or claim is outdated (prior validity proven and superseded).
+- **`null`:** Unresolved claims (`depends_on_context`, `conflicting_evidence`, `insufficient_evidence`). Every `null` score is accompanied by an explicit `scoreReason` and `reasonCode`.
 
 ---
 
