@@ -77,8 +77,16 @@ Returns the point-in-time snapshot of the run, all claims, and extracted evidenc
 ```json
 {
   "id": "run_01j98ab7cd6ef8gh9jk01lmno2",
+  "parentRunId": null,
   "mode": "paste",
   "state": "completed",
+  "answerText": "Stripe charges 2.9% + 30 cents per transaction in the US. In the UK, it charges 1.4% + 20p for European cards. Parag Agrawal is the current CEO of Twitter.",
+  "context": {
+    "targetDate": "2026-11-08",
+    "jurisdiction": "US",
+    "currency": "USD"
+  },
+  "asOfDate": "2026-11-08",
   "createdAt": "2026-11-08T00:00:00Z",
   "finishedAt": "2026-11-08T00:00:14Z",
   "latestSeq": 5,
@@ -87,17 +95,21 @@ Returns the point-in-time snapshot of the run, all claims, and extracted evidenc
     "supported": 1,
     "outdated": 1,
     "contradicted": 1,
-    "unresolved": 0
+    "unresolved": 0,
+    "failed": 0,
+    "pending": 0
   },
   "claims": [
     {
-      "id": "clm_01j98ab8e1",
+      "id": "res_01j98ab8e1",
+      "claimId": "clm_01j98ab8e1",
+      "parentClaimId": null,
       "ordinal": 0,
       "rawText": "Parag Agrawal is the current CEO of Twitter.",
       "span": { "start": 128, "end": 172 },
       "state": "assessed",
       "verdict": "outdated",
-      "score": null,
+      "score": 0,
       "scoreReason": "Historical validity confirmed (Nov 2021). Superseded by acquisition and Linda Yaccarino appointment.",
       "reasonCode": "SUPERSEDED_HISTORICAL_CLAIM",
       "evidenceIds": ["evi_01j98ab9f1", "evi_01j98ab9f2"],
@@ -119,7 +131,8 @@ Returns the point-in-time snapshot of the run, all claims, and extracted evidenc
         "originalText": "Parag Agrawal is the current CEO of Twitter",
         "replacementText": "Linda Yaccarino is the CEO of X (formerly Twitter)",
         "diff": "- Parag Agrawal is the current CEO of Twitter\n+ Linda Yaccarino is the CEO of X (formerly Twitter)",
-        "verified": true
+        "verified": true,
+        "evidenceIds": ["evi_01j98ab9f2"]
       }
     }
   ],
@@ -155,7 +168,7 @@ event: claims_identified
 data: {"runId":"run_01j98ab7cd6ef8gh9jk01lmno2","seq":2,"claims":[{"id":"clm_01j98ab8e1","ordinal":0,"span":{"start":128,"end":172},"text":"Parag Agrawal is the current CEO of Twitter."}]}
 
 event: claim_result
-data: {"runId":"run_01j98ab7cd6ef8gh9jk01lmno2","seq":3,"claimId":"clm_01j98ab8e1","verdict":"outdated","score":null,"reasonCode":"SUPERSEDED_HISTORICAL_CLAIM"}
+data: {"runId":"run_01j98ab7cd6ef8gh9jk01lmno2","seq":3,"claimId":"clm_01j98ab8e1","verdict":"outdated","score":0,"reasonCode":"SUPERSEDED_HISTORICAL_CLAIM"}
 
 event: run_finished
 data: {"runId":"run_01j98ab7cd6ef8gh9jk01lmno2","seq":4,"state":"completed","summary":{"totalClaims":1,"supported":0,"outdated":1}}

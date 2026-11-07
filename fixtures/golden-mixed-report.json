@@ -1,0 +1,277 @@
+{
+  "id": "run_golden_fixture_mixed_001",
+  "parentRunId": null,
+  "mode": "paste",
+  "state": "completed",
+  "asOfDate": "2024-09-01",
+  "answerText": "Anthropic Claude Pro costs $20 per month in the United States. Stripe's payment intent requires specifying payment_method_types manually on modern API versions. The EU AI Act classifies general-purpose AI models with systemic risk under transparency and evaluation rules. Parag Agrawal is the current CEO of Twitter. Cloudflare Workers enforce a strict maximum limit of 50 milliseconds of CPU execution time.",
+  "context": {
+    "targetDate": "2024-09-01",
+    "jurisdiction": "US",
+    "currency": "USD"
+  },
+  "createdAt": "2024-09-01T12:00:00Z",
+  "finishedAt": "2024-09-01T12:00:18Z",
+  "latestSeq": 7,
+  "isReplay": true,
+  "replayLabel": "[REPLAY MODE: Historical Dated Fixture (As of 2024-09-01)]",
+  "summary": {
+    "totalClaims": 5,
+    "supported": 2,
+    "outdated": 1,
+    "contradicted": 1,
+    "unresolved": 1
+  },
+  "claims": [
+    {
+      "id": "res_pricing_01",
+      "claimId": "clm_pricing_01",
+      "parentClaimId": null,
+      "ordinal": 0,
+      "rawText": "Anthropic Claude Pro costs $20 per month in the United States.",
+      "span": {
+        "start": 0,
+        "end": 62
+      },
+      "state": "assessed",
+      "verdict": "supported",
+      "score": 100,
+      "scoreReason": "Governing primary source directly confirms Claude Pro subscription is $20/month for US customers.",
+      "reasonCode": "AUTHORITATIVE_PRIMARY_SUPPORT",
+      "evidenceIds": ["evi_pricing_01"],
+      "timeline": [
+        {
+          "state": "current",
+          "effectiveDate": "2023-09-07",
+          "announcementDate": "2023-09-07",
+          "summary": "Anthropic launches Claude Pro for $20 (US) / £18 (UK) per month.",
+          "evidenceId": "evi_pricing_01"
+        }
+      ]
+    },
+    {
+      "id": "res_api_01",
+      "claimId": "clm_api_01",
+      "parentClaimId": null,
+      "ordinal": 1,
+      "rawText": "Stripe's payment intent requires specifying payment_method_types manually on modern API versions.",
+      "span": {
+        "start": 63,
+        "end": 160
+      },
+      "state": "assessed",
+      "verdict": "contradicted",
+      "score": 0,
+      "scoreReason": "Official Stripe developer documentation affirms payment_method_types is deprecated in favor of automatic_payment_methods.",
+      "reasonCode": "DECISIVE_CONTRADICTION",
+      "evidenceIds": ["evi_api_01"]
+    },
+    {
+      "id": "res_reg_01",
+      "claimId": "clm_reg_01",
+      "parentClaimId": null,
+      "ordinal": 2,
+      "rawText": "The EU AI Act classifies general-purpose AI models with systemic risk under transparency and evaluation rules.",
+      "span": {
+        "start": 161,
+        "end": 271
+      },
+      "state": "assessed",
+      "verdict": "supported",
+      "score": 100,
+      "scoreReason": "Regulation (EU) 2024/1689 establishes transparency and systemic risk rules. Obligations are scheduled to take effect in August 2025.",
+      "reasonCode": "SCHEDULED_CHANGE_PENDING",
+      "evidenceIds": ["evi_regulation_01", "evi_regulation_02"],
+      "timeline": [
+        {
+          "state": "transition",
+          "effectiveDate": "2024-08-01",
+          "announcementDate": "2024-07-12",
+          "summary": "EU AI Act enters into force across member states.",
+          "evidenceId": "evi_regulation_01"
+        },
+        {
+          "state": "upcoming",
+          "effectiveDate": "2025-08-02",
+          "announcementDate": "2024-07-12",
+          "summary": "General-Purpose AI governance obligations and codes of practice take full effect.",
+          "evidenceId": "evi_regulation_02"
+        }
+      ]
+    },
+    {
+      "id": "res_lead_01",
+      "claimId": "clm_lead_01",
+      "parentClaimId": null,
+      "ordinal": 3,
+      "rawText": "Parag Agrawal is the current CEO of Twitter.",
+      "span": {
+        "start": 272,
+        "end": 316
+      },
+      "state": "assessed",
+      "verdict": "outdated",
+      "score": 0,
+      "scoreReason": "Historical appointment verified in Nov 2021. Superseded by acquisition in Oct 2022 and Linda Yaccarino assumption in June 2023.",
+      "reasonCode": "SUPERSEDED_HISTORICAL_CLAIM",
+      "evidenceIds": ["evi_leadership_01", "evi_leadership_02"],
+      "timeline": [
+        {
+          "state": "historical",
+          "effectiveDate": "2021-11-29",
+          "announcementDate": "2021-11-29",
+          "summary": "Twitter announces Parag Agrawal as Chief Executive Officer.",
+          "evidenceId": "evi_leadership_01"
+        },
+        {
+          "state": "transition",
+          "effectiveDate": "2022-10-27",
+          "announcementDate": "2022-10-27",
+          "summary": "Elon Musk completes acquisition of Twitter, Inc. and terminates prior executive leadership.",
+          "evidenceId": "evi_leadership_02"
+        },
+        {
+          "state": "current",
+          "effectiveDate": "2023-06-05",
+          "announcementDate": "2023-05-12",
+          "summary": "Linda Yaccarino officially begins role as Chief Executive Officer of X / Twitter.",
+          "evidenceId": "evi_leadership_02"
+        }
+      ],
+      "correction": {
+        "originalText": "Parag Agrawal is the current CEO of Twitter",
+        "replacementText": "Linda Yaccarino is the CEO of X (formerly Twitter)",
+        "diff": "- Parag Agrawal is the current CEO of Twitter\n+ Linda Yaccarino is the CEO of X (formerly Twitter)",
+        "verified": true,
+        "evidenceIds": ["evi_leadership_02"]
+      }
+    },
+    {
+      "id": "res_ctx_01",
+      "claimId": "clm_ctx_01",
+      "parentClaimId": null,
+      "ordinal": 4,
+      "rawText": "Cloudflare Workers enforce a strict maximum limit of 50 milliseconds of CPU execution time.",
+      "span": {
+        "start": 317,
+        "end": 408
+      },
+      "state": "assessed",
+      "verdict": "depends_on_context",
+      "score": null,
+      "scoreReason": "CPU limit depends on the subscription plan: Free tier allows 10ms CPU time; Workers Paid allows 50ms (or up to 30s wall time).",
+      "reasonCode": "ESSENTIAL_CONTEXT_MISSING",
+      "evidenceIds": ["evi_context_01"]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evi_pricing_01",
+      "url": "https://www.anthropic.com/pricing",
+      "title": "Anthropic Claude Pro Subscription Pricing",
+      "publisher": "Anthropic PBC",
+      "sourceType": "official_documentation",
+      "passage": "Claude Pro is available for $20 per month (plus applicable tax) in the US, giving users 5x more usage than our free tier.",
+      "retrievedAt": "2024-09-01T12:00:02Z",
+      "publicationDate": "2023-09-07",
+      "effectiveDate": "2023-09-07",
+      "announcementDate": "2023-09-07",
+      "scope": {
+        "currency": "USD",
+        "jurisdiction": "US",
+        "billingTerm": "monthly"
+      }
+    },
+    {
+      "id": "evi_api_01",
+      "url": "https://docs.stripe.com/payments/payment-intents",
+      "title": "Stripe API Documentation: Payment Intents",
+      "publisher": "Stripe, Inc.",
+      "sourceType": "official_documentation",
+      "passage": "We recommend using automatic_payment_methods[enabled]=true instead of manually passing payment_method_types. Manual payment method types are deprecated for modern integrations.",
+      "retrievedAt": "2024-09-01T12:00:05Z",
+      "publicationDate": "2024-05-15",
+      "effectiveDate": "2024-05-15",
+      "scope": {
+        "vendor": "Stripe",
+        "api": "REST"
+      }
+    },
+    {
+      "id": "evi_regulation_01",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401689",
+      "title": "Regulation (EU) 2024/1689 of the European Parliament and of the Council (Artificial Intelligence Act)",
+      "publisher": "Publications Office of the European Union",
+      "sourceType": "regulatory_register",
+      "passage": "This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union. Chapters I and II shall apply from 2 February 2025. Chapter V (General Purpose AI Models) shall apply from 2 August 2025.",
+      "retrievedAt": "2024-09-01T12:00:09Z",
+      "publicationDate": "2024-07-12",
+      "effectiveDate": "2024-08-01",
+      "announcementDate": "2024-07-12",
+      "scope": {
+        "jurisdiction": "EU"
+      }
+    },
+    {
+      "id": "evi_regulation_02",
+      "url": "https://digital-strategy.ec.europa.eu/en/policies/ai-office",
+      "title": "European AI Office Implementation Guidelines",
+      "publisher": "European Commission",
+      "sourceType": "official_documentation",
+      "passage": "Obligations for providers of general-purpose AI models under Chapter V will start applying on 2 August 2025, 12 months after the entry into force.",
+      "retrievedAt": "2024-09-01T12:00:10Z",
+      "publicationDate": "2024-08-05",
+      "effectiveDate": "2025-08-02",
+      "announcementDate": "2024-07-12",
+      "scope": {
+        "jurisdiction": "EU"
+      }
+    },
+    {
+      "id": "evi_leadership_01",
+      "url": "https://www.sec.gov/edgar/data/1418091/000119312521342646/d256860d8k.htm",
+      "title": "Twitter, Inc. Form 8-K Current Report",
+      "publisher": "US Securities and Exchange Commission",
+      "sourceType": "sec_filing",
+      "passage": "On November 29, 2021, Twitter, Inc. announced that Jack Dorsey stepped down as Chief Executive Officer and the Board of Directors appointed Parag Agrawal, then Chief Technology Officer, as Chief Executive Officer.",
+      "retrievedAt": "2024-09-01T12:00:12Z",
+      "publicationDate": "2021-11-29",
+      "effectiveDate": "2021-11-29",
+      "announcementDate": "2021-11-29",
+      "scope": {
+        "office": "CEO",
+        "entity": "Twitter"
+      }
+    },
+    {
+      "id": "evi_leadership_02",
+      "url": "https://www.reuters.com/technology/linda-yaccarino-starts-new-role-twitter-ceo-2023-06-06/",
+      "title": "Linda Yaccarino starts new role as Twitter CEO",
+      "publisher": "Reuters",
+      "sourceType": "news_report",
+      "passage": "Linda Yaccarino officially assumed the role of chief executive officer of Twitter on Monday, June 5, 2023, following Elon Musk's announcement in May.",
+      "retrievedAt": "2024-09-01T12:00:13Z",
+      "publicationDate": "2023-06-06",
+      "effectiveDate": "2023-06-05",
+      "announcementDate": "2023-05-12",
+      "scope": {
+        "office": "CEO",
+        "entity": "Twitter / X"
+      }
+    },
+    {
+      "id": "evi_context_01",
+      "url": "https://developers.cloudflare.com/workers/platform/limits/",
+      "title": "Cloudflare Workers Platform Limits",
+      "publisher": "Cloudflare, Inc.",
+      "sourceType": "official_documentation",
+      "passage": "Free plans receive up to 10 milliseconds of CPU execution time per request. Workers Paid plans receive up to 50 milliseconds of CPU time per request, or up to 30 seconds of wall-clock time under Unbound billing.",
+      "retrievedAt": "2024-09-01T12:00:15Z",
+      "publicationDate": "2024-03-01",
+      "effectiveDate": "2024-03-01",
+      "scope": {
+        "vendor": "Cloudflare"
+      }
+    }
+  ]
+}
