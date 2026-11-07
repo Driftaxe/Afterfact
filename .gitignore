@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local specification and prompt files
+pp.md
+stale-answer-detector-implementation-plan.pdf
+
