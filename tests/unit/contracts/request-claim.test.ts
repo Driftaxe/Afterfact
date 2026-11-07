@@ -240,7 +240,7 @@ describe('A01 Contracts — Request and Claim Schemas', () => {
 
     it('rejects fractional span offsets', () => {
       const answer = 'Fractional testing';
-      const validation = validateClaimSpan(answer, { start: 1.5 as any, end: 5 }, 'rac');
+      const validation = validateClaimSpan(answer, { start: 1.5 as unknown as number, end: 5 }, 'rac');
       expect(validation.valid).toBe(false);
       expect(validation.reason).toContain('non-fractional integers');
 
