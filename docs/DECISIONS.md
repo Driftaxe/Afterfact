@@ -91,3 +91,103 @@ This document tracks the foundational architectural decisions made for **Afterfa
 - **Choice:** Live web retrieval is the production default. Cached fixture replay is supported but must display a prominent `[REPLAY MODE]` banner.
 - **Rationale:** Ensures complete intellectual honesty during judging while providing a reliable fallback in case of conference network outages.
 - **Unresolved Questions:** None.
+
+
+---
+
+### ADR-011: Server Actions for Web Mutations with Dedicated Endpoints for Infrastructure & Streaming
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Implement browser mutations (start preparation, confirm preparation, submit clarification answers, compare context, recheck run) via thin Next.js Server Actions that call shared server-side application services (`src/server/services/*`). Keep dedicated HTTP endpoints for QStash delivery, signed recovery cron, SSE progress streaming, report snapshots, and the programmatic REST API adapter.
+- **Rationale:** Server Actions eliminate boilerplate client-side fetching code and provide type-safe RPC semantics for the Next.js frontend, while calling shared server services directly in-process without making unnecessary self-referential HTTP loopback requests. Server Actions are treated as untrusted public network entry points enforcing input schema validation, anonymous cookie ownership (`ownerHash`), client idempotency, and rate limits.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-012: Bounded Reconnectable SSE Progress Transport (Rejecting Pusher)
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Stream live progress through Next.js Server-Sent Events (`GET /api/runs/[id]/events`) backed by an append-only `events` database table with sequence numbers (`seq`), replay support (`?afterSeq=N`), and automatic 2-second snapshot polling fallback. Explicitly reject Pusher or third-party WebSocket hosted services.
+- **Rationale:** SSE runs natively over HTTP/2 with zero third-party dependencies, vendor accounts, or billing surprises. Persisting ordered events in PostgreSQL guarantees that clients can reconnect and replay missed events after transient network disconnects. Crucially, the lifetime of an SSE connection is completely decoupled from job execution: workers execute and commit state asynchronously regardless of whether a browser is actively connected.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-013: Full Persisted Dynamic DAG in PostgreSQL with QStash Bounded Concurrency
+- **Status:** Approved (Supersedes static pipeline assumption in ADR-006)
+- **Date:** 2026-11-08
+- **Choice:** Manage verification execution via a full dynamic Directed Acyclic Graph (DAG) persisted in PostgreSQL (`dag_nodes` / unified `jobs` and `dag_edges`). Graph nodes represent discrete work units (extraction, search, assessment, scoring, clarification wait, finalization) that execute with bounded concurrency (up to 3 parallel claim branches) via Upstash QStash.
+- **Rationale:** Real-world verification cannot be modeled as a rigid, static 2-step pipeline. Complex claims require runtime graph expansion (e.g. discovering ambiguous facts that trigger clarification subgraphs or targeted secondary searches), dependency conditions (`on_success` vs `on_terminal`), pausing for human clarification without holding active worker leases, and deterministic failure propagation with skipped descendants. Storing the graph and execution state in PostgreSQL provides ACID transaction guarantees, lease-fenced commits, cycle rejection, and auditability.
+- **Unresolved Questions:** Ensuring QStash fan-out dispatch records commit within the same transaction as node status updates before external message delivery.
+
+---
+
+### ADR-014: Interactive Preparation, Context Review, and Revision Binding Workflow
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Introduce an explicit interactive preparation phase prior to verification execution: `Submit Input` $\longrightarrow$ `Extract Claims & Context` $\longrightarrow$ `Review / Correct Context` $\longrightarrow$ `Clarify Ambiguity (if needed)` $\longrightarrow$ `Confirm & Begin Verification`. Preparation is persisted and cryptographically bound to an `inputHash` (SHA-256 of text + prompt).
+- **Rationale:** Running expensive web retrieval and multi-model evaluations against misextracted claims or incorrect default contexts wastes budget and frustrates users. Explicitly separating (1) explicit extracted values with text spans, (2) model-inferred suggestions, (3) user-provided target context, and (4) unknown values gives the user ownership over what is verified. Crucially, the engine enforces the invariant that user-supplied target context never overwrites or mutates an explicit qualifier extracted directly from the claim text. Editing input text immediately invalidates stale preparation.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-015: Generic Dynamic Clarification Forms and Bounded Clarification Protocol
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Standardize domain clarifications through a generic, accessible form renderer accepting five approved field types: `select`, `short text`, `date`, `number`, and `boolean`. Known domains use predefined qualifier schemas; novel domains use model-proposed qualifiers validated against a strict meta-schema. Clarifications support "I don't know" options and are bounded to at most 2 rounds before proceeding with unresolved verdicts.
+- **Rationale:** Clarification questions must provide pure structured data, never executable JSX, client scripts, or arbitrary validation code. Questions and submitted answers are validated server-side against stored version numbers and owner hashes. Unaffected claim branches in the DAG continue executing in parallel while a paused branch awaits clarification, preventing one ambiguous claim from blocking the entire report.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-016: Explicit Multi-Pass Model Responsibilities and Budget Fencing
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Partition LLM interactions into six strictly bounded functional passes: (1) Drafting for Ask mode, (2) Claim/context extraction and preparation, (3) Conditional clarification planning, (4) Passage relevance assessment, (5) Conditional targeted reassessment, and (6) Correction generation and verification. Extraction and context preparation share a single invocation.
+- **Rationale:** Decoupling model responsibilities prevents prompt bloat and eliminates conflicting instructions. Each pass operates under fixed prompt budgets, isolated execution timeouts, single retry limits, and dedicated Bifrost fallback profiles. Deterministic TypeScript code retains absolute authority over dates, scoring rubrics, graph scheduling, and verdicts.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-017: Sanitized Public UI Projection and Expandable Execution Graph
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Expose a sanitized public projection of process and run state to the client: active preparation review, stage indicators, awaiting-clarification modals, per-claim outcomes, and final report summaries, accompanied by an optional expandable DAG / run-details inspector.
+- **Rationale:** Prevents security and intellectual property leakage by strictly scrubbing worker lease tokens, QStash message IDs, database connection strings, and raw upstream provider stack traces before payloads reach the browser. Raw node counts are projected as progress milestones, never misleadingly presented as estimated remaining time.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-018: Universal Claim Ticket with Variable Typed Property Context
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Model claims using a Universal Claim Ticket (`ClaimTicket`) holding an array of strongly typed context properties (`VerificationProperty`), supporting primitive types (`string`, `number`, `boolean`, `date`, `selection`, `string_list`) and explicit provenance tracking (`explicit_claim_text`, `user_target_context`, `model_inferred`, `unknown`). Novel domains define arbitrary qualifiers using this identical contract without global DDL migrations or executable model code. Explicit claim qualifiers permanently take precedence over user target context.
+- **Rationale:** Fixed database schemas fail across diverse domains (pricing vs API versioning vs corporate leadership). Generic unvalidated JSON blobs lead to silent typing errors and uncontrolled prompt drift. A strongly typed property array with explicit provenance guarantees type safety, dynamic domain extensibility, and strict enforcement of the scope precedence invariant.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-019: Decoupled Evidence Architecture (`SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`)
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Decouple evidence into three distinct persisted entities: `SourceDocument` (document metadata, crawl hash, provenance, publication/effective dates, source role), `EvidenceUnit` (localized extracted passage, locators, header hierarchy, table structures, footnotes, direct properties), and `ClaimEvidenceAssessment` (relational semantic assessment between one specific ClaimTicket revision and an evidence unit, with verbatim quote verification and property matching).
+- **Rationale:** Support or contradiction is not an inherent property of a web document or raw passage; it is a relational property between a specific claim revision and an extracted piece of evidence. Conflating document provenance with relational assessment causes duplicate retrieval, corrupts recheck/compare workflows, and prevents surgical auditability. Verbatim quotation verification in TypeScript prevents hallucinated evidence citations.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-020: Vector Similarity Fenced to Candidate Shortlisting (Strictly Excluded from Truth Scoring)
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Strictly confine vector similarity to candidate passage shortlisting and relevance pre-ranking when candidate sets exceed 4 items. Bypassed entirely for candidate sets $\le 4$. Stored simply via in-memory cosine ranking over cached embeddings in PostgreSQL, without an external vector database. Strictly prohibit vector similarity from contributing to or being averaged into public truth scores. Treat counter-hypothesis similarity as experimental and non-blocking.
+- **Rationale:** Vector embeddings capture topical relatedness, not epistemic truth or logical consistency. High vector similarity routinely occurs between contradictory assertions (e.g. differing pricing numbers or conflicting dates). Truth scoring in Afterfact is an epistemic certainty heuristic governed by deterministic TypeScript decision gates, primary source authority, and temporal validity, not floating-point cosine similarity.
+- **Unresolved Questions:** Evaluation of embedding provider latency under Bifrost vs local embeddings.
+
+---
+
+### ADR-021: Auditable Decision Records and Deterministic Synthesis Decision Gate
+- **Status:** Approved
+- **Date:** 2026-11-08
+- **Choice:** Formalize claim verdict synthesis through an immutable `DecisionRecord` produced by a deterministic TypeScript decision gate executing a strict precedence hierarchy (Scope Filter $\to$ Essential Ambiguity $\to$ Contradiction / Outdated $\to$ Irreconcilable Conflict $\to$ Primary Support $\to$ Secondary Support $\to$ Fallback). Preserve the categorical 100 / 75 / 0 / null score rubric, explicit reason codes, evaluated evidence IDs, counterevidence IDs, and excluded evidence rationales.
+- **Rationale:** Asking an LLM to generate the final confidence score or verdict introduces nondeterministic drift, hallucinated compromises, and uncalibrated probabilities. Storing full decision records ensures end-to-end transparency, enables automated regression auditing, and satisfies UPPR Revision 4 invariant-to-proof verification requirements.
+- **Unresolved Questions:** None.

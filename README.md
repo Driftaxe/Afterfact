@@ -1,7 +1,7 @@
 # Afterfact (working name: Stale-Answer Detector)
 
-> **Real-time freshness verification and drift detection for AI-generated answers.**  
-> *Project status: Pre-scaffold documentation & architecture planning baseline (Task DOC01).*  
+> **Real-time freshness verification and drift detection for AI-generated answers.**
+> *Project status: Pre-scaffold documentation & architecture planning baseline (Task DOC01).*
 > *Current code status: Scaffolding and runtime implementation tickets are queued (`TODO`). Branding is undecided.*
 
 ---
@@ -26,38 +26,45 @@ Unlike black-box LLM checkers that hallucinate verdicts or cite nonexistent sour
 [ User Input: Paste AI Answer or Ask Question ]
                      │
                      ▼
-        [ Next.js API: POST /api/verify ]
-                     │ (Persist Run & Coordinator Job)
+[ Interactive Preparation & Context Review (Server Actions) ]
+                     │ (Validate Spans & Scopes; Confirm Run)
                      ▼
-       [ Neon PostgreSQL Database ] ◄───► [ QStash Queue ]
-                                              │ (Signed Webhook Delivery)
-                                              ▼
-                                 [ Next.js Job Worker ]
-                                              │
-                     ┌────────────────────────┴────────────────────────┐
-                     ▼                                                 ▼
-        [ Bifrost Model Gateway ]                           [ Tavily Search & Extract ]
-    - Ask answer drafting                                - Live official documentation
-    - Atomic claim extraction                            - Query-aware passage extraction
-    - Passage relevance assessment                       - Versioned vendor changelogs
-                     │                                                 │
-                     └────────────────────────┬────────────────────────┘
-                                              ▼
-                           [ TypeScript Verification Engine ]
-                            - Scope & qualifier matching
-                            - Temporal & effective date logic
-                            - Deterministic scoring & transitions
-                                              ▼
-                           [ Neon Persistence & Event Outbox ]
-                                              │
-                                              ▼
-                    [ Client: Progressive SSE Stream / Polling ]
-                                              ▼
-                      [ Responsive 55:45 Workspace UI ]
-                       - Per-claim highlight & verdict chips
-                       - Then vs. Now transition timeline
-                       - Side-by-side context comparison
-                       - Evidence-backed correction diff
+       [ Neon PostgreSQL Database ] ◄───► [ Upstash QStash ]
+       - runs & preparations                 - Flow control: Max 3 claims
+       - dag_nodes & dag_edges               - Signed webhook delivery
+       - claims, evidence & events           - Dynamic graph expansion
+                     │
+                     ▼
+        [ Next.js DAG Node Worker (/api/verify/worker) ]
+                     │
+     ┌───────────────┴───────────────┐
+     ▼                               ▼
+[ Bifrost Model Gateway ]   [ Tavily Search & Extract ]
+- Drafting (Ask mode)       - Live authoritative web docs
+- Extraction & Preparation  - Query-aware raw passages
+- Passage Assessment        - Publisher metadata & dates
+- Dynamic Clarification
+     │                               │
+     └───────────────┬───────────────┘
+                     ▼
+        [ TypeScript Verification Engine ]
+        - Scope isolation (explicit vs target)
+        - Three-date separation (pub / announce / effective)
+        - Deterministic scoring rubric (100, 75, 0, null)
+        - Surgical correction verification
+                     ▼
+        [ Atomic Database Commit & Event Outbox ]
+                     │
+                     ▼
+       [ Progressive SSE Stream with Replay / Polling ]
+                     │
+                     ▼
+    [ Responsive 55:45 Workspace UI & DAG Inspector ]
+     - Highlights, verdict chips & exact quoted citations
+     - Accessible dynamic clarification forms
+     - Then vs. Now transition timeline & scheduled change badges
+     - Context comparison drawer & verified correction diffs
+     - Sanitized expandable DAG execution inspector
 ```
 
 ---
@@ -137,7 +144,7 @@ All project engineering standards, schemas, and workflows are canonically docume
 - [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md): Infrastructure provisioning, Docker Bifrost gateway, and environment inventory.
 - [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md): E1–E5 evidence levels, benchmark design, and release gates.
 - [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md): 3-minute judge script, sponsor proof, and submission checklist.
-- [docs/DECISIONS.md](docs/DECISIONS.md): Architectural Decision Records (ADR-001 through ADR-010).
-- [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md): **Single source of truth for all 26 task tickets (A01–A09, B01–B08, C01–C09) and gates (G0–G4).**
-- [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md): **Canonical parallel-work plan, dependency graphs, waves, and cross-lane handoffs.**
+- [docs/DECISIONS.md](docs/DECISIONS.md): Architectural Decision Records (ADR-001 through ADR-021).
+- [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md): **Single source of truth for all 28 task tickets (A01–A11, B01–B08, C01–C09) and gates (G0–G4).**
+- [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md): **Canonical parallel-work plan, dynamic DAG topologies, waves, and cross-lane handoffs.**
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md): Standard PR submission template requiring evidence levels.

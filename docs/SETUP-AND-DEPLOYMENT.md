@@ -96,7 +96,7 @@ flowchart TD
 
 ### Step 4: Configure Upstash QStash
 1. In the Upstash console, set up the QStash project.
-2. Note `QSTASH_CURRENT_SIGNING_KEY` and set webhook target to `${APP_BASE_URL}/api/internal/jobs`.
+2. Note `QSTASH_CURRENT_SIGNING_KEY` and set webhook target to `${APP_BASE_URL}/api/verify/worker`.
 3. Set default retry policy to 3 attempts with exponential backoff.
 
 ### Step 5: Smoke Testing Entry Points
@@ -113,9 +113,9 @@ curl -X POST https://api.tavily.com/search -H "Authorization: Bearer ${TAVILY_AP
 
 ## 4. Rollback and Disaster Recovery
 
-1. **Vercel Rollback:**  
+1. **Vercel Rollback:**
    Vercel allows instant 1-click redeployment of previous immutable deployment artifacts. All database migrations must maintain backwards compatibility (P16: additive columns only) so earlier application builds can query the current database schema without crashing.
-2. **Database Point-in-Time Recovery:**  
+2. **Database Point-in-Time Recovery:**
    Neon supports instant branching and point-in-time recovery. In the event of catastrophic data corruption, restore from a point-in-time branch within the 24-hour retention window.
-3. **Queue Drain:**  
+3. **Queue Drain:**
    If an unhandled bug causes poison-pill jobs in QStash, purge the pending queue topic via the Upstash CLI/dashboard and trigger `/api/internal/reconcile` to mark pending jobs as failed.
