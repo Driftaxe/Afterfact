@@ -1,20 +1,25 @@
+import Link from 'next/link';
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
-      <div className="max-w-2xl space-y-6 rounded-xl border border-line bg-panel p-10 shadow-sm">
-        <div className="inline-block rounded-full bg-accent/10 px-4 py-1 text-sm font-medium text-accent">
-          Foundation Scaffold (Task B01)
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight text-ink">
-          Afterfact
+    <main className="flex min-h-[calc(100vh-8.5rem)] flex-col items-center justify-center px-4 sm:px-6 py-20 sm:py-28 text-center">
+      <div className="w-full max-w-xl mx-auto space-y-6">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-normal tracking-heading text-text-primary">
+          Clarity, even as facts change.
         </h1>
-        <p className="text-lg text-ink/80">
-          Stale-Answer Detector — Evidence-grounded temporal verification for AI-generated answers.
+        <p className="text-base sm:text-lg text-text-secondary leading-[1.6] max-w-md mx-auto">
+          Check AI-generated answers against current sources.
         </p>
-        <div className="rounded-lg border border-line/60 bg-paper p-4 text-sm text-ink/70">
-          <p className="font-semibold text-ink">Verification Workflow Under Construction</p>
-          <p className="mt-1">
-            Core toolchain and contract verification active. Automated claim extraction, web retrieval, and verification pipelines will land in Phase 1.
+
+        <div className="pt-2 flex flex-col items-center gap-3">
+          <Link
+            href="/design"
+            className="inline-flex items-center justify-center h-10 sm:h-11 px-5 rounded-[9px] bg-btn-primary text-btn-primary-text text-sm font-medium hover:bg-btn-primary-hover active:opacity-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            Explore the design system
+          </Link>
+          <p className="text-xs text-text-muted">
+            Design preview · Verification is not available yet.
           </p>
         </div>
       </div>
