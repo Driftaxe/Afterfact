@@ -17,18 +17,18 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await expect(heading).toBeVisible();
     await expect(heading).toContainText('Clarity, even as facts change.');
 
-    const description = page.getByText('Check AI-generated answers against current sources.');
+    const description = page.getByText(/Check AI-generated answers against current web sources/i);
     await expect(description).toBeVisible();
 
-    const cta = page.getByRole('link', { name: 'Explore the design system' });
+    const textarea = page.locator('#answer-input');
+    await expect(textarea).toBeVisible();
+
+    const cta = page.getByRole('link', { name: 'View sample report' }).first();
     await expect(cta).toBeVisible();
 
-    const previewNote = page.getByText(/Design preview · Verification is not available yet\./i);
-    await expect(previewNote).toBeVisible();
-
-    // Verify clicking CTA navigates to /design
+    // Verify clicking CTA navigates to /report/demo?mode=fixture
     await cta.click();
-    await expect(page).toHaveURL(/\/design/);
+    await expect(page).toHaveURL(/\/report\/demo/);
 
     expect(pageErrors).toEqual([]);
   });
@@ -54,6 +54,10 @@ test.describe('Root Application Landing Page & Visual Review', () => {
       path: path.join(ARTIFACT_DIR, 'landing-desktop-dark.png'),
       fullPage: false,
     });
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, 'composer-desktop-dark.png'),
+      fullPage: false,
+    });
 
     // 2. Desktop Light
     const toggleToLight = page.getByRole('button', { name: /switch to light theme/i }).first();
@@ -64,6 +68,10 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, 'landing-desktop-light.png'),
+      fullPage: false,
+    });
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, 'composer-desktop-light.png'),
       fullPage: false,
     });
 
@@ -83,6 +91,10 @@ test.describe('Root Application Landing Page & Visual Review', () => {
       path: path.join(ARTIFACT_DIR, 'landing-mobile-dark.png'),
       fullPage: false,
     });
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, 'composer-mobile-dark.png'),
+      fullPage: false,
+    });
 
     // 4. Mobile Light (390px)
     const toggleToLightMobile = page.getByRole('button', { name: /switch to light theme/i }).first();
@@ -92,6 +104,10 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, 'landing-mobile-light.png'),
+      fullPage: false,
+    });
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, 'composer-mobile-light.png'),
       fullPage: false,
     });
   });

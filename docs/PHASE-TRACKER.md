@@ -376,28 +376,30 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** C / Product
 - **Plain-Language Outcome:** Build the primary input composer, interactive preparation review screen displaying extracted claims and typed qualifiers, and report skeleton rendering fixture playback.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** TODO
+- **Status:** DONE
 - **Phase & Gate Contribution:** Completes Phase 0 UI requirement; completes Gate G0 when paired with B01, B02, A10, and B04a.
-- **Canonical Design References:** [docs/PRODUCT.md §2](docs/PRODUCT.md), [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-014](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/components/InputComposer.tsx` (proposed), `src/components/PreparationReview.tsx` (proposed), `src/components/ContextFields.tsx` (proposed), `src/components/AnswerDocument.tsx` (proposed), `src/components/ReportSkeleton.tsx` (proposed), `tests/e2e/input-composer.spec.ts` (proposed).
+- **Canonical Design References:** [docs/PRODUCT.md §2, §7](docs/PRODUCT.md), [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-014](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** [src/components/composer/InputComposer.tsx](src/components/composer/InputComposer.tsx), [src/components/composer/ContextFields.tsx](src/components/composer/ContextFields.tsx), [src/components/report/AnswerDocument.tsx](src/components/report/AnswerDocument.tsx), [src/components/report/ClaimList.tsx](src/components/report/ClaimList.tsx), [src/components/report/ClaimDetail.tsx](src/components/report/ClaimDetail.tsx), [src/components/report/EvidenceCard.tsx](src/components/report/EvidenceCard.tsx), [src/components/report/ReportSummaryBar.tsx](src/components/report/ReportSummaryBar.tsx), [src/components/report/ReportStates.tsx](src/components/report/ReportStates.tsx), [src/components/report/ReportView.tsx](src/components/report/ReportView.tsx), [src/app/report/[id]/page.tsx](src/app/report/[id]/page.tsx), [src/app/page.tsx](src/app/page.tsx), [src/lib/report/spans.ts](src/lib/report/spans.ts), [src/lib/fixtures/golden-report.ts](src/lib/fixtures/golden-report.ts), [tests/unit/composer/input-validation.test.ts](tests/unit/composer/input-validation.test.ts), [tests/unit/report/highlight-spans.test.ts](tests/unit/report/highlight-spans.test.ts), [tests/unit/report/fixture-fidelity.test.ts](tests/unit/report/fixture-fidelity.test.ts), [tests/e2e/input-composer.spec.ts](tests/e2e/input-composer.spec.ts), [tests/e2e/report-viewer.spec.ts](tests/e2e/report-viewer.spec.ts).
 - **Atomic Implementation Checklist:**
-  - [ ] Build `InputComposer` with Paste (default) and Ask tabs, character count, and sample picker.
-  - [ ] Implement `PreparationReview` component displaying extracted claims, UTF-16 highlight spans, explicit qualifiers, and editable target context fields.
-  - [ ] Build `AnswerDocument` to render source text with highlight placeholder spans.
-  - [ ] Build `ReportSkeleton` with loading shimmer states and visible `[REPLAY MODE]` banner support.
+  - [x] Build `InputComposer` with Paste (default) and Ask tabs, character count (8000 max for paste, 800 max for ask), sample picker, and honest validation notices.
+  - [x] Implement progressive disclosure `ContextFields` component supporting `targetDate`, `jurisdiction`, `currency`, and `version` while preserving user input across accordion toggle.
+  - [x] Build `AnswerDocument` rendering source text with UTF-16 highlight spans, selection synchronization, keyboard accessibility, and zero text mutation or truncation.
+  - [x] Build `ReportView`, `ClaimList`, `ClaimDetail`, and `EvidenceCard` displaying summary counts, verdict filters, Then vs. Now transition timeline, verified surgical correction diffs, and evidence citations with distinct dates.
+  - [x] Implement presentation view states (`ReportLoadingSkeleton`, `ReportEmptyClaimsState`, `ReportErrorState`, `ReportPartialBanner`) and showcase them in `/design`.
+  - [x] Create deterministic sample replay route `/report/[id]` parsing `fixtures/golden-mixed-report.json` with schema validation and honest not-found rejection for unknown IDs.
 - **Prerequisites:**
   - **Start Prerequisites:** C01, A02, A10.
   - **Integration / Completion Prerequisites:** B04a (for persistent preparation).
   - **External Prerequisites:** None.
   - **What Can Start Early:** Component layout, visual design, and fixture playback mode.
-- **Deliverable & Interface Handoff:** Handed downstream to C03 (wiring real runs & progress).
-- **Positive Acceptance Examples:** User types input, clicks review, sees extracted claims and qualifiers with explicit vs inferred provenance; fixture preview displays `[REPLAY MODE]` banner.
-- **Relevant Negative / Failure Cases:** Inputs over 8,000 characters show error message and disable submission; text with zero claims displays informational note.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/input-composer.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright component test).
-- **Observed Evidence:** *Pending execution*
-- **Explicit Exclusions:** Active Server Action execution (wired in C03).
-- **Blocker / Decision:** None.
+- **Deliverable & Interface Handoff:** Handed downstream to C03 (wiring real runs & progress). Report presentation takes parsed `Report` contract directly via props, ready for C03 Server Actions and SSE hooks.
+- **Positive Acceptance Examples:** User enters input, clicks verify, sees honest validation feedback without fake report; sample report route `/report/demo?mode=fixture` parses golden fixture cleanly and synchronizes highlights with claim details.
+- **Relevant Negative / Failure Cases:** Empty/whitespace-only input or text over 8,000 characters displays helpful field error; unknown report IDs render honest Report Not Found state; null scores are never displayed as 0.
+- **Verification Commands & Checks:** `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e`.
+- **Evidence Level & Required Proof:** E1 (Static analysis, lint, build) + E2 (Vitest unit suite & Playwright E2E with screenshots).
+- **Observed Evidence:** All checks executed and passed cleanly: `pnpm test` (147/147 unit tests passing across 7 files), `pnpm typecheck` (0 errors), `pnpm lint` (0 errors/warnings), `pnpm build` (5 static + 1 dynamic route compiled cleanly), `pnpm test:e2e` (23/23 Playwright tests passing across composer, report viewer, design reference, and smoke suites). Responsive screenshots archived: `composer-desktop-dark.png`, `composer-desktop-light.png`, `composer-mobile-dark.png`, `composer-mobile-light.png`, `report-desktop-dark.png`, `report-desktop-light.png`, `report-tablet-dark.png`, `report-mobile-dark.png`, `report-mobile-light.png`.
+- **Explicit Exclusions:** Active Server Action execution (wired in C03) and live web search API execution (wired in B03).
+- **Blocker / Decision:** None. Fixed visual direction from C01; honest replay behavior verified.
 
 ---
 
@@ -979,7 +981,7 @@ The following mapping documents the evolution from the initial planning baseline
 | *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
 | *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | 2026-11-09 | C01 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 131/131 unit tests passed; 0 type/lint errors; production build 5/5 static pages; 11/11 Playwright E2E tests passed; dark/light theme toggle, local validation demo, and responsive screenshots verified. | [C01](#c01-visual-tokens-and-component-states) |
-| *Pending* | C02 | `pnpm playwright test tests/e2e/input-composer.spec.ts` | Local Dev | *Pending execution* | [C02](#c02-input-and-report-skeleton) |
+| 2026-11-09 | C02 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 147/147 unit tests passed; 0 type/lint errors; 23/23 Playwright tests passed; input composer validation, span segmentation, honest replay labeling, and sample report experience verified. Accepted by user for documented scope. | [C02](#c02-input-and-report-skeleton) |
 | *Pending* | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | *Pending execution* | [A03](#a03-extract-and-locate-atomic-claims) |
 | *Pending* | A04 | `pnpm vitest run tests/unit/verify/assess-evidence.test.ts` | Local Dev | *Pending execution* | [A04](#a04-assess-passages-against-a-claim) |
 | *Pending* | A05 | `pnpm vitest run tests/unit/verify/decide.test.ts` | Local Dev | *Pending execution* | [A05](#a05-apply-deterministic-policy-and-score) |

@@ -20,6 +20,13 @@ import {
 } from '@/components/ui';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { InputComposer } from '@/components/composer/InputComposer';
+import {
+  ReportLoadingSkeleton,
+  ReportEmptyClaimsState,
+  ReportErrorState,
+  ReportPartialBanner,
+} from '@/components/report/ReportStates';
 
 export default function DesignReferencePage() {
   const { theme } = useTheme();
@@ -948,6 +955,78 @@ export function ClaimResultCard({ claim, verdict }) {
             </pre>
           </div>
         </Card>
+      </section>
+
+      {/* ====================================================================
+          Section I: C02 Product Experience: Input Composer & View States
+          ==================================================================== */}
+      <section id="c02-experience" className="space-y-6 text-left">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-medium tracking-tight text-text-primary">
+              8. C02 Product Experience: Input Composer & View States
+            </h2>
+            <span className="rounded bg-accent/20 px-2 py-0.5 text-xs font-mono text-accent">
+              Task C02
+            </span>
+          </div>
+          <p className="text-xs text-text-secondary">
+            Shared input composer and report presentation states: Loading, Empty, Partial, and Error.
+          </p>
+        </div>
+
+        {/* Live Input Composer Instance */}
+        <Card variant="default" className="space-y-4">
+          <CardHeader
+            title="Interactive Input Composer"
+            description="Live component used on root page (/), featuring schema-based validation, character limits, and progressive context disclosure."
+          />
+          <InputComposer showSampleLink={true} />
+        </Card>
+
+        {/* View States Demo Grid */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-text-primary">
+            Report Presentation States
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Partial Verification State */}
+            <Card variant="subtle" className="space-y-3">
+              <h4 className="text-xs font-mono font-medium text-text-muted uppercase">
+                State: Partial Verification
+              </h4>
+              <ReportPartialBanner completedCount={3} totalCount={5} />
+            </Card>
+
+            {/* Error / Unavailable State */}
+            <Card variant="subtle" className="space-y-3">
+              <h4 className="text-xs font-mono font-medium text-text-muted uppercase">
+                State: Report Not Found / Error
+              </h4>
+              <ReportErrorState
+                title="Sample Not Found State"
+                message="Requested run 'sample_error_id' does not exist in persistent storage."
+              />
+            </Card>
+          </div>
+
+          {/* Empty Claims State */}
+          <Card variant="subtle" className="space-y-3">
+            <h4 className="text-xs font-mono font-medium text-text-muted uppercase">
+              State: No Time-Sensitive Claims
+            </h4>
+            <ReportEmptyClaimsState answerText="A purely subjective paragraph containing no verifiable pricing, version, or regulatory claims." />
+          </Card>
+
+          {/* Loading Skeleton State */}
+          <Card variant="subtle" className="space-y-3">
+            <h4 className="text-xs font-mono font-medium text-text-muted uppercase">
+              State: Loading Skeleton
+            </h4>
+            <ReportLoadingSkeleton />
+          </Card>
+        </div>
       </section>
     </div>
   );

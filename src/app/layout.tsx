@@ -67,6 +67,15 @@ export default function RootLayout({
                 </Link>
                 <nav className="flex items-center gap-4 text-xs font-medium">
                   <Link
+                    href="/report/demo?mode=fixture"
+                    className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
+                  >
+                    <span>Sample Report</span>
+                    <span className="hidden sm:inline-block rounded-md bg-status-outdated-bg/60 border border-status-outdated-border/40 px-1.5 py-0.5 text-[10px] text-status-outdated-text">
+                      Replay
+                    </span>
+                  </Link>
+                  <Link
                     href="/design"
                     className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
                   >

@@ -36,14 +36,17 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     const descriptionId = description ? `${textareaId}-desc` : undefined;
     const errorId = error ? `${textareaId}-err` : undefined;
 
-    const [currentLength, setCurrentLength] = React.useState<number>(() => {
-      if (typeof value === 'string') return value.length;
+    const controlledLength = typeof value === 'string' ? value.length : undefined;
+    const [uncontrolledLength, setUncontrolledLength] = React.useState<number>(() => {
       if (typeof defaultValue === 'string') return defaultValue.length;
       return 0;
     });
+    const currentLength = controlledLength !== undefined ? controlledLength : uncontrolledLength;
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setCurrentLength(e.target.value.length);
+      if (controlledLength === undefined) {
+        setUncontrolledLength(e.target.value.length);
+      }
       if (onChange) {
         onChange(e);
       }
@@ -62,7 +65,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             </label>
           )}
           {showCount && maxLength && (
-            <span className="text-xs text-text-muted">
+            <span id={`${textareaId}-count`} className="text-xs text-text-muted font-mono">
               {currentLength} / {maxLength}
             </span>
           )}

@@ -146,7 +146,7 @@ flowchart TD
     B04a["B04 (Part 1): DB Schema & Initial Migration"]:::unblocked
 
     C01["C01: Visual Tokens & Colors"]:::verified
-    C02["C02: Input, Prep Review & Report Skeleton"]:::unblocked
+    C02["C02: Input, Prep Review & Report Skeleton"]:::verified
 
     GateG0{{"Gate G0: Foundation Ready"}}:::gate
 
@@ -530,14 +530,14 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
  │ • Lane B: B02 (Bifrost Gateway & Client) │ • A04, A05, A06, A07, A08, A09,  │
  │ • Lane B: B03 (Tavily Search Adapter)    │   A11 (Lane A)                   │
  │ • Lane B: B04a (DB Baseline Migration)   │ • B04b, B05, B06, B07, B08       │
- │ • Lane C: C02 (Input & Prep Skeleton)    │   (Lane B)                       │
- │ • Lane A: A03 (Extraction Prompts/Logic) │ • C03, C04, C05, C06, C07, C08,  │
- │                                          │   C09 (Lane C)                   │
+ │ • Lane A: A03 (Extraction Prompts/Logic) │   (Lane B)                       │
+ │                                          │ • C03 (Awaits B04b), C04, C05,   │
+ │                                          │   C06, C07, C08, C09 (Lane C)    │
  ├──────────────────────────────────────────┴──────────────────────────────────┤
  │ Completed & Verified:                                                       │
  │ • Lane A: A01 (Request & Claim), A02 (Report & Events), A10 (Contracts)     │
  │ • Lane B: B01 (Scaffold & Pin Toolchain, Vitest, Playwright, CI)            │
- │ • Lane C: C01 (Visual Design Tokens, Paired Themes, UI Primitives & /design)│
+ │ • Lane C: C01 (Visual Design Tokens & Themes), C02 (Composer & Report View) │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
