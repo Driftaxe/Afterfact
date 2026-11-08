@@ -343,57 +343,63 @@ The following mapping documents the evolution from the initial planning baseline
 
 #### C01: Set visual tokens and component states {#c01-visual-tokens-and-component-states}
 - **Owner:** C / Product
-- **Plain-Language Outcome:** Configure Tailwind CSS color tokens, Geist typography, responsive spacing, accessible focus outlines, and interactive component styling states.
+- **Plain-Language Outcome:** Configure Tailwind CSS semantic color tokens, paired dark/light themes with dark-first default, accessible ThemeToggle with localStorage persistence, reusable foundational UI primitives, and an interactive `/design` reference route.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** TODO
+- **Status:** DONE
 - **Phase & Gate Contribution:** Phase 0 UI foundation; contributes directly to Gate G0.
-- **Canonical Design References:** [docs/PRODUCT.md §1](docs/PRODUCT.md), [CONTRIBUTING.md §2](CONTRIBUTING.md).
-- **Allowed Scope & Expected Files:** `src/app/globals.css` (proposed), `tailwind.config.ts` (proposed).
+- **Canonical Design References:** [docs/PRODUCT.md §1, §6](docs/PRODUCT.md), [CONTRIBUTING.md §2](CONTRIBUTING.md).
+- **Allowed Scope & Expected Files:** [src/app/globals.css](src/app/globals.css), [tailwind.config.ts](tailwind.config.ts), [src/components/theme/ThemeProvider.tsx](src/components/theme/ThemeProvider.tsx), [src/components/theme/ThemeToggle.tsx](src/components/theme/ThemeToggle.tsx), [src/components/ui/Button.tsx](src/components/ui/Button.tsx), [src/components/ui/Input.tsx](src/components/ui/Input.tsx), [src/components/ui/Textarea.tsx](src/components/ui/Textarea.tsx), [src/components/ui/Select.tsx](src/components/ui/Select.tsx), [src/components/ui/Checkbox.tsx](src/components/ui/Checkbox.tsx), [src/components/ui/Switch.tsx](src/components/ui/Switch.tsx), [src/components/ui/Card.tsx](src/components/ui/Card.tsx), [src/components/ui/Divider.tsx](src/components/ui/Divider.tsx), [src/components/ui/StatusBadge.tsx](src/components/ui/StatusBadge.tsx), [src/components/ui/Feedback.tsx](src/components/ui/Feedback.tsx), [src/components/ui/index.ts](src/components/ui/index.ts), [src/app/design/page.tsx](src/app/design/page.tsx), [src/app/layout.tsx](src/app/layout.tsx), [tests/unit/theme.test.ts](tests/unit/theme.test.ts), [tests/e2e/design-reference.spec.ts](tests/e2e/design-reference.spec.ts).
 - **Atomic Implementation Checklist:**
-  - [ ] Configure Tailwind color tokens: Ink (`#182431`), Paper (`#FAFBF8`), Panel (`#FFFFFF`), Line (`#DFE7E3`), Accent (`#006F63`).
-  - [ ] Set typography fonts: Geist for UI body, Geist Mono for codes, URLs, and date metadata.
-  - [ ] Define spacing tokens (4/8/12/16/24/32 px), 12px border radius, and accessible `:focus-visible` outlines.
-  - [ ] Define styling states for normal, hover, focused, disabled, loading, and reduced-motion.
+  - [x] Configure Tailwind paired semantic color tokens: background (`#111214` / `#F7F5F0`), surface (`#18191C` / `#FFFFFF`), raised surface (`#202125` / `#EDE8DF`), text primary (`#E7E5E2` / `#1A1B1E`), text secondary (`#AAA8A5` / `#5A5854`), text muted (`#85858D` / `#787570`), border subtle (`#2B2D32` / `#E8E3DA`), border strong (`#3A3C44` / `#DCD6CB`), primary CTA button (`#DEDBD6` with `#191A1D` text / `#1A1B1E`), accent (`#B5AEBD` / `#5C4E68`), and 6 distinct status tokens.
+  - [x] Set deliberate typography stacks: Single refined sans-serif family (Geist) throughout interface, responsive 40-64px heading with -0.035em tracking, 16-18px body copy (1.6 line-height), 14px controls, and 12-13px metadata (Geist Mono). No remote blocking font dependencies or baroque display serifs.
+  - [x] Define spacing, 4/8/10/12/16px border radius, and accessible `:focus-visible` outlines.
+  - [x] Define styling states for normal, hover, focused, disabled, loading, and reduced-motion.
+  - [x] Build dark-first theme initialization script in `layout.tsx` and accessible `ThemeToggle` with `localStorage` persistence.
+  - [x] Implement shared foundational UI primitives: `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Switch`, `Card`, `Divider`, `StatusBadge`, `Feedback`.
+  - [x] Build interactive `/design` route with local demo form validation, claim expansion, loading state, and retry simulation.
+  - [x] Author comprehensive unit and Playwright E2E tests capturing responsive visual screenshots at desktop and mobile viewports.
 - **Prerequisites:**
   - **Start Prerequisites:** B01, A02.
   - **Integration / Completion Prerequisites:** None.
   - **External Prerequisites:** None.
   - **What Can Start Early:** Entire task.
-- **Deliverable & Interface Handoff:** Handed downstream to C02 (input & report skeleton).
-- **Positive Acceptance Examples:** Verdict chips render with distinct text labels in addition to colors (accessible for colorblindness).
-- **Relevant Negative / Failure Cases:** Reduced-motion media query disables animations; missing focus rings fail accessibility check.
-- **Verification Commands & Checks:** `pnpm lint && pnpm test:e2e`.
-- **Evidence Level & Required Proof:** E1 (CSS linting) + E2 (Playwright screenshot test).
-- **Observed Evidence:** *Pending execution*
-- **Explicit Exclusions:** Complex stateful business logic.
-- **Blocker / Decision:** None.
+- **Deliverable & Interface Handoff:** Handed downstream to C02 (input & report skeleton) and C04 (clarification forms). Reusable components exported from `@/components/ui` and theme controls from `@/components/theme`.
+- **Positive Acceptance Examples:** Verdict chips render with distinct text labels and understandable icons with WCAG AA &gt; 6.6:1 contrast in both themes; interactive form validates locally in browser state.
+- **Relevant Negative / Failure Cases:** Reduced-motion media query disables animations; missing focus rings fail accessibility check; corrupted theme storage falls back safely to dark.
+- **Verification Commands & Checks:** `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e`.
+- **Evidence Level & Required Proof:** E1 (Static analysis & linting) + E2 (Vitest unit suite & Playwright E2E with screenshots).
+- **Observed Evidence:** All checks executed and passed cleanly: `pnpm test` (131/131 unit tests passing), `pnpm typecheck` (0 errors), `pnpm lint` (0 errors/warnings), `pnpm build` (5/5 static pages generated), `pnpm test:e2e` (11/11 Playwright tests passing). Responsive screenshots archived in artifact directory: `landing-desktop-dark.png`, `landing-desktop-light.png`, `landing-mobile-dark.png`, `landing-mobile-light.png`, `desktop-dark.png`, `desktop-light.png`, `mobile-dark.png`, `mobile-light.png`.
+- **Explicit Exclusions:** Live web retrieval, verification Server Actions, database queries, full C02 workspace implementation.
+- **Blocker / Decision:** None. Fixed user-approved design direction: "Quiet, cinematic, precise" dark-first theme with warm paper light alternative.
 
 #### C02: Implement input, preparation review and report skeleton {#c02-input-and-report-skeleton}
 - **Owner:** C / Product
 - **Plain-Language Outcome:** Build the primary input composer, interactive preparation review screen displaying extracted claims and typed qualifiers, and report skeleton rendering fixture playback.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** TODO
+- **Status:** DONE
 - **Phase & Gate Contribution:** Completes Phase 0 UI requirement; completes Gate G0 when paired with B01, B02, A10, and B04a.
-- **Canonical Design References:** [docs/PRODUCT.md §2](docs/PRODUCT.md), [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-014](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/components/InputComposer.tsx` (proposed), `src/components/PreparationReview.tsx` (proposed), `src/components/ContextFields.tsx` (proposed), `src/components/AnswerDocument.tsx` (proposed), `src/components/ReportSkeleton.tsx` (proposed), `tests/e2e/input-composer.spec.ts` (proposed).
+- **Canonical Design References:** [docs/PRODUCT.md §2, §7](docs/PRODUCT.md), [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-014](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** [src/components/composer/InputComposer.tsx](src/components/composer/InputComposer.tsx), [src/components/composer/ContextFields.tsx](src/components/composer/ContextFields.tsx), [src/components/report/AnswerDocument.tsx](src/components/report/AnswerDocument.tsx), [src/components/report/ClaimList.tsx](src/components/report/ClaimList.tsx), [src/components/report/ClaimDetail.tsx](src/components/report/ClaimDetail.tsx), [src/components/report/EvidenceCard.tsx](src/components/report/EvidenceCard.tsx), [src/components/report/ReportSummaryBar.tsx](src/components/report/ReportSummaryBar.tsx), [src/components/report/ReportStates.tsx](src/components/report/ReportStates.tsx), [src/components/report/ReportView.tsx](src/components/report/ReportView.tsx), [src/app/report/[id]/page.tsx](src/app/report/[id]/page.tsx), [src/app/page.tsx](src/app/page.tsx), [src/lib/report/spans.ts](src/lib/report/spans.ts), [src/lib/fixtures/golden-report.ts](src/lib/fixtures/golden-report.ts), [tests/unit/composer/input-validation.test.ts](tests/unit/composer/input-validation.test.ts), [tests/unit/report/highlight-spans.test.ts](tests/unit/report/highlight-spans.test.ts), [tests/unit/report/fixture-fidelity.test.ts](tests/unit/report/fixture-fidelity.test.ts), [tests/e2e/input-composer.spec.ts](tests/e2e/input-composer.spec.ts), [tests/e2e/report-viewer.spec.ts](tests/e2e/report-viewer.spec.ts).
 - **Atomic Implementation Checklist:**
-  - [ ] Build `InputComposer` with Paste (default) and Ask tabs, character count, and sample picker.
-  - [ ] Implement `PreparationReview` component displaying extracted claims, UTF-16 highlight spans, explicit qualifiers, and editable target context fields.
-  - [ ] Build `AnswerDocument` to render source text with highlight placeholder spans.
-  - [ ] Build `ReportSkeleton` with loading shimmer states and visible `[REPLAY MODE]` banner support.
+  - [x] Build `InputComposer` with Paste (default) and Ask tabs, character count (8000 max for paste, 800 max for ask), sample picker, and honest validation notices.
+  - [x] Implement progressive disclosure `ContextFields` component supporting `targetDate`, `jurisdiction`, `currency`, and `version` while preserving user input across accordion toggle.
+  - [x] Build `AnswerDocument` rendering source text with UTF-16 highlight spans, selection synchronization, keyboard accessibility, and zero text mutation or truncation.
+  - [x] Build `ReportView`, `ClaimList`, `ClaimDetail`, and `EvidenceCard` displaying summary counts, verdict filters, Then vs. Now transition timeline, verified surgical correction diffs, and evidence citations with distinct dates.
+  - [x] Implement presentation view states (`ReportLoadingSkeleton`, `ReportEmptyClaimsState`, `ReportErrorState`, `ReportPartialBanner`) and showcase them in `/design`.
+  - [x] Create deterministic sample replay route `/report/[id]` parsing `fixtures/golden-mixed-report.json` with schema validation and honest not-found rejection for unknown IDs.
 - **Prerequisites:**
   - **Start Prerequisites:** C01, A02, A10.
   - **Integration / Completion Prerequisites:** B04a (for persistent preparation).
   - **External Prerequisites:** None.
   - **What Can Start Early:** Component layout, visual design, and fixture playback mode.
-- **Deliverable & Interface Handoff:** Handed downstream to C03 (wiring real runs & progress).
-- **Positive Acceptance Examples:** User types input, clicks review, sees extracted claims and qualifiers with explicit vs inferred provenance; fixture preview displays `[REPLAY MODE]` banner.
-- **Relevant Negative / Failure Cases:** Inputs over 8,000 characters show error message and disable submission; text with zero claims displays informational note.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/input-composer.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright component test).
-- **Observed Evidence:** *Pending execution*
-- **Explicit Exclusions:** Active Server Action execution (wired in C03).
-- **Blocker / Decision:** None.
+- **Deliverable & Interface Handoff:** Handed downstream to C03 (wiring real runs & progress). Report presentation takes parsed `Report` contract directly via props, ready for C03 Server Actions and SSE hooks.
+- **Positive Acceptance Examples:** User enters input, clicks verify, sees honest validation feedback without fake report; sample report route `/report/demo?mode=fixture` parses golden fixture cleanly and synchronizes highlights with claim details.
+- **Relevant Negative / Failure Cases:** Empty/whitespace-only input or text over 8,000 characters displays helpful field error; unknown report IDs render honest Report Not Found state; null scores are never displayed as 0.
+- **Verification Commands & Checks:** `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e`.
+- **Evidence Level & Required Proof:** E1 (Static analysis, lint, build) + E2 (Vitest unit suite & Playwright E2E with screenshots).
+- **Observed Evidence:** All checks executed and passed cleanly: `pnpm test` (147/147 unit tests passing across 7 files), `pnpm typecheck` (0 errors), `pnpm lint` (0 errors/warnings), `pnpm build` (5 static + 1 dynamic route compiled cleanly), `pnpm test:e2e` (23/23 Playwright tests passing across composer, report viewer, design reference, and smoke suites). Responsive screenshots archived: `composer-desktop-dark.png`, `composer-desktop-light.png`, `composer-mobile-dark.png`, `composer-mobile-light.png`, `report-desktop-dark.png`, `report-desktop-light.png`, `report-tablet-dark.png`, `report-mobile-dark.png`, `report-mobile-light.png`.
+- **Explicit Exclusions:** Active Server Action execution (wired in C03) and live web search API execution (wired in B03).
+- **Blocker / Decision:** None. Fixed visual direction from C01; honest replay behavior verified.
 
 ---
 
@@ -974,8 +980,8 @@ The following mapping documents the evolution from the initial planning baseline
 | 2026-11-08 | A10 | `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 66/66 contract tests passing; 121/121 overall tests passing; 0 type errors; 0 lint errors/warnings; production build succeeded with 4/4 static pages. Merged into `main` via PR #8 & #9 (DONE). | [A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) |
 | *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
 | *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
-| *Pending* | C01 | `pnpm lint` | Local Dev | *Pending execution* | [C01](#c01-visual-tokens-and-component-states) |
-| *Pending* | C02 | `pnpm playwright test tests/e2e/input-composer.spec.ts` | Local Dev | *Pending execution* | [C02](#c02-input-and-report-skeleton) |
+| 2026-11-09 | C01 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 131/131 unit tests passed; 0 type/lint errors; production build 5/5 static pages; 11/11 Playwright E2E tests passed; dark/light theme toggle, local validation demo, and responsive screenshots verified. | [C01](#c01-visual-tokens-and-component-states) |
+| 2026-11-09 | C02 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 147/147 unit tests passed; 0 type/lint errors; 23/23 Playwright tests passed; input composer validation, span segmentation, honest replay labeling, and sample report experience verified. Accepted by user for documented scope. | [C02](#c02-input-and-report-skeleton) |
 | *Pending* | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | *Pending execution* | [A03](#a03-extract-and-locate-atomic-claims) |
 | *Pending* | A04 | `pnpm vitest run tests/unit/verify/assess-evidence.test.ts` | Local Dev | *Pending execution* | [A04](#a04-assess-passages-against-a-claim) |
 | *Pending* | A05 | `pnpm vitest run tests/unit/verify/decide.test.ts` | Local Dev | *Pending execution* | [A05](#a05-apply-deterministic-policy-and-score) |

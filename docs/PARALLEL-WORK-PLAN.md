@@ -145,8 +145,8 @@ flowchart TD
     NeonAcct(["Ext: Neon PostgreSQL Account"]):::external
     B04a["B04 (Part 1): DB Schema & Initial Migration"]:::unblocked
 
-    C01["C01: Visual Tokens & Colors"]:::unblocked
-    C02["C02: Input, Prep Review & Report Skeleton"]:::unblocked
+    C01["C01: Visual Tokens & Colors"]:::verified
+    C02["C02: Input, Prep Review & Report Skeleton"]:::verified
 
     GateG0{{"Gate G0: Foundation Ready"}}:::gate
 
@@ -422,7 +422,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **A10** | [Prep, Clarification & DAG Schemas](PHASE-TRACKER.md#a10-define-preparation-clarification-and-dynamic-dag-schemas) | A | 0 | B01, A01, A02 | None | None | Completed | `claim-ticket.ts`, `evidence-objects.ts`, `preparation.ts`, `clarification.ts`, `research.ts`, `decision.ts`, `dag.ts`, `actions.ts` |
 | **B01** | [Scaffold & Pin Toolchain](PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) | B | 0 | DOC01 (repo baseline) | None | None | Completed | Next.js 15, pnpm 11, Node 22, ESLint, Tailwind, Vitest, Playwright, CI |
 | **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Docker host / Local Docker, Model provider keys | Client fetch wrapper & profile types | `docker-compose.yml`, `src/server/bifrost/client.ts`, `profiles.ts` |
-| **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Entire task | Design tokens in `globals.css`, button/card states, reduced motion |
+| **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Completed | Design tokens in `globals.css`, button/card states, reduced motion |
 | **C02** | [Input, Prep & Report Skeleton](PHASE-TRACKER.md#c02-input-and-report-skeleton) | C | 0 | C01, A02, A10 | B04a (for persistent preparation) | None | Layout & fixture playback | `InputComposer.tsx`, `PreparationReview.tsx`, `ReportSkeleton.tsx` |
 | **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DATABASE_MIGRATION_URL`) | Drizzle schema files | Drizzle tables (`runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) |
 | **A03** | [Extract & Locate Atomic Claims](PHASE-TRACKER.md#a03-extract-and-locate-atomic-claims) | A | 1 | A01, A02, A10 | B02 (Bifrost model profiles) | Model provider credentials | Sentence splitting, span math, extraction prompt, unit fixture tests | `extract-claims.ts`, extraction prompt, span resolver, `ClaimTicket[]` |
@@ -530,13 +530,14 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
  │ • Lane B: B02 (Bifrost Gateway & Client) │ • A04, A05, A06, A07, A08, A09,  │
  │ • Lane B: B03 (Tavily Search Adapter)    │   A11 (Lane A)                   │
  │ • Lane B: B04a (DB Baseline Migration)   │ • B04b, B05, B06, B07, B08       │
- │ • Lane C: C01 (Visual Design Tokens)     │   (Lane B)                       │
- │ • Lane C: C02 (Input & Prep Skeleton)    │ • C03, C04, C05, C06, C07, C08,  │
- │ • Lane A: A03 (Extraction Prompts/Logic) │   C09 (Lane C)                   │
+ │ • Lane A: A03 (Extraction Prompts/Logic) │   (Lane B)                       │
+ │                                          │ • C03 (Awaits B04b), C04, C05,   │
+ │                                          │   C06, C07, C08, C09 (Lane C)    │
  ├──────────────────────────────────────────┴──────────────────────────────────┤
- │ Completed & Merged into main:                                               │
+ │ Completed & Verified:                                                       │
  │ • Lane A: A01 (Request & Claim), A02 (Report & Events), A10 (Contracts)     │
  │ • Lane B: B01 (Scaffold & Pin Toolchain, Vitest, Playwright, CI)            │
+ │ • Lane C: C01 (Visual Design Tokens & Themes), C02 (Composer & Report View) │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

@@ -146,3 +146,67 @@ The verification engine produces a deterministic heuristic score (not an LLM-hal
 - [ ] Verification fails closed when passage quotes do not match raw retrieved excerpts.
 - [ ] Live runs default to real Tavily and Bifrost calls; fixture mode is explicitly labeled.
 - [ ] Mobile viewport (360px) passes inspection without horizontal scrolling.
+
+---
+
+## 6. Design System & Visual Foundation (Task C01)
+
+### Visual Direction: “Quiet, cinematic, precise.”
+Afterfact's aesthetic emphasizes deliberate editorial typography, graphite surfaces, and quiet contrast without visual noise or generic AI gimmicks.
+
+- **Primary Theme (Dark Mode):** First-visit default. Deepened charcoal background (`#111214`), graphite surfaces (`#18191C`), raised panels (`#202125`), subtle borders (`#2B2D32`), warm ivory text (`#E7E5E2`), secondary text (`#AAA8A5`), muted text (`#85858D`), primary CTA button (`#DEDBD6` with `#191A1D` text), and restrained secondary lavender-gray accent (`#B5AEBD`).
+- **Secondary Theme (Light Mode):** Clean editorial alternative. Warm paper canvas (`#F7F5F0`), crisp off-white surfaces (`#FFFFFF`), warm stone raised surfaces (`#EDE8DF`), charcoal text (`#1A1B1E`), secondary text (`#5A5854`), muted text (`#787570`), subtle borders (`#E8E3DA`), and dusty plum-gray accent (`#5C4E68`, WCAG AA 7.65:1 contrast).
+- **Typography Philosophy:** One refined sans-serif family throughout the interface (Geist Sans with Geist Mono for codes/hashes). No remote blocking font dependencies, no decorative/baroque display serifs, and no all-caps product titles:
+  - **Product / Hero Heading:** Responsive 40–64px (`text-4xl sm:text-5xl md:text-6xl`), weight 400–500 (`font-normal`), tracking `-0.035em`. Product name rendered as "Afterfact".
+  - **Section Titles:** 20–24px, weight 500 (`font-medium`), tracking `-0.025em`.
+  - **Intro / Body:** 16–18px, line-height 1.6 (`leading-[1.6]`).
+  - **Controls & Actions:** 14px (`text-sm`), weight 500 (`font-medium`). 40–44px desktop button height, 8–10px corner radius, modest horizontal padding, quiet hover feedback, no glow or oversized arrows.
+  - **Supporting Metadata:** 12–13px (`text-xs`), readable contrast.
+  - **Cards:** Modest 12px radius, subtle borders (`#2B2D32` / `#E8E3DA`), no gratuitous card-inside-card framing.
+- **Theme Persistence & Pre-Paint Initialization:** Initial theme is resolved and applied before first paint via an inline script in `src/app/layout.tsx`. First visits default to dark. Explicit user toggles persist in `localStorage` under key `afterfact-theme`. Invalid or inaccessible storage gracefully falls back to dark without throwing errors.
+- **Token Locations:**
+  - CSS variables: [`src/app/globals.css`](src/app/globals.css) (`:root, [data-theme="dark"], .dark` and `[data-theme="light"]`).
+  - Tailwind utilities: [`tailwind.config.ts`](tailwind.config.ts) (`bg-background`, `bg-surface`, `bg-surface-raised`, `text-primary`, `text-secondary`, `text-muted`, `border-subtle`, `border-strong`, `bg-accent`, `focus-ring`, `status-*`).
+- **Shared UI Primitives (`@/components/ui`):**
+  - Buttons: `Button` (`primary`, `secondary`, `quiet`, `destructive`; `sm`, `md`, `lg`; `loading`, `iconOnly`).
+  - Form Fields: `Input`, `Textarea` (with character counter), `Select`, `Checkbox`, `Switch`.
+  - Layout & Containers: `Card` (`default`, `raised`, `subtle`), `CardHeader`, `Divider`.
+  - Status Indicators: `StatusBadge` (`supported`, `outdated`, `contradicted`, `unresolved`, `checking`, `awaiting_clarification`). Every badge couples text and an icon with WCAG AA &gt; 6.6:1 contrast.
+  - Feedback: `InlineError`, `Notice`, `Skeleton` (respects `prefers-reduced-motion`), `EmptyState`.
+- **Canonical Design Reference Route:**
+  - Path: [`/design`](src/app/design/page.tsx)
+  - Purpose: Interactive live reference workspace for all shared components, color tokens, and state variations. All claims and evidence displayed on `/design` are synthetic illustrative samples.
+- **Guidance for Downstream Builders (Lanes C02/C03/C04):**
+  - Import shared primitives directly from `@/components/ui` and `@/components/theme/ThemeToggle`.
+  - Do not introduce ad-hoc color hex codes or duplicate custom button/card wrappers.
+  - Maintain the semantic distinction where `unresolved` uses neutral stone styling and is never colored as `contradicted`/false.
+
+
+---
+
+## 7. Input Composer & Interactive Report Skeleton (Task C02)
+
+### User Experience & Boundaries
+Task C02 delivers the primary application input interface and interactive verification report experience using the validated golden fixture, operating with complete schema integrity without requiring a live backend.
+
+### 1. Routes & Replay Honesty
+- **Root Entry Point (`/`):** Hosts the primary `InputComposer`. Allows users to paste AI-generated answers, toggle progressive context fields, test sample inputs, and execute local validation. Submitting arbitrary text produces an honest notice: *"Live verification isn’t available yet. Explore a sample report to see how claims and evidence are presented."* It never silently serves the fixed fixture as if the user's text were verified.
+- **Sample Report Route (`/report/demo?mode=fixture`):** Deterministic route serving the canonical golden report parsed with `ReportSchema`. Identified by a prominent human-readable badge: `Sample report · Not a live verification`.
+- **Honest 404 / Unavailable State:** Requesting an unknown report ID (e.g. `/report/unknown_run`) renders a dedicated `ReportErrorState` explaining that the report was not found and inviting the user to view the sample report, rather than fabricating a response.
+
+### 2. Highlighting & Span Integrity (`src/lib/report/spans.ts`)
+- Highlight boundaries are calculated using deterministic interval segmentation against unmodified `answerText`.
+- Concatenating all segment slices strictly preserves 100% of the original text byte-for-byte, including UTF-16 code units (emojis, surrogate pairs) and non-overlapping gaps.
+- Spans are selected by stable claim ID offsets, preventing ambiguous collisions across identical repeated phrases.
+- Highlighting is coupled to accessible buttons with `aria-pressed`, keyboard support (Enter/Space), and non-color-only indicators (outline ring, underline decoration, elevation).
+
+### 3. Report Presentation Layout (`src/components/report/`)
+- **Desktop (55:45 Grid):** Left column (55%) displays the full answer document with interactive highlights. Right column (45%) presents the filterable claim list and selected claim detail panel.
+- **Summary Metrics (`ReportSummaryBar.tsx`):** Displays total claims and counts for supported, outdated, contradicted, and unresolved. Interactive filter buttons allow filtering claims by verdict. Aggregate probabilities or fake averages are strictly avoided.
+- **Claim Detail Panel (`ClaimDetail.tsx`):** Shows raw claim text, status badge, freshness score (rubric-backed, clarifying it is not a probability), machine reason code, Then vs. Now chronological timeline, verified surgical correction diff, and cited evidence cards.
+- **Evidence Presentation (`EvidenceCard.tsx`):** Displays publisher/domain, source type badge, quoted passage with expandable disclosure, safe external link (`rel="noopener noreferrer"`), and explicitly labeled dates (Published vs. Effective vs. Retrieved).
+- **View States (`ReportStates.tsx`):** Reusable presentation states for Loading Skeleton, Empty Claims (with note that no-claims does not imply true), Partial Report, and Error / Not Found.
+
+### 4. Integration Handoff for Task C03
+- **Input Submission Boundary:** `InputComposer` accepts `onValidatedPaste?: (request: PasteRequest) => void`. C03 will pass a Server Action (`startPreparationAction`) to initiate live verifications.
+- **Report Data Boundary:** `ReportView` accepts `report: Report` as a pure prop. C03 will supply parsed report data from live runs or SSE hooks (`useRun`) without modifying presentation components.

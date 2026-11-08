@@ -2,10 +2,166 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-ink: #182431;
-  --color-paper: #FAFBF8;
-  --color-panel: #FFFFFF;
-  --color-line: #DFE7E3;
-  --color-accent: #006F63;
+/* ==========================================================================
+   Afterfact Semantic Design Tokens
+   Theme: Quiet, cinematic, precise.
+   Primary: Dark (Smoky charcoal, graphite surfaces, warm ivory text, lavender-gray accent)
+   Secondary: Light (Warm paper, clean off-white surfaces, charcoal text, dusty-plum accent)
+   ========================================================================== */
+
+:root,
+[data-theme="dark"],
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces & Canvas — Refined dark charcoal */
+  --color-background: #111214;
+  --color-surface: #18191C;
+  --color-surface-raised: #202125;
+
+  /* Typography */
+  --color-text-primary: #E7E5E2;
+  --color-text-secondary: #AAA8A5;
+  --color-text-muted: #85858D;
+
+  /* Borders & Dividers */
+  --color-border-subtle: #2B2D32;
+  --color-border-strong: #3A3C44;
+
+  /* Primary Button (Neutral and soft, not purple) */
+  --color-btn-primary-bg: #DEDBD6;
+  --color-btn-primary-text: #191A1D;
+  --color-btn-primary-hover: #ECEAE6;
+
+  /* Accent & Interaction (Restrained secondary accent) */
+  --color-accent: #B5AEBD;
+  --color-accent-hover: #C5BFCC;
+  --color-accent-foreground: #111214;
+  --color-focus-ring: #DEDBD6;
+  --color-selection: rgba(222, 219, 214, 0.2);
+  --color-overlay: rgba(17, 18, 20, 0.85);
+
+  /* Verification Status Tokens (Muted, Accessible, Distinct) */
+  --status-supported-bg: #192720;
+  --status-supported-text: #9CD7B4;
+  --status-supported-border: #2A4234;
+
+  --status-outdated-bg: #282115;
+  --status-outdated-text: #E8C07A;
+  --status-outdated-border: #4B3A1F;
+
+  --status-contradicted-bg: #28181B;
+  --status-contradicted-text: #E69AA4;
+  --status-contradicted-border: #4C262E;
+
+  --status-unresolved-bg: #202125;
+  --status-unresolved-text: #C2C0BD;
+  --status-unresolved-border: #36373D;
+
+  --status-checking-bg: #1F2128;
+  --status-checking-text: #B5AEBD;
+  --status-checking-border: #353742;
+
+  /* Backward Compatibility Aliases for initial scaffold */
+  --color-ink: var(--color-text-primary);
+  --color-paper: var(--color-background);
+  --color-panel: var(--color-surface);
+  --color-line: var(--color-border-strong);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces & Canvas */
+  --color-background: #F7F5F0;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #EDE8DF;
+
+  /* Typography */
+  --color-text-primary: #1A1B1E;
+  --color-text-secondary: #5A5854;
+  --color-text-muted: #787570;
+
+  /* Borders & Dividers */
+  --color-border-subtle: #E8E3DA;
+  --color-border-strong: #DCD6CB;
+
+  /* Primary Button */
+  --color-btn-primary-bg: #1A1B1E;
+  --color-btn-primary-text: #FFFFFF;
+  --color-btn-primary-hover: #2B2D32;
+
+  /* Accent & Interaction */
+  --color-accent: #5C4E68;
+  --color-accent-hover: #4D4058;
+  --color-accent-foreground: #FFFFFF;
+  --color-focus-ring: #1A1B1E;
+  --color-selection: rgba(92, 78, 104, 0.18);
+  --color-overlay: rgba(30, 28, 33, 0.5);
+
+  /* Verification Status Tokens (Muted, Accessible, Distinct) */
+  --status-supported-bg: #EDF5F0;
+  --status-supported-text: #22583B;
+  --status-supported-border: #C2DEC9;
+
+  --status-outdated-bg: #FBF5EA;
+  --status-outdated-text: #764F0E;
+  --status-outdated-border: #EAD6B0;
+
+  --status-contradicted-bg: #FAF0F1;
+  --status-contradicted-text: #832C37;
+  --status-contradicted-border: #EBC8CD;
+
+  --status-unresolved-bg: #F2F0EC;
+  --status-unresolved-text: #4A4844;
+  --status-unresolved-border: #D4D0C8;
+
+  --status-checking-bg: #F3F0F6;
+  --status-checking-text: #544660;
+  --status-checking-border: #D7CFDF;
+
+  /* Backward Compatibility Aliases for initial scaffold */
+  --color-ink: var(--color-text-primary);
+  --color-paper: var(--color-background);
+  --color-panel: var(--color-surface);
+  --color-line: var(--color-border-strong);
+}
+
+/* ==========================================================================
+   Global Foundations & Accessibility
+   ========================================================================== */
+
+* {
+  border-color: var(--color-border-subtle);
+}
+
+::selection {
+  background-color: var(--color-selection);
+  color: var(--color-text-primary);
+}
+
+/* Accessible focus outlines */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Subtle theme color transition (avoid transition: all on every element) */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  transition: background-color 150ms ease, color 150ms ease;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Reduced motion preference compliance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

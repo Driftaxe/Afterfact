@@ -89,6 +89,7 @@ Unlike black-box LLM checkers that hallucinate verdicts or cite nonexistent sour
 - **No Hallucinated Citations:** Verification fails closed if the cited passage does not match the retrieved text span.
 - **Scope Awareness:** Distinguishes annual vs. month-to-month pricing, EU vs. US regulations, and Stripe API versions (`Acacia` vs. `Basil`).
 - **Upcoming Changes:** Explicitly flags upcoming policy or API deprecations with a `Scheduled change` badge without falsely marking current facts as stale before their effective date.
+- **Design System & Live Reference:** "Quiet, cinematic, precise" paired semantic token system with dark-first default theme and accessible light alternative. Explore the interactive design reference at [`/design`](src/app/design/page.tsx).
 - **Durable Async Execution:** Background worker pattern ensures client disconnects or slow provider calls never lose run state.
 - **Fixture Replay vs. Live Retrieval:** Development and demo fallback modes are clearly labeled to guarantee transparency during judging.
 
