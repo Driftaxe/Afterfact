@@ -34,7 +34,7 @@ Dependencies between tickets are not simple blockers; they fall into four distin
 1. **Start Prerequisite ($A \longrightarrow B$):**  
    Artifact $A$ must exist in the repository before builder $B$ can perform meaningful work. (e.g., A01 request contracts must exist before A02 report contracts can import them).
 2. **Integration / Completion Prerequisite ($A \dashrightarrow B$):**  
-   Builder $B$ can implement core logic early using mock doubles, unit fixtures, or draft schemas, but ticket $B$ cannot be closed or verified against real integrations until $A$ is delivered. (e.g., A03 extraction logic can be developed with unit fixtures, but requires B02 Bifrost gateway for live integration proof).
+   Builder $B$ can implement core logic early using mock doubles, unit fixtures, or draft schemas, but ticket $B$ cannot be closed until $A$ is delivered. Final verification is governed strictly by the specific evidence level (E1 static, E2 unit/contract, E3 database integration, E4 staging, or E5 production) and concrete acceptance criteria declared on that ticket in [docs/PHASE-TRACKER.md](PHASE-TRACKER.md). (e.g., A03 extraction logic can be developed with unit fixtures, but requires B02 Bifrost gateway for live model integration proof).
 3. **External Prerequisite ($\Diamond$):**  
    Non-ticket dependencies such as third-party provider credentials, hosting accounts, or cloud projects.
 4. **Shared-File Coordination ($\asymp$):**  
@@ -174,7 +174,7 @@ flowchart TD
 > [!NOTE]
 > **Resolution of the B04 / Gate G0 Ambiguity:**  
 > In early drafts, Gate G0 listed "database migration executes" while all database work was cataloged under B04 (Phase 1). This created an apparent phase cycle.  
-> As shown above, **B04 contains two distinct sub-milestones**:
+> As shown above, **B04a and B04b are internal planning milestones of canonical ticket B04 in [docs/PHASE-TRACKER.md](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice), not separate or newly invented tracker tickets**:
 > - **B04a (Database Baseline & DDL Migrations):** Creating Drizzle tables and executing initial migrations against Neon satisfies Gate G0.
 > - **B04b (Live Vertical Slice Integration):** Wiring live search, extraction, and synchronous verification into the database satisfies Gate G1.
 
@@ -419,10 +419,17 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 
 ### Wave 0: Foundation (Day 1 · Gate G0)
 - **Lane A Work:** Deliver A01 (request/claim schemas) and A02 (report/event schemas, golden fixture). *(Complete in branch review)*.
-- **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI). *(Complete in branch review)*. Start B02 (Bifrost Docker setup) and B04a (Neon database baseline schema & migration).
+- **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI). *(Complete in branch review)*. B02 (Bifrost gateway), B03 (Tavily adapter), and B04a (Neon database baseline) become available workstreams.
 - **Lane C Work:** Start C01 (visual design tokens) and C02 (workspace UI skeleton rendering golden fixture in `[REPLAY MODE]`).
 - **Shared Inputs:** [fixtures/golden-mixed-report.json](file:///C:/Users/Mayur/Desktop/Afterfact/fixtures/golden-mixed-report.json).
 - **Exit Evidence:** Gate G0 passed: App builds, fixture validates, Bifrost container responds, database migration executes, C renders fixture mode.
+
+> [!IMPORTANT]
+> **Lane B Available Workstreams vs. Developer Allocation:**
+>
+> B02 (Bifrost Gateway), B03 (Tavily Adapter), and B04a (Database Baseline & Migrations) represent **three concurrently available workstreams**, not an expectation that a single developer must execute all three simultaneously.
+> - **If multiple builders or agents work on Lane B:** Assign one accountable owner per concurrent workstream and isolate their checkouts using separate working directories (e.g., via `git worktree`).
+> - **If a single builder executes Lane B:** Sequence them logically: B02 (Model Gateway) $\longrightarrow$ B03 (Tavily Client) $\longrightarrow$ B04a (Database Baseline).
 
 ### Wave 1: First Live Claim / Live Slice (Day 2 · Gate G1)
 - **Lane A Work:** Implement A03 (claim extraction prompt & spans), A04 (passage relevance assessment), and A05 (deterministic scoring & decision tree).
@@ -457,7 +464,9 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 ## 6. Current Ready-to-Start Snapshot
 
 **Snapshot Date:** November 8, 2026 IST  
-**Reference Commit:** [`486fed1`](https://github.com/Driftaxe/Afterfact/commit/486fed1) on `feat/b01-scaffold`
+**Reference Commit:** [`07c0252`](https://github.com/Driftaxe/Afterfact/commit/07c0252) on `feat/b01-scaffold`
+
+*(Note: Lane B unblocked items B02, B03, and B04a represent available workstreams, not a requirement for one engineer to execute all three at once. Separate checkouts/worktrees are required for concurrent execution).*
 
 ```
  ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -538,5 +547,5 @@ $$\mathbf{G1} \longrightarrow \begin{cases} \text{A06 (4 Policies)} \\ \text{B05
 
 To ensure documentation integrity over the lifecycle of the project:
 1. **Coupled Tracker Updates:** Whenever a ticket's prerequisites or interfaces change, update both [docs/PHASE-TRACKER.md](PHASE-TRACKER.md) and this document in the same pull request.
-2. **No Invented IDs:** Never create intermediate sub-ticket IDs (e.g., "A03.5"). Use internal milestone labels (e.g., `B04a` / `B04b`) under the existing canonical ticket.
-3. **Evidence Precedence:** Theoretical readiness never overrides observed evidence. If a prerequisite's automated test has not run, downstream work must treat that integration as `BLOCKED`.
+2. **No Invented IDs:** Never create intermediate sub-ticket IDs (e.g., "A03.5"). B04a and B04b are internal planning milestones of canonical ticket B04 in [docs/PHASE-TRACKER.md](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice), not separate tracker tickets.
+3. **Evidence Precedence:** Theoretical readiness never overrides observed evidence. Ticket closure requires the specific evidence tier (E1 static, E2 unit/contract, E3 integration, E4 staging, or E5 production) and concrete acceptance criteria specified in each ticket's tracker entry, rather than an arbitrary blanket gate.
