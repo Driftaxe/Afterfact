@@ -7,9 +7,9 @@ This document serves as the **single source of truth** for all engineering tasks
 ## 1. Team Lanes & Ownership Protocol
 
 Tasks are strictly assigned to one of three accountable builder lanes:
-- **Lane A:** `A / Verification` — Schemas, claim extraction, passage assessment, date logic, domain policies, and evaluation benchmark.
-- **Lane B:** `B / Platform` — Scaffolding, Neon PostgreSQL, Drizzle ORM, Bifrost model gateway, Tavily adapter, QStash jobs, API routes, and deployment.
-- **Lane C:** `C / Product` — Visual design tokens, responsive UI components, split workspace, SSE client, timeline, compare drawer, and demo walkthrough.
+- **Lane A:** `A / Verification` — Schemas, Universal Claim Tickets, research planning, context-preserving extraction, semantic assessment, date logic, domain policies, and evaluation benchmark.
+- **Lane B:** `B / Platform` — Scaffolding, Neon PostgreSQL, Drizzle ORM, Bifrost model gateway, Tavily adapter, QStash jobs, dynamic DAG runtime, API routes, and deployment.
+- **Lane C:** `C / Product` — Visual design tokens, responsive UI components, split workspace, preparation review, dynamic clarification forms, SSE client, timeline, compare drawer, and demo walkthrough.
 
 ### Task Status Vocabulary
 - `TODO`: Queued, pending prerequisite completion.
@@ -28,9 +28,9 @@ Tasks are strictly assigned to one of three accountable builder lanes:
 | Phase / Target (IST) | Lane A (Verification) | Lane B (Platform) | Lane C (Product) | Release Gates |
 | :--- | :--- | :--- | :--- | :--- |
 | **Bootstrap** (Nov 7) | — | — | — | **DOC01** (Docs Baseline) |
-| **Phase 0** (Nov 7–8) | [A01](#a01-request-and-claim-schemas)<br>[A02](#a02-report-and-event-schemas) | [B01](#b01-scaffold-and-pin-the-toolchain)<br>[B02](#b02-provision-bifrost-and-model-profiles) | [C01](#c01-visual-tokens-and-component-states)<br>[C02](#c02-input-and-report-skeleton) | **G0** (Foundation Gate) |
-| **Phase 1** (Nov 8–9) | [A03](#a03-extract-and-locate-atomic-claims)<br>[A04](#a04-assess-passages-against-a-claim)<br>[A05](#a05-apply-deterministic-policy-and-score) | [B03](#b03-search-extract-and-evidence-capture)<br>[B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) | [C03](#c03-wire-real-runs-and-progress) | **G1** (Live Slice Gate) |
-| **Phase 2** (Nov 9–11) | [A06](#a06-build-pricing-api-regulation-and-leadership-policies) | [B05](#b05-implement-signed-delivery-leases-and-recovery) | [C04](#c04-implement-evidence-inspection-screen) | **G2** (Broad Coverage & Durability Gate) |
+| **Phase 0** (Nov 7–8) | [A01](#a01-request-and-claim-schemas)<br>[A02](#a02-report-and-event-schemas)<br>[A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) | [B01](#b01-scaffold-and-pin-the-toolchain)<br>[B02](#b02-provision-bifrost-and-model-profiles)<br>[B04a](#b04-migrate-the-data-model-and-wire-the-vertical-slice) | [C01](#c01-visual-tokens-and-component-states)<br>[C02](#c02-input-and-report-skeleton) | **G0** (Foundation Gate) |
+| **Phase 1** (Nov 8–9) | [A03](#a03-extract-and-locate-atomic-claims)<br>[A04](#a04-assess-passages-against-a-claim)<br>[A05](#a05-apply-deterministic-policy-and-score) | [B03](#b03-search-extract-and-evidence-capture)<br>[B04b](#b04-migrate-the-data-model-and-wire-the-vertical-slice) | [C03](#c03-wire-real-runs-and-progress) | **G1** (Live Slice Gate) |
+| **Phase 2** (Nov 9–11) | [A06](#a06-build-pricing-api-regulation-and-leadership-policies)<br>[A11](#a11-explore-optional-vector-shortlisting-and-counter-hypothesis-experiments) | [B05](#b05-implement-signed-delivery-leases-and-recovery) | [C04](#c04-implement-evidence-inspection-screen) | **G2** (Broad Coverage & Durability Gate) |
 | **Phase 3** (Nov 11–12) | [A07](#a07-derive-transitions-and-validate-corrections)<br>[A08](#a08-freeze-the-test-set-before-tuning) | [B06](#b06-implement-the-public-run-endpoints)<br>[B07](#b07-provision-staging-with-real-integrations) | [C05](#c05-implement-then-vs-now-and-scheduled-changes)<br>[C06](#c06-implement-compare-correction-and-recheck)<br>[C07](#c07-finish-ask-export-and-polish) | **G3** (Product Interactions Gate) |
 | **Phase 4** (Nov 13–15) | [A09](#a09-run-baseline-full-pipeline-and-regressions) | [B08](#b08-deploy-production-and-verify-fallbacks) | [C08](#c08-run-the-final-product-walkthrough)<br>[C09](#c09-package-and-submit) | **G4** (Release Candidate Gate) |
 
@@ -39,11 +39,46 @@ Tasks are strictly assigned to one of three accountable builder lanes:
 ## 3. Project Release Gates (G0–G4) vs. UPPR Gates (IPP-1–IPP-8)
 
 ### Project Release Milestones
-- **Gate G0 (Foundation Checkpoint · Nov 8):** Shared fixture validates; app builds; Bifrost gateway smoke check passes; database migration executes; C renders fixture mode.
-- **Gate G1 (Live Slice Checkpoint · Nov 9):** Normal Paste screen verifies 1 real claim through Bifrost and Tavily. Claim links to an exact quoted evidence excerpt.
-- **Gate G2 (Broad Coverage & Durability · Nov 11):** One mixed answer verifies claims across all 4 categories. Partial results survive a failed claim and page refresh.
-- **Gate G3 (Product Flows & Staging · Nov 12):** Ask, Compare, Then vs. Now, Scheduled change badges, and Recheck execute on staging via normal user entry points.
-- **Gate G4 (Production Candidate & Cutoff · Nov 14–15):** Release candidate passes benchmark evaluation and production checklist. Nov 15 is submission buffer (subject to confirmed organizer cutoff).
+- **Gate G0 (Foundation Checkpoint · Nov 8):**
+  - Contract schemas validate cleanly across request, claim, evidence, preparation, clarification, and DAG contracts (`A01`, `A02`, `A10`).
+  - Next.js application builds cleanly (`pnpm build`, `B01`).
+  - Bifrost model gateway container smoke test succeeds on Docker host (`B02`).
+  - Drizzle relational baseline schema and migrations execute cleanly against Neon PostgreSQL (`B04a`, internal milestone of `B04`).
+  - Lane C renders input composer, preparation review, and report skeleton in fixture replay mode (`C01`, `C02`).
+  - Owning tickets: `A01`, `A02`, `A10`, `B01`, `B02`, `B04a`, `C01`, `C02`.
+- **Gate G1 (Live Slice via Persisted DAG · Nov 9):**
+  - Pasting text verifies 1 real claim end-to-end via real persisted DAG execution in PostgreSQL (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`), completely retiring temporary synchronous shortcuts (`B04b`).
+  - Server Actions `startPreparationAction` and `confirmPreparationAction` initiate and step the run (`C03`).
+  - Tavily web search captures `SourceDocument` provenance (`B03`); context-preserving extraction produces `EvidenceUnit` records (`A04`).
+  - Deterministic quotation verification (`SourceDocument.text.includes(quote)`) validates empirical grounding (`A04`).
+  - Deterministic synthesis judge executes sequential decision gates, producing an auditable `DecisionRecord` (`A05`).
+  - UI displays live progress and renders verified claim linking to exact quoted excerpt (`C03`).
+  - Optional vector shortlisting is explicitly NOT a prerequisite for Gate G1.
+  - Owning tickets: `A03`, `A04`, `A05`, `B03`, `B04b`, `C03`.
+- **Gate G2 (Broad Coverage, Dynamic Expansion & Durability · Nov 11):**
+  - One mixed answer verifies claims across all 4 domains (Pricing, APIs, Regulations, Leadership) via dynamic DAG expansion (`A06`).
+  - Ambiguous qualifiers trigger generic clarification forms; paused branch transitions to `waiting_for_input`, holding zero worker leases and executing zero jobs while waiting (`C04`, `B05`).
+  - Submitting answers unblocks the branch; selecting "I don't know" proceeds with honest `depends_on_context` fallback (`C04`, `B05`).
+  - Upstash QStash flow control enforces bounded concurrency (max 3 active claim branches) (`B05`).
+  - Database clock lease fencing prevents double-commit; reconciliation sweeper re-enqueues stranded work (`B05`).
+  - Sibling claims execute independently; partial results survive single-claim failure and page refresh (`B05`, `C04`).
+  - Non-blocking experimental `A11` (vector shortlisting) develops in parallel.
+  - Owning tickets: `A06`, `B05`, `C04`.
+- **Gate G3 (Product Flows & Staging · Nov 12):**
+  - Ask mode, Compare drawer, Then vs. Now timeline, Scheduled change badges, Recheck freshness, and Expandable DAG Inspector execute on Vercel/Neon staging over TLS (`C05`, `C06`, `C07`, `B07`).
+  - Server Actions for browser mutations call shared server services directly in-process.
+  - Headless programmatic REST API adapter (`POST /api/v1/verify`) executes the identical verification workflow (`B06`).
+  - Signed QStash webhook delivery verified over TLS (`B07`).
+  - Benchmark evaluation dataset frozen at 30 curated claims in `eval/cases.jsonl` (`A08`).
+  - Owning tickets: `A07`, `A08`, `B06`, `B07`, `C05`, `C06`, `C07`.
+- **Gate G4 (Release Candidate & Submission · Nov 14–15):**
+  - Release candidate passes benchmark evaluation on held-out test split with false reassurance rate $< 5\%$ (`A09`).
+  - Production Next.js deployment on Vercel with custom domain and HTTPS proxy for Bifrost passes security runbook (`B08`).
+  - Automated model fallback profiles succeed on injected provider fault (`B08`).
+  - Mobile responsive verification passes at 360px viewport with zero horizontal scroll (`C08`).
+  - 3-minute video walkthrough recorded and hosted at `public/demo.mp4` (`C08`).
+  - Judge link opens without authentication or login; submission receipt archived (`C09`).
+  - Owning tickets: `A09`, `B08`, `C08`, `C09`.
 
 ### UPPR Integration Proof Protocol (IPP) Standards
 IPP gates govern code correctness across stateful, distributed, and external integration points:
@@ -58,35 +93,77 @@ IPP gates govern code correctness across stateful, distributed, and external int
 
 ---
 
-## 4. Documentation Bootstrap Ticket
+## 4. Old-to-New Scope Mapping
+
+The following mapping documents the evolution from the initial planning baseline to the authoritative architecture:
+
+| Existing Ticket | Preserved Work | Revised / Follow-Up Scope | Architectural Reason |
+| :--- | :--- | :--- | :--- |
+| **A01** | `request.ts`, `claim.ts`, `dates.ts` validated natively (25 vitest tests passing). | Status preserved as `REVIEW`. Extended claim representation handled in follow-up **A10** and **A03**. | Preserves verified repository baseline; avoids modifying completed code in branch review. |
+| **A02** | `evidence.ts`, `report.ts`, `events.ts`, `golden-mixed-report.json` validated natively (30 tests passing). | Status preserved as `REVIEW`. Extended decoupled evidence contracts (`SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`) and `DecisionRecord` authored in follow-up **A10**. | Keeps baseline report schema valid for fixture mode while introducing decoupled abstractions for multi-round DAG verifier. |
+| **A10** *(New)* | None (new ticket). | Contract definitions for `ClaimTicket`, `VerificationProperty`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `ResearchPlan`, `DecisionRecord`, `PreparationRecord`, `ClarificationQuestion`, `DagNodeSpec`, `DagEdgeSpec`, and Server Actions. | Provides unified contract foundation for full dynamic DAG, interactive preparation, and decoupled evidence architecture. |
+| **B01** | Next.js 15 App Router, pnpm 11, Node 22, ESLint, Tailwind, Vitest, Playwright, CI scaffolded and verified. | Status preserved as `REVIEW`. | Foundation toolchain successfully pinned and tested across 55 unit tests and Playwright smoke test. |
+| **B02** | Docker Bifrost setup, model profile configs (`BIFROST_*`). | Remains focused on Bifrost client fetch wrapper, model fallback profiles, and local container smoke test. | Independent workstream; adapter outputs remain compatible with new contract schemas. |
+| **C01** | Visual design tokens in `globals.css` (Ink, Paper, Panel, Line, Accent). | Remains focused on tokens, card states, typography, and reduced-motion accessibility. | Visual foundation is independent of backend DAG changes. |
+| **C02** | Input composer skeleton with character counter and mode tabs. | Adds `PreparationReview` component displaying extracted claims, UTF-16 highlight spans, explicit qualifiers vs inferred suggestions, and editable target context fields. | Interactive preparation requires human review before verification confirms and materializes the DAG. |
+| **A03** | Text extraction logic and UTF-16 substring matching. | Parses text into `ClaimTicket[]` carrying strongly typed `VerificationProperty[]` context properties; enforces scope precedence invariant. | Claims must carry variable typed factual qualifiers rather than rigid dictionary fields or unvalidated JSON. |
+| **A04** | Passage relevance prompt and quote validation. | Implements `ResearchPlan` query generation (current-state, exceptions, counterevidence, historical), context-preserving extraction (`EvidenceUnit[]`), candidate shortlisting, and semantic assessment (`ClaimEvidenceAssessment[]`). | Decouples document retrieval from localized passage extraction and semantic assessment. |
+| **A05** | Precedence decision tree and scoring rubric. | Deterministic synthesis judge executing sequential decision gates; emits immutable `DecisionRecord`; enforces categorical 100/75/0/null rubric; validates surgical correction diffs with 100-score gate. | Epistemic truth scoring is governed by deterministic TypeScript decision gates, not LLM confidence guesswork or floating-point similarity. |
+| **A11** *(New)* | None (new ticket). | Optional vector similarity ranking over cached embeddings in PostgreSQL (active only when candidates $> 4$) and experimental counter-hypothesis testing. | Explicitly isolated as an optional, non-blocking ablation; strictly prohibited from contributing to public freshness scores. |
+| **B03** | Tavily REST client and query execution. | Executes queries formulated by `ResearchPlan`; captures `SourceDocument` provenance (URL, final redirected URL, title, publisher, crawl hash, pub/effective dates, source role). | Captures full document provenance and redirect history required for evidence decoupling. |
+| **B04** | Relational schema and initial execution slice. | Explicitly partitioned into internal milestones: **B04a** (Neon DDL baseline: `runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) and **B04b** (wire minimal persisted DAG execution slice, retiring temporary synchronous orchestration). | Resolves the database migration vs live integration split without creating phase cycles or false synchronous paths. |
+| **C03** | Progress hooks and status display. | Implements Server Actions (`startPreparationAction`, `confirmPreparationAction`), `useRun` hook managing preparation review, SSE progress stream with sequence replay (`?afterSeq=N`), and snapshot polling fallback. | Connects browser mutations directly to shared server services via type-safe Server Actions. |
+| **A06** | 4 domain policies (pricing, API, regulation, leadership). | Enforces required qualifier schemas per domain; generates structured `ClarificationQuestion[]` for material ambiguities. | Generic clarification meta-schema requires domain-specific ambiguity triggers. |
+| **B05** | QStash webhook delivery and lease CAS. | Adds bounded concurrency (max 3 active claim branches), dynamic runtime graph expansion protocol with cycle detection, zero-lease clarification wait states (`waiting_for_input`), and reconciliation sweeper. | Full dynamic DAG requires atomic runtime expansion and non-blocking human-in-the-loop pauses. |
+| **C04** | Evidence inspection workspace screen. | Implements 55:45 split workspace, evidence inspection with clickable locators & counterevidence tabs, and generic accessible `ClarificationForm` rendering approved primitive types with "I don't know" button. | Clarifications require pure structured forms without client-side script execution. |
+| **A07** | Then vs. Now timeline and surgical diff generator. | Chronological timeline derivation ($T_{\text{pub}}, T_{\text{announce}}, T_{\text{effective}}$); surgical correction generation validated through recursive verifier pass requiring score 100. | Corrections must achieve verified primary authority support before presentation to the user. |
+| **A08** | Curation of 30 test claims in `eval/cases.jsonl`. | Incorporates context pairs across 4 domains, negative failure cases, and frozen 20 dev / 10 held-out split. | Prevents prompt over-tuning by freezing held-out test cases. |
+| **B06** | Snapshot endpoint, SSE streaming route, programmatic API. | Implements `GET /api/runs/[id]` returning sanitized DAG projection, `GET /api/runs/[id]/events` with `?afterSeq=N` replay, and `POST /api/v1/verify` headless REST adapter calling shared server services. | Decouples SSE stream lifetime from job execution; exposes type-safe headless verification API. |
+| **B07** | Staging cloud deployment. | Deploys Next.js to Vercel staging, connects Neon staging branch, verifies QStash signed webhooks over TLS. | E4 staging integration gate required before production deployment. |
+| **C05** | Chronology cards and scheduled change badges. | Displays Then vs. Now transition timeline and `Scheduled change` badge for future-effective dates without falsely marking current assertions outdated. | Enforces three-date separation on the frontend. |
+| **C06** | Context comparison drawer and diff view. | Adds side-by-side comparison drawer calling `compareAction`, inline word diff with copy button, recheck freshness calling `recheckAction`, and expandable public `DagInspector`. | Allows user inspection of dynamic execution milestones without leaking private lease tokens or credentials. |
+| **C07** | Ask tab and export utilities. | Implements Ask workflow sharing verification workspace, Markdown/JSON export formats, trace metadata viewer, and WCAG AA accessibility audit. | Unifies Ask mode with Paste mode; ensures export payloads scrub internal IDs. |
+| **A09** | Benchmark runner and accuracy calculations. | Executes baseline vs full Afterfact engine across all 30 benchmark cases; reports paired accuracy, false reassurance rate ($< 5\%$), decisive coverage, and latency traces. | Empirical validation of epistemic verifier performance against naive LLM baseline. |
+| **B08** | Production Vercel deployment. | Deploys production Next.js application, configures custom domain and HTTPS reverse proxy for Bifrost, verifies automated model fallback profiles. | E5 production release gate. |
+| **C08** | Video demo and walkthrough documentation. | Records 3-minute screen demonstration of mixed live answer, Then vs. Now, context comparison, and eval modal. | Satisfies hackathon submission criteria with reproducible judge script. |
+| **C09** | Packaging and submission. | Verifies public URL accessibility without authentication, packages repository assets, archives submission receipt before organizer deadline. | Final project milestone and release candidate closure. |
+
+---
+
+## 5. Documentation Bootstrap Ticket
 
 ### DOC01: Repository Documentation and Architectural Baseline {#doc01-repository-documentation}
 - **Owner:** Repository Documentation Maintainer / Planning Lead
+- **Plain-Language Outcome:** Author comprehensive 14-document architecture and planning specification baseline.
 - **Planned Date:** Nov 7, 2026 IST
-- **Dependencies:** None
 - **Status:** DONE
-- **Deliverable & Files:**
-  - Existing files: [README.md](file:///C:/Users/Mayur/Desktop/Afterfact/README.md), [.gitignore](file:///C:/Users/Mayur/Desktop/Afterfact/.gitignore)
-  - Created files: [AGENTS.md](file:///C:/Users/Mayur/Desktop/Afterfact/AGENTS.md), [CONTRIBUTING.md](file:///C:/Users/Mayur/Desktop/Afterfact/CONTRIBUTING.md), [docs/PRODUCT.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/PRODUCT.md), [docs/ARCHITECTURE.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/ARCHITECTURE.md), [docs/VERIFICATION.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/VERIFICATION.md), [docs/API.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/API.md), [docs/DATA-AND-JOBS.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/DATA-AND-JOBS.md), [docs/SETUP-AND-DEPLOYMENT.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/SETUP-AND-DEPLOYMENT.md), [docs/TESTING-AND-EVALUATION.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/TESTING-AND-EVALUATION.md), [docs/DEMO-AND-SUBMISSION.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/DEMO-AND-SUBMISSION.md), [docs/DECISIONS.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/DECISIONS.md), [docs/PHASE-TRACKER.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/PHASE-TRACKER.md), [.github/PULL_REQUEST_TEMPLATE.md](file:///C:/Users/Mayur/Desktop/Afterfact/.github/PULL_REQUEST_TEMPLATE.md)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Bootstrap Phase / Gate G0 prerequisite.
+- **Canonical Design References:** [AGENTS.md](file:///C:/Users/Mayur/Desktop/Afterfact/AGENTS.md), [ARCHITECTURE.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/ARCHITECTURE.md).
+- **Allowed Scope & Expected Files:** 14 baseline markdown files across root and `docs/`.
+- **Atomic Implementation Checklist:**
   - [x] Inspect workspace root, git branch, and status.
   - [x] Ingest and analyze `pp.md` (UPPR Rev 4) and `stale-answer-detector-implementation-plan.pdf`.
   - [x] Add `pp.md` and `stale-answer-detector-implementation-plan.pdf` to `.gitignore`.
   - [x] Author comprehensive 14-document baseline documentation set.
   - [x] Cross-link documents using relative paths and verify all anchors resolve without dead links.
   - [x] Verify zero credential leakage and zero unwanted file modifications.
-- **Acceptance Criteria:**
-  - All 14 required documentation files exist and pass link resolution.
-  - All 26 implementation tasks (A01–A09, B01–B08, C01–C09) are uniquely defined with DAG dependency integrity.
-  - Negative check: Git status shows only documentation edits and `.gitignore` updates.
-- **Evidence Level & Entry Point:** E1 (Static analysis of Markdown links and file existence).
-- **Evidence:** 14 documentation files written, `.gitignore` updated, link validation check passed.
-- **Handoff:** Unblocks Lane B to start Task B01 and Lane A to start Task A01.
+- **Prerequisites:**
+  - **Start Prerequisites:** None.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Entire task.
+- **Deliverable & Interface Handoff:** Unblocks Lane B to start Task B01 and Lane A to start Task A01.
+- **Positive Acceptance Examples:** All 14 baseline documentation files exist and pass link resolution.
+- **Relevant Negative / Failure Cases:** Git status shows only documentation edits and `.gitignore` updates.
+- **Verification Commands & Checks:** `node scratch/verify_parallel_plan.mjs`.
+- **Evidence Level & Required Proof:** E1 (Static analysis of Markdown links and file existence).
+- **Observed Evidence:** 14 documentation files written, `.gitignore` updated, link validation check passed.
+- **Explicit Exclusions:** Application code, schemas, and runtime configuration.
 - **Blocker / Decision:** Branding is undecided; working name is Stale-Answer Detector (Afterfact).
 
 ---
 
-## 5. Detailed Ticket Registry (A01–A09, B01–B08, C01–C09)
+## 6. Detailed Ticket Registry (A01–A11, B01–B08, C01–C09)
 
 ---
 
@@ -94,301 +171,486 @@ IPP gates govern code correctness across stateful, distributed, and external int
 
 #### A01: Define request and claim schemas {#a01-request-and-claim-schemas}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 8, 2026
-- **Dependencies:** B01 (scaffold)
+- **Plain-Language Outcome:** Define Zod contracts for paste and ask requests, calendar date resolution, atomic claim specs, and UTF-16 character span validation.
+- **Planned Date:** Nov 8, 2026 IST
 - **Status:** REVIEW
-- **Deliverable & Files:** [src/lib/contracts/dates.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/dates.ts), [src/lib/contracts/request.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/request.ts), [src/lib/contracts/claim.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/claim.ts), [tests/unit/contracts/request-claim.test.ts](file:///C:/Users/Mayur/Desktop/Afterfact/tests/unit/contracts/request-claim.test.ts)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 0 foundation deliverable; contributes directly to Gate G0.
+- **Canonical Design References:** [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-008](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** [src/lib/contracts/dates.ts](src/lib/contracts/dates.ts), [src/lib/contracts/request.ts](src/lib/contracts/request.ts), [src/lib/contracts/claim.ts](src/lib/contracts/claim.ts), [tests/unit/contracts/request-claim.test.ts](tests/unit/contracts/request-claim.test.ts).
+- **Atomic Implementation Checklist:**
   - [x] Define Zod schema for paste request (up to 8,000 characters, optional originalQuestion, context object).
   - [x] Define Zod schema for ask request (up to 800 characters, question, context object).
   - [x] Define Zod tagged union for request input (`mode: 'paste' | 'ask'`).
   - [x] Define Zod schema for atomic claim spec (entity, attribute, assertedValue, timeSensitivity, UTF-16 span offsets).
   - [x] Implement span validation helper ensuring `answer.slice(span.start, span.end) === claim.rawText`.
-- **Acceptance Criteria:**
-  - Whitespace-only input fails validation (`400 Bad Request`).
-  - Extracted UTF-16 spans match unmodified input slice exactly.
-  - Explicit scope stated in text is stored independently of requested search context.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/contracts/request-claim.test.ts`).
-- **Evidence:** Verified natively via repository Vitest suite (`pnpm test`, 25 tests passing in `tests/unit/contracts/request-claim.test.ts`: strict wrong-mode rejection, 8000/800 character limits, complete calendar dates, non-trimmed raw text, UTF-16 emoji offset, fractional/empty/inverted/negative bounds checks, diagnostic text privacy). B01 toolchain prerequisite now resolved.
-- **Handoff:** Downstream to A02 (report/event schemas) and C01/C02 (UI component types).
-- **Blocker / Decision:** None (B01 toolchain scaffold landed; native `pnpm test` and `pnpm typecheck` passing).
+- **Prerequisites:**
+  - **Start Prerequisites:** B01 (toolchain scaffold).
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Entire task (completed in branch review).
+- **Deliverable & Interface Handoff:** Handed downstream to A02 (report/event schemas), A10 (contract extensions), and C01/C02 (UI component types).
+- **Positive Acceptance Examples:** Valid paste input with 3 claims validates cleanly; UTF-16 spans match unmodified string slice.
+- **Relevant Negative / Failure Cases:** Whitespace-only input fails validation (`400 Bad Request`); negative offsets or out-of-bounds spans fail validation.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/contracts/request-claim.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite with frozen assertions).
+- **Observed Evidence:** Verified natively via repository Vitest suite (`pnpm test`, 25 tests passing in `tests/unit/contracts/request-claim.test.ts`: strict wrong-mode rejection, 8000/800 character limits, complete calendar dates, non-trimmed raw text, UTF-16 emoji offset, fractional/empty/inverted/negative bounds checks, diagnostic text privacy). B01 toolchain prerequisite resolved.
+- **Explicit Exclusions:** Web retrieval logic, database persistence, and LLM prompting.
+- **Blocker / Decision:** None.
 
 #### A02: Define report and event schemas and create shared fixture {#a02-report-and-event-schemas}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 8, 2026
-- **Dependencies:** A01
+- **Plain-Language Outcome:** Define Zod schemas for verifier reports, timeline entries, categorical score heuristics, ordered progress events, and author a comprehensive golden fixture.
+- **Planned Date:** Nov 8, 2026 IST
 - **Status:** REVIEW
-- **Deliverable & Files:** [src/lib/contracts/evidence.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/evidence.ts), [src/lib/contracts/report.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/report.ts), [src/lib/contracts/events.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/events.ts), [fixtures/golden-mixed-report.json](file:///C:/Users/Mayur/Desktop/Afterfact/fixtures/golden-mixed-report.json), [tests/unit/contracts/report-fixture.test.ts](file:///C:/Users/Mayur/Desktop/Afterfact/tests/unit/contracts/report-fixture.test.ts)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 0 foundation deliverable; contributes directly to Gate G0.
+- **Canonical Design References:** [docs/API.md §3](docs/API.md), [docs/VERIFICATION.md §7](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-005](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** [src/lib/contracts/evidence.ts](src/lib/contracts/evidence.ts), [src/lib/contracts/report.ts](src/lib/contracts/report.ts), [src/lib/contracts/events.ts](src/lib/contracts/events.ts), [fixtures/golden-mixed-report.json](fixtures/golden-mixed-report.json), [tests/unit/contracts/report-fixture.test.ts](tests/unit/contracts/report-fixture.test.ts).
+- **Atomic Implementation Checklist:**
   - [x] Define Zod schema for evidence metadata (url, title, publisher, passage, retrievedAt, publicationDate, effectiveDate).
   - [x] Define Zod schema for claim result (verdict enum, score heuristic, scoreReason, reasonCode, timeline, correction).
   - [x] Define discriminated union for SSE progress events (`run_started`, `claims_identified`, `claim_result`, `claim_failed`, `run_finished`).
   - [x] Construct `fixtures/golden-mixed-report.json` covering pricing, API, regulation, and leadership, including at least 1 future-effective event and 1 unknown/unresolved claim.
-- **Acceptance Criteria:**
-  - Golden fixture passes validation against Zod report schema without errors.
-  - UI imports types from the exact same schema files that API route handlers validate.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/contracts/report-fixture.test.ts`).
-- **Evidence:** Verified natively via repository Vitest suite (`pnpm test`, 30 tests passing in `tests/unit/contracts/report-fixture.test.ts`: full golden fixture validation; supported 100/75 accepted, supported 42 rejected at both report and event boundaries; outdated 0 accepted, outdated null rejected at both boundaries; unresolved null with machine reason accepted, numeric scores rejected; INV-01 claimId uniqueness; INV-02 Ask answerText and highlight span bounds; INV-03 timezone offsets; INV-04 summary counter parity). B01 toolchain prerequisite now resolved.
-- **Handoff:** Downstream to C01/C02 (design tokens & report skeleton) and B03/B04 (Tavily adapter & DB migrations).
-- **Blocker / Decision:** None (B01 toolchain scaffold landed; native `pnpm test` and `pnpm typecheck` passing).
+- **Prerequisites:**
+  - **Start Prerequisites:** A01.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Entire task (completed in branch review).
+- **Deliverable & Interface Handoff:** Handed downstream to C01/C02 (design tokens & report skeleton), B03/B04 (Tavily adapter & DB migrations), and A10.
+- **Positive Acceptance Examples:** Golden fixture passes validation against Zod report schema without errors; supported claims with scores 100/75 validate.
+- **Relevant Negative / Failure Cases:** Numeric scores on unresolved claims are rejected; continuous float scores (e.g. 84.2%) fail schema validation.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/contracts/report-fixture.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite validating report and event schemas).
+- **Observed Evidence:** Verified natively via repository Vitest suite (`pnpm test`, 30 tests passing in `tests/unit/contracts/report-fixture.test.ts`: full golden fixture validation; supported 100/75 accepted, supported 42 rejected at both report and event boundaries; outdated 0 accepted, outdated null rejected at both boundaries; unresolved null with machine reason accepted, numeric scores rejected; INV-01 claimId uniqueness; INV-02 Ask answerText and highlight span bounds; INV-03 timezone offsets; INV-04 summary counter parity). B01 toolchain prerequisite resolved.
+- **Explicit Exclusions:** Dynamic DAG execution nodes and live database tables.
+- **Blocker / Decision:** None.
+
+#### A10: Define preparation, clarification, Universal Claim Ticket & evidence contracts {#a10-define-preparation-clarification-and-dynamic-dag-schemas}
+- **Owner:** A / Verification
+- **Plain-Language Outcome:** Author Zod schemas for Universal Claim Tickets with typed context properties, decoupled evidence abstractions (SourceDocument, EvidenceUnit, ClaimEvidenceAssessment), ResearchPlan, DecisionRecord, preparation reviews, clarification forms, and dynamic DAG execution structures.
+- **Planned Date:** Nov 8, 2026 IST
+- **Status:** TODO
+- **Phase & Gate Contribution:** Phase 0 foundation deliverable; mandatory prerequisite for Gate G0, B04a, and C02.
+- **Canonical Design References:** [docs/VERIFICATION.md §1, §3, §4, §10](docs/VERIFICATION.md), [docs/DATA-AND-JOBS.md §1](docs/DATA-AND-JOBS.md), [docs/DECISIONS.md#adr-018](docs/DECISIONS.md), [docs/DECISIONS.md#adr-019](docs/DECISIONS.md), [docs/DECISIONS.md#adr-021](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/lib/contracts/claim-ticket.ts` (proposed), `src/lib/contracts/evidence-objects.ts` (proposed), `src/lib/contracts/preparation.ts` (proposed), `src/lib/contracts/clarification.ts` (proposed), `src/lib/contracts/dag.ts` (proposed), `src/lib/contracts/actions.ts` (proposed), `tests/unit/contracts/dag-prep-contracts.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Author Zod schemas for `ClaimTicket` and `VerificationProperty` supporting discriminated primitive property types (`string`, `number`, `boolean`, `date`, `selection`, `string_list`), origin tracking (`explicit_claim_text`, `user_target_context`, `model_inferred`, `unknown`), and scope precedence.
+  - [ ] Author Zod schemas for the three decoupled evidence entities: `SourceDocument` (provenance, final redirected URL, crawl hash, pub/effective dates, source role), `EvidenceUnit` (verbatim passage, locators, header hierarchy, table context, footnotes), and `ClaimEvidenceAssessment` (relational semantics, quotation verification, property matching).
+  - [ ] Author Zod schemas for `ResearchPlan` (planned queries, explicit purposes, target source roles, counterevidence requirement, stopping conditions) and `DecisionRecord` (categorical score rubric 100/75/0/null, reason code, primary/counter/excluded evidence IDs, temporal basis, trace IDs).
+  - [ ] Author Zod schema for `PreparationRecord`: input hash binding, explicit qualifiers with text spans, inferred suggestions, and preparation status (`drafting`, `ready`, `superseded`).
+  - [ ] Author Zod schema for `ClarificationQuestion` and `ClarificationAnswers` supporting approved primitive field types (`select`, `short text`, `date`, `number`, `boolean`) and `allowUnknown: true`.
+  - [ ] Author Zod schemas for `DagNodeSpec`, `DagEdgeSpec`, and DAG node state transitions (`pending`, `leased`, `waiting_for_input`, `completed`, `failed`, `skipped`).
+  - [ ] Author typed input and return payloads for Next.js Server Actions (`startPreparationAction`, `confirmPreparationAction`, `submitClarificationAction`, `compareAction`, `recheckAction`).
+  - [ ] Author unit test suite verifying valid contract fixtures and rejecting illegal mutations (unapproved field types, executable scripts, negative offsets, ungrounded quotes).
+- **Prerequisites:**
+  - **Start Prerequisites:** A01, A02, B01.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Full schema authoring and unit test fixtures.
+- **Deliverable & Interface Handoff:** Handed downstream to B04a (database baseline DDL), C02 (preparation review UI), A03 (extraction logic), and B05 (dynamic DAG expansion).
+- **Positive Acceptance Examples:** Valid `ClaimTicket` with typed context properties validates cleanly; `DecisionRecord` validates categorical score and trace IDs; clarification questions with approved primitive field types pass schema checks.
+- **Relevant Negative / Failure Cases:** Questions proposing unapproved field types (e.g. executable script, JSX, arbitrary validation code) fail validation; property with invalid origin is rejected; continuous floating-point score in `DecisionRecord` fails schema check.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck`.
+- **Evidence Level & Required Proof:** E1 (Static typecheck) + E2 (Vitest unit suite).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Database migrations, active worker leases, and API route implementations.
+- **Blocker / Decision:** None.
 
 #### B01: Scaffold and pin the toolchain {#b01-scaffold-and-pin-the-toolchain}
 - **Owner:** B / Platform
-- **Planned Date:** Nov 8, 2026
-- **Dependencies:** None
+- **Plain-Language Outcome:** Initialize the Next.js 15 App Router codebase with strict TypeScript, Tailwind CSS, pnpm package management, Vitest, Playwright, and GitHub Actions CI.
+- **Planned Date:** Nov 8, 2026 IST
 - **Status:** REVIEW
-- **Deliverable & Files:** [package.json](package.json), [pnpm-lock.yaml](pnpm-lock.yaml), [pnpm-workspace.yaml](pnpm-workspace.yaml), [.nvmrc](.nvmrc), [tsconfig.json](tsconfig.json), [next.config.ts](next.config.ts), [postcss.config.mjs](postcss.config.mjs), [tailwind.config.ts](tailwind.config.ts), [eslint.config.mjs](eslint.config.mjs), [vitest.config.ts](vitest.config.ts), [playwright.config.ts](playwright.config.ts), [.github/workflows/ci.yml](.github/workflows/ci.yml), [.env.example](.env.example), [src/app/layout.tsx](src/app/layout.tsx), [src/app/page.tsx](src/app/page.tsx), [src/app/globals.css](src/app/globals.css), [tests/e2e/smoke.spec.ts](tests/e2e/smoke.spec.ts)
-- **Atomic Steps:**
-  - [x] Initialize Next.js 15 App Router with TypeScript, Tailwind CSS, ESLint, `src/` directory, and `@/*` alias.
+- **Phase & Gate Contribution:** Phase 0 platform baseline; core prerequisite for Gate G0.
+- **Canonical Design References:** [AGENTS.md §1](AGENTS.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-001](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** [package.json](package.json), [pnpm-lock.yaml](pnpm-lock.yaml), [pnpm-workspace.yaml](pnpm-workspace.yaml), [.nvmrc](.nvmrc), [tsconfig.json](tsconfig.json), [next.config.ts](next.config.ts), [postcss.config.mjs](postcss.config.mjs), [tailwind.config.ts](tailwind.config.ts), [eslint.config.mjs](eslint.config.mjs), [vitest.config.ts](vitest.config.ts), [playwright.config.ts](playwright.config.ts), [.github/workflows/ci.yml](.github/workflows/ci.yml), [.env.example](.env.example), [src/app/layout.tsx](src/app/layout.tsx), [src/app/page.tsx](src/app/page.tsx), [src/app/globals.css](src/app/globals.css), [tests/e2e/smoke.spec.ts](tests/e2e/smoke.spec.ts).
+- **Atomic Implementation Checklist:**
+  - [x] Initialize Next.js 15 App Router with TypeScript strict mode, Tailwind CSS, ESLint, `src/` directory, and `@/*` alias.
   - [x] Pin Node 22 in `.nvmrc` and pnpm in `packageManager` field of `package.json`.
-  - [x] Install dependencies: `zod`, `drizzle-orm`, `pg`, `@upstash/qstash`.
+  - [x] Install runtime dependencies: `zod`, `drizzle-orm`, `pg`, `@upstash/qstash`.
   - [x] Install dev dependencies: `drizzle-kit`, `@types/pg`, `vitest`, `@playwright/test`, `tsx`.
   - [x] Configure GitHub Actions CI workflow for lint, typecheck, unit test, and build with frozen lockfile.
-- **Acceptance Criteria:**
-  - Clean clone executes `pnpm install`, `pnpm dev`, `pnpm typecheck`, `pnpm test`, and `pnpm build` without errors.
-  - Negative check: CI fails if dependencies are added without updating lockfile.
-- **Evidence Level & Entry Point:** E1 (Static analysis & build), E2 (Vitest unit tests), E5 (Playwright Chromium browser smoke test).
-- **Evidence:** Next.js 15.5.29 App Router scaffolded on Node 22.18.0 / pnpm 11.9.0 with TypeScript strict mode, Tailwind CSS v3, and ESLint flat config. All scripts verified locally: `pnpm install --frozen-lockfile` (1.5s), `pnpm lint` (0 errors, 0 warnings), `pnpm typecheck` (0 errors), `pnpm test` (55/55 tests passing across 2 suites), `pnpm build` (compiled in 11.5s, 4 static pages generated), and `pnpm test:e2e` (Playwright Chromium smoke test passed). Clean installation and build independently validated in disposable working copy. GitHub Actions CI workflow authored at `.github/workflows/ci.yml`.
-- **Handoff:** Unblocks A01, B02, and C01.
+- **Prerequisites:**
+  - **Start Prerequisites:** DOC01.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Entire task (completed in branch review).
+- **Deliverable & Interface Handoff:** Unblocks A01, A10, B02, and C01.
+- **Positive Acceptance Examples:** Clean clone executes `pnpm install`, `pnpm typecheck`, `pnpm test`, and `pnpm build` without errors.
+- **Relevant Negative / Failure Cases:** CI fails if package.json dependencies are added without updating lockfile.
+- **Verification Commands & Checks:** `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`.
+- **Evidence Level & Required Proof:** E1 (Static analysis & build), E2 (Vitest unit tests), E5 (Playwright Chromium browser smoke test).
+- **Observed Evidence:** Next.js 15.5.29 App Router scaffolded on Node 22.18.0 / pnpm 11.9.0 with TypeScript strict mode, Tailwind CSS v3, and ESLint flat config. All scripts verified locally: `pnpm install --frozen-lockfile` (1.5s), `pnpm lint` (0 errors, 0 warnings), `pnpm typecheck` (0 errors), `pnpm test` (55/55 tests passing across 2 suites), `pnpm build` (compiled in 11.5s, 4 static pages generated), and `pnpm test:e2e` (Playwright Chromium smoke test passed). Clean installation and build independently validated in disposable working copy. GitHub Actions CI workflow authored at `.github/workflows/ci.yml`.
+- **Explicit Exclusions:** Domain verification policies and production database provisioning.
 - **Blocker / Decision:** None.
 
 #### B02: Configure Bifrost and smoke-test model profiles {#b02-provision-bifrost-and-model-profiles}
 - **Owner:** B / Platform
-- **Planned Date:** Nov 8, 2026
-- **Dependencies:** B01
+- **Plain-Language Outcome:** Deploy Bifrost model gateway in Docker behind an HTTPS reverse proxy, configure model profiles, implement client wrapper, and verify inference failover.
+- **Planned Date:** Nov 8, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `docker-compose.yml` (proposed), `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed)
-- **Atomic Steps:**
-  - [ ] Create `docker-compose.yml` for Bifrost container pinning tested tag, bound to `127.0.0.1:8080`.
+- **Phase & Gate Contribution:** Phase 0 platform deliverable; mandatory prerequisite for Gate G0 and A03.
+- **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/SETUP-AND-DEPLOYMENT.md §3](docs/SETUP-AND-DEPLOYMENT.md), [docs/DECISIONS.md#adr-003](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `docker-compose.yml` (proposed), `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed), `infra/smoke-bifrost.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Create `docker-compose.yml` for Bifrost container pinning tested image tag, bound to `127.0.0.1:8080`.
   - [ ] Configure model profiles: `BIFROST_EXTRACT_MODEL`, `BIFROST_ASSESS_MODEL`, `BIFROST_DRAFT_MODEL`, and `BIFROST_ASSESS_FALLBACK`.
   - [ ] Implement server client in `bifrost/client.ts` using `fetch` with AbortSignal, auth headers, and typed error handling.
   - [ ] Execute smoke test verifying inference call on each profile.
-- **Acceptance Criteria:**
-  - One test request per profile returns valid response with `x-request-id` and served model metadata.
-  - No provider API keys exist in client bundles or public git repository.
-- **Evidence Level & Entry Point:** E3 (Integration script: `pnpm tsx infra/smoke-bifrost.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A03 (claim extraction) and B04 (vertical slice).
+- **Prerequisites:**
+  - **Start Prerequisites:** B01.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Dedicated Docker host or local Docker engine; LLM provider API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+  - **What Can Start Early:** Client fetch wrapper, typed error handling, and mock provider doubles.
+- **Deliverable & Interface Handoff:** Handed downstream to A03 (claim extraction) and B04b (DAG slice).
+- **Positive Acceptance Examples:** One test request per profile returns valid response with `x-request-id` and served model metadata.
+- **Relevant Negative / Failure Cases:** Primary provider failure or 500 error transparently fails over to configured fallback profile.
+- **Verification Commands & Checks:** `pnpm tsx infra/smoke-bifrost.ts`.
+- **Evidence Level & Required Proof:** E3 (Integration script against live Bifrost container).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Browser client bundles (API keys strictly isolated on server).
 - **Blocker / Decision:** B confirms access to Docker host and two compatible model providers.
+
+#### B04: Migrate data model and wire minimal persisted DAG execution slice {#b04-migrate-the-data-model-and-wire-the-vertical-slice}
+- **Owner:** B / Platform
+- **Plain-Language Outcome:** Define Drizzle relational tables in PostgreSQL, run migrations, and wire the minimal persisted DAG execution slice connecting preparation, retrieval, assessment, and terminal decision records.
+- **Planned Date:** Nov 8–9, 2026 IST
+- **Status:** TODO
+- **Phase & Gate Contribution:** Internal Milestone B04a satisfies Gate G0 (Foundation). Internal Milestone B04b satisfies Gate G1 (Live Slice).
+- **Canonical Design References:** [docs/DATA-AND-JOBS.md §1, §2](docs/DATA-AND-JOBS.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-013](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/db/schema.ts` (proposed), `src/server/db/client.ts` (proposed), `drizzle.config.ts` (proposed), `src/server/services/prep-service.ts` (proposed), `src/server/services/dag-service.ts` (proposed), `tests/integration/dag-slice.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] **Internal Milestone B04a (Database Baseline & DDL Migrations · Phase 0 / Gate G0):**
+    - [ ] Define Drizzle relational tables: `runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`.
+    - [ ] Configure Neon database client with pooler URL for runtime traffic and direct URL for DDL migrations.
+    - [ ] Run initial migration creating all tables, indexes, unique constraints, and foreign keys against Neon test branch.
+  - [ ] **Internal Milestone B04b (Wire Minimal Persisted DAG Slice · Phase 1 / Gate G1):**
+    - [ ] Implement `PreparationService` (input hash binding and claim ticket/qualifier persistence).
+    - [ ] Implement local `DagExecutionService` executing a single-claim paste through real persisted DAG nodes (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`).
+    - [ ] Enforce atomic node completion transaction and lease-fenced status updates, completely retiring temporary synchronous orchestration.
+- **Prerequisites:**
+  - **Start Prerequisites (for B04a):** B01, A01, A02, A10.
+  - **Integration / Completion Prerequisites (for B04b):** B02, B03, A03, A04, A05.
+  - **External Prerequisites:** Neon PostgreSQL account (`DATABASE_URL`, `DATABASE_MIGRATION_URL`).
+  - **What Can Start Early:** Drizzle schema definitions and local SQLite/Postgres unit tests.
+- **Deliverable & Interface Handoff:** B04a unblocks C02 and satisfies Gate G0. B04b unblocks C03 and completes Gate G1.
+- **Positive Acceptance Examples:** From fresh database, migrations run cleanly; submitting a live claim persists real DAG nodes and returns terminal report with an auditable decision record.
+- **Relevant Negative / Failure Cases:** Premature finalization attempt while nodes are pending rolls back; stale lease update matches 0 rows and aborts (`409 Conflict`).
+- **Verification Commands & Checks:** `pnpm drizzle-kit push && pnpm vitest run tests/integration/dag-slice.test.ts`.
+- **Evidence Level & Required Proof:** E3 (Integration test against live Neon PostgreSQL database).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** External QStash message broker dispatch (handled in B05).
+- **Blocker / Decision:** B confirms Neon project credentials.
 
 #### C01: Set visual tokens and component states {#c01-visual-tokens-and-component-states}
 - **Owner:** C / Product
-- **Planned Date:** Nov 8, 2026
-- **Dependencies:** A02 draft (or A01)
+- **Plain-Language Outcome:** Configure Tailwind CSS color tokens, Geist typography, responsive spacing, accessible focus outlines, and interactive component styling states.
+- **Planned Date:** Nov 8, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/app/globals.css` (proposed), `tailwind.config.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 0 UI foundation; contributes directly to Gate G0.
+- **Canonical Design References:** [docs/PRODUCT.md §1](docs/PRODUCT.md), [CONTRIBUTING.md §2](CONTRIBUTING.md).
+- **Allowed Scope & Expected Files:** `src/app/globals.css` (proposed), `tailwind.config.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Configure Tailwind color tokens: Ink (`#182431`), Paper (`#FAFBF8`), Panel (`#FFFFFF`), Line (`#DFE7E3`), Accent (`#006F63`).
   - [ ] Set typography fonts: Geist for UI body, Geist Mono for codes, URLs, and date metadata.
   - [ ] Define spacing tokens (4/8/12/16/24/32 px), 12px border radius, and accessible `:focus-visible` outlines.
   - [ ] Define styling states for normal, hover, focused, disabled, loading, and reduced-motion.
-- **Acceptance Criteria:**
-  - Verdict chips render with distinct text labels in addition to colors (accessible for colorblindness).
-  - Reduced-motion media query disables animations.
-- **Evidence Level & Entry Point:** E1 (CSS linter and Playwright screenshot test).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to C02 (input & report skeleton).
+- **Prerequisites:**
+  - **Start Prerequisites:** B01, A02.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Entire task.
+- **Deliverable & Interface Handoff:** Handed downstream to C02 (input & report skeleton).
+- **Positive Acceptance Examples:** Verdict chips render with distinct text labels in addition to colors (accessible for colorblindness).
+- **Relevant Negative / Failure Cases:** Reduced-motion media query disables animations; missing focus rings fail accessibility check.
+- **Verification Commands & Checks:** `pnpm lint && pnpm test:e2e`.
+- **Evidence Level & Required Proof:** E1 (CSS linting) + E2 (Playwright screenshot test).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Complex stateful business logic.
 - **Blocker / Decision:** None.
 
-#### C02: Implement input and report skeleton {#c02-input-and-report-skeleton}
+#### C02: Implement input, preparation review and report skeleton {#c02-input-and-report-skeleton}
 - **Owner:** C / Product
-- **Planned Date:** Nov 8, 2026
-- **Dependencies:** C01, A02
+- **Plain-Language Outcome:** Build the primary input composer, interactive preparation review screen displaying extracted claims and typed qualifiers, and report skeleton rendering fixture playback.
+- **Planned Date:** Nov 8, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/components/InputComposer.tsx` (proposed), `src/components/ContextFields.tsx` (proposed), `src/components/AnswerDocument.tsx` (proposed), `src/components/ReportSkeleton.tsx` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Completes Phase 0 UI requirement; completes Gate G0 when paired with B01, B02, A10, and B04a.
+- **Canonical Design References:** [docs/PRODUCT.md §2](docs/PRODUCT.md), [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-014](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/components/InputComposer.tsx` (proposed), `src/components/PreparationReview.tsx` (proposed), `src/components/ContextFields.tsx` (proposed), `src/components/AnswerDocument.tsx` (proposed), `src/components/ReportSkeleton.tsx` (proposed), `tests/e2e/input-composer.spec.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Build `InputComposer` with Paste (default) and Ask tabs, character count, and sample picker.
-  - [ ] Implement expandable `ContextFields` drawer for optional target date, jurisdiction, and version.
+  - [ ] Implement `PreparationReview` component displaying extracted claims, UTF-16 highlight spans, explicit qualifiers, and editable target context fields.
   - [ ] Build `AnswerDocument` to render source text with highlight placeholder spans.
   - [ ] Build `ReportSkeleton` with loading shimmer states and visible `[REPLAY MODE]` banner support.
-- **Acceptance Criteria:**
-  - Full keyboard accessibility: tab navigation reaches all mode controls and submit button.
-  - Fixture preview is prominently labeled; long inputs (8,000 chars) render without page overflow.
-- **Evidence Level & Entry Point:** E2 (Playwright component test: `tests/e2e/input-composer.spec.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G0 when paired with B01, B02, and A02; unblocks C03.
+- **Prerequisites:**
+  - **Start Prerequisites:** C01, A02, A10.
+  - **Integration / Completion Prerequisites:** B04a (for persistent preparation).
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Component layout, visual design, and fixture playback mode.
+- **Deliverable & Interface Handoff:** Handed downstream to C03 (wiring real runs & progress).
+- **Positive Acceptance Examples:** User types input, clicks review, sees extracted claims and qualifiers with explicit vs inferred provenance; fixture preview displays `[REPLAY MODE]` banner.
+- **Relevant Negative / Failure Cases:** Inputs over 8,000 characters show error message and disable submission; text with zero claims displays informational note.
+- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/input-composer.spec.ts`.
+- **Evidence Level & Required Proof:** E2 (Playwright component test).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Active Server Action execution (wired in C03).
 - **Blocker / Decision:** None.
 
 ---
 
-### Phase 1: Live Slice (Nov 8–9, 2026 IST)
+### Phase 1: Live Slice via Persisted DAG (Nov 8–9, 2026 IST)
 
-#### A03: Extract and locate atomic claims {#a03-extract-and-locate-atomic-claims}
+#### A03: Extract and locate atomic claims into Universal Claim Tickets {#a03-extract-and-locate-atomic-claims}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 9, 2026
-- **Dependencies:** A01, A02, B02
+- **Plain-Language Outcome:** Author extraction prompts and logic to parse input text into atomic ClaimTicket records carrying variable typed VerificationProperty collections with exact UTF-16 spans.
+- **Planned Date:** Nov 9, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/verify/extract-claims.ts` (proposed), `src/server/prompts/extract.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Core Phase 1 verifier component; mandatory prerequisite for Gate G1 and B04b.
+- **Canonical Design References:** [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-018](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/verify/extract-claims.ts` (proposed), `src/server/prompts/extract.ts` (proposed), `tests/unit/verify/extract-claims.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Author claim extraction system prompt requesting atomic claims, entities, attributes, asserted values, and explicit scopes.
-  - [ ] Implement Bifrost structured extraction call parsing output into `ClaimSpec[]`.
-  - [ ] Implement exact UTF-16 substring matching against input text.
+  - [ ] Implement Bifrost structured extraction call parsing output into `ClaimTicket[]` with variable typed `VerificationProperty[]` context properties.
+  - [ ] Implement exact UTF-16 substring matching against input text, preserving character offsets.
+  - [ ] Enforce scope precedence invariant: explicit claim qualifiers permanently anchor to the claim and cannot be overwritten by user target context.
   - [ ] Handle duplicate text occurrences using sentence offset disambiguation.
-- **Acceptance Criteria:**
-  - Compound statements split into distinct claims.
-  - Highlighting does not alter the source text.
-  - Negative check: Ambiguous spans that cannot be uniquely grounded fail highlight creation but keep the claim text.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/verify/extract-claims.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A04 (passage assessment) and B04 (vertical slice).
+- **Prerequisites:**
+  - **Start Prerequisites:** A01, A02, A10.
+  - **Integration / Completion Prerequisites:** B02 (Bifrost model gateway).
+  - **External Prerequisites:** Model provider credentials via Bifrost.
+  - **What Can Start Early:** Sentence splitting, span math, extraction prompt authoring, unit test fixtures with frozen mock model outputs.
+- **Deliverable & Interface Handoff:** Handed downstream to A04 (research planning & evidence extraction) and B04b (vertical slice).
+- **Positive Acceptance Examples:** Compound statements split cleanly into distinct atomic claims; extracted properties carry explicit provenance tags (`explicit_claim_text` vs `model_inferred`).
+- **Relevant Negative / Failure Cases:** Ambiguous spans that cannot be uniquely grounded fail highlight creation but keep the claim text; text with zero verifiable assertions returns empty array.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/extract-claims.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite with frozen model fixtures).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Web retrieval and evidence synthesis.
 - **Blocker / Decision:** None.
 
-#### A04: Assess passages against a claim {#a04-assess-passages-against-a-claim}
+#### A04: Research planning, context-preserving extraction and semantic assessment {#a04-assess-passages-against-a-claim}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 9, 2026
-- **Dependencies:** A03, B03
+- **Plain-Language Outcome:** Formulate structured ResearchPlan queries, execute context-preserving extraction of EvidenceUnits, and perform semantic assessment producing ClaimEvidenceAssessments with deterministic quotation verification.
+- **Planned Date:** Nov 9, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/verify/assess-evidence.ts` (proposed), `src/server/prompts/assess.ts` (proposed)
-- **Atomic Steps:**
-  - [ ] Author passage assessment prompt sending only claim spec, normalized scope, target time, and numbered passages.
-  - [ ] Require model to return matching excerpt span, scope classification, temporal applicability, and relation (`supports`, `contradicts`, `insufficient`).
-  - [ ] Validate that cited text exists verbatim in the provided passage.
-  - [ ] Implement single retry on malformed JSON output within worker budget.
-- **Acceptance Criteria:**
-  - An invented quote fails validation and is discarded.
-  - Evidence with mismatching year, currency, or jurisdiction is classified as wrong-scope.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/verify/assess-evidence.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A05 (policy & scoring).
+- **Phase & Gate Contribution:** Core Phase 1 evidence evaluation component; mandatory prerequisite for Gate G1 and A05.
+- **Canonical Design References:** [docs/VERIFICATION.md §3, §4, §5, §7](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-019](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/verify/research-planner.ts` (proposed), `src/server/verify/extract-evidence.ts` (proposed), `src/server/verify/assess-evidence.ts` (proposed), `src/server/prompts/assess.ts` (proposed), `tests/unit/verify/assess-evidence.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Implement `research-planner.ts` generating structured `ResearchPlan` queries with explicit purposes (`establish_current_state`, `investigate_exceptions_or_scope`, `seek_counterevidence`, `establish_historical_state_or_transition`), target source roles, and early stopping bounds.
+  - [ ] Implement context-preserving extraction in `extract-evidence.ts` to produce `EvidenceUnit[]` retaining negation markers, header trails, table structures, and footnotes.
+  - [ ] Implement candidate shortlisting (bypassed when candidate passages $\le 4$; lexical/date sort baseline).
+  - [ ] Author semantic assessment prompt sending normalized proposition and candidate `EvidenceUnit[]` to Bifrost.
+  - [ ] Require model to return candidate `ClaimEvidenceAssessment[]` with matching quotes, property match status, and temporal tags.
+  - [ ] Execute deterministic TypeScript quotation verification (`SourceDocument.text.includes(quote)`); reject ungrounded quotes.
+- **Prerequisites:**
+  - **Start Prerequisites:** A01, A02, A10.
+  - **Integration / Completion Prerequisites:** A03, B02, B03 (Tavily retrieved documents).
+  - **External Prerequisites:** Model provider credentials via Bifrost.
+  - **What Can Start Early:** Research planner templates, context-preserving HTML extraction helpers, quotation verifier logic, unit tests with mocked Tavily documents.
+- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b.
+- **Positive Acceptance Examples:** An authoritative passage confirming entity, attribute, and scope is classified as `supports` with `quotationVerified: true`; table footnotes are captured into evidence unit.
+- **Relevant Negative / Failure Cases:** An invented or hallucinated quote fails deterministic quotation verification and is discarded; evidence with conflicting jurisdiction or currency is classified as wrong-scope.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/assess-evidence.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite with injected mock documents and hallucinated excerpts).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Vector embedding shortlisting (isolated in experimental A11) and final score calculation (owned by A05).
 - **Blocker / Decision:** None.
 
-#### A05: Apply deterministic policy and score {#a05-apply-deterministic-policy-and-score}
+#### A05: Apply deterministic policy, synthesis judge and decision gates {#a05-apply-deterministic-policy-and-score}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 9, 2026
-- **Dependencies:** A04
+- **Plain-Language Outcome:** Implement deterministic synthesis judge executing sequential decision gates, producing immutable DecisionRecords with categorical score heuristics (100, 75, 0, null) and validating surgical corrections.
+- **Planned Date:** Nov 9, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/verify/decide.ts` (proposed)
-- **Atomic Steps:**
-  - [ ] Filter candidate passages by scope compatibility.
-  - [ ] Evaluate `depends_on_context` if scope is essential and undetermined.
-  - [ ] Evaluate `conflicting_evidence` if credible passages from the same period conflict.
-  - [ ] Determine `outdated` only when both prior validity and superseding change are proven.
-  - [ ] Assign deterministic score: 100 (direct authoritative), 75 (indirect credible), 0 (contradiction), `null` (unresolved).
-- **Acceptance Criteria:**
-  - Direct authoritative support yields score 100.
-  - Decisive contradiction yields score 0.
-  - Outdated claims lacking proof of prior validity are marked contradicted, not outdated.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/verify/decide.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A06 (domain policies), B04 (vertical slice), and C04.
+- **Phase & Gate Contribution:** Core Phase 1 decision authority; mandatory prerequisite for Gate G1 and B04b.
+- **Canonical Design References:** [docs/VERIFICATION.md §8, §9, §10, §11](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-021](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/verify/decide.ts` (proposed), `src/server/verify/correction.ts` (proposed), `tests/unit/verify/decide.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Implement deterministic synthesis judge executing sequential decision gates: Step 1 Scope match, Step 2 Essential qualifier check, Step 3 Direct contradiction / Outdated check, Step 4 Conflicting evidence check, Step 5 Authoritative support check, Step 6 Fallback.
+  - [ ] Emit immutable `DecisionRecord` capturing evaluated claim revision, policy module, verdict, categorical score (100 | 75 | 0 | null), machine reason codes, primary/counter/excluded evidence IDs, and trace references.
+  - [ ] Enforce categorical score rubric: 100 (direct primary authority), 75 (indirect credible support), 0 (decisive contradiction or outdated), `null` (unresolved with explicit machine reason code).
+  - [ ] Implement recursive surgical correction verification (`correction.ts`): validate candidate replacement against identical target context; emit diff if and only if replacement achieves score of 100.
+- **Prerequisites:**
+  - **Start Prerequisites:** A04, A10.
+  - **Integration / Completion Prerequisites:** None (pure deterministic TypeScript logic).
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Entire decision tree logic, date comparator, reason code registry, and unit test suite.
+- **Deliverable & Interface Handoff:** Handed downstream to A06 (domain policies), B04b (vertical slice), and C04.
+- **Positive Acceptance Examples:** Direct primary authoritative support yields score 100 (`AUTHORITATIVE_PRIMARY_SUPPORT`); decisive contradiction yields score 0 (`DECISIVE_CONTRADICTION`).
+- **Relevant Negative / Failure Cases:** Outdated claim lacking verified proof of prior validity is marked contradicted, not outdated; candidate correction achieving score 75 is suppressed and marked `correction_unverified`.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/decide.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite verifying all decision paths).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Database transactions (managed by B04b) and external LLM calls.
 - **Blocker / Decision:** None.
 
 #### B03: Implement search, extract and evidence capture {#b03-search-extract-and-evidence-capture}
 - **Owner:** B / Platform
-- **Planned Date:** Nov 9, 2026
-- **Dependencies:** A01, A02
+- **Plain-Language Outcome:** Implement Tavily API client executing queries formulated by ResearchPlans, capturing SourceDocument records with final redirected URLs, raw crawl hashes, publication dates, and authority tiers.
+- **Planned Date:** Nov 9, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/tavily/client.ts` (proposed), `src/server/tavily/queries.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 1 web intelligence deliverable; mandatory prerequisite for Gate G1 and B04b.
+- **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/VERIFICATION.md §3, §4](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-004](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/tavily/client.ts` (proposed), `src/server/tavily/queries.ts` (proposed), `tests/integration/tavily-live.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Implement Tavily API client with Bearer auth for `POST /search` and `POST /extract`.
-  - [ ] Implement query generator producing current-state query and historical/change query from claim attributes.
-  - [ ] Execute search retrieving up to 4 hits, filter by trusted domains, and extract top 3 URLs.
-  - [ ] Sanitize raw HTML passages into clean text bounded by worker prompt budget.
-- **Acceptance Criteria:**
-  - Search and extract metadata captured on live test run.
-  - Retains exact excerpts and source URL query parameters (version anchors).
-- **Evidence Level & Entry Point:** E4 (Staging integration test: `tests/integration/tavily-live.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A04, B04, and A06.
+  - [ ] Execute search operations derived from `ResearchPlan` queries (current-state, counterevidence, and historical/change queries).
+  - [ ] Capture retrieved web intelligence into `SourceDocument` records: URL, final redirected URL, title, publisher, raw content hash, publication date, effective date, and assigned source role.
+  - [ ] Sanitize raw HTML passages into clean, structured text bounded by worker prompt budget.
+- **Prerequisites:**
+  - **Start Prerequisites:** A01, A02.
+  - **Integration / Completion Prerequisites:** A10 (for typed ResearchPlan & SourceDocument capture).
+  - **External Prerequisites:** Tavily API Key (`TAVILY_API_KEY`).
+  - **What Can Start Early:** Client implementation, query formatting, mock response fixtures, and rate-limit retry logic.
+- **Deliverable & Interface Handoff:** Handed downstream to A04 (evidence extraction & assessment) and B04b.
+- **Positive Acceptance Examples:** Search and extract operations return structured SourceDocuments with verified publisher metadata and verbatim raw text.
+- **Relevant Negative / Failure Cases:** HTTP 429 rate limit triggers exponential backoff; inaccessible URLs log crawl errors without aborting sibling queries.
+- **Verification Commands & Checks:** `pnpm vitest run tests/integration/tavily-live.test.ts`.
+- **Evidence Level & Required Proof:** E4 (Staging integration test against live Tavily API).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Direct client-side Tavily calls (browser never calls Tavily directly).
 - **Blocker / Decision:** B confirms active Tavily API key.
 
-#### B04: Migrate data model and wire live vertical slice {#b04-migrate-the-data-model-and-wire-the-vertical-slice}
-- **Owner:** B / Platform
-- **Planned Date:** Nov 9, 2026
-- **Dependencies:** A01, A02, B02, B03 (and A05 for live slice integration)
-- **Status:** TODO
-- **Deliverable & Files:** `src/server/db/schema.ts` (proposed), `src/server/db/client.ts` (proposed), `drizzle.config.ts` (proposed), `src/app/api/verify/route.ts` (proposed)
-- **Atomic Steps:**
-  - [ ] Define Drizzle relational tables: `runs`, `claims`, `evidence`, `events`, `jobs`.
-  - [ ] Configure Neon database client with pooler URL for runtime and direct URL for migrations.
-  - [ ] Run initial migration creating all tables, indexes, and foreign keys.
-  - [ ] Wire bounded synchronous vertical slice behind `POST /api/verify` (Paste $\to$ Bifrost $\to$ Tavily $\to$ Bifrost $\to$ Report).
-- **Acceptance Criteria:**
-  - From fresh database, migrations run cleanly; submitting a live claim persists and returns report.
-  - Gate G1 verified: Live claim links to an exact evidence excerpt.
-- **Evidence Level & Entry Point:** E3 (Integration test: `tests/integration/vertical-slice.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Unblocks C03 and Gate G1.
-- **Blocker / Decision:** B confirms Neon project credentials.
-
-#### C03: Wire real runs and progress {#c03-wire-real-runs-and-progress}
+#### C03: Wire real runs, Server Actions and live progress {#c03-wire-real-runs-and-progress}
 - **Owner:** C / Product
-- **Planned Date:** Nov 9, 2026
-- **Dependencies:** C02, B04 (B06 for final SSE)
+- **Plain-Language Outcome:** Implement Server Actions for input submission and confirmation, useRun hook managing preparation review, live SSE progress streaming, and snapshot polling fallback.
+- **Planned Date:** Nov 9, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/hooks/useRun.ts` (proposed), `src/app/runs/[id]/page.tsx` (proposed)
-- **Atomic Steps:**
-  - [ ] Implement `useRun` hook managing submission, snapshot polling, and navigation to `/runs/[id]`.
-  - [ ] Display step progress badges: "Drafting", "Identifying claims", "Checking sources", "Evaluating evidence".
+- **Phase & Gate Contribution:** Phase 1 product deliverable; completes Gate G1 when paired with B04b.
+- **Canonical Design References:** [docs/API.md §1, §2](docs/API.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-011](docs/DECISIONS.md), [docs/DECISIONS.md#adr-012](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/actions/run-actions.ts` (proposed), `src/hooks/useRun.ts` (proposed), `src/app/runs/[id]/page.tsx` (proposed), `tests/e2e/run-progress.spec.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Implement Server Actions `startPreparationAction` and `confirmPreparationAction` calling backend server services directly in-process.
+  - [ ] Implement `useRun` hook managing preparation review, confirmation, SSE subscription (`/api/runs/[id]/events`), and snapshot polling fallback.
+  - [ ] Display step progress badges reflecting dynamic DAG stages ("Extracting", "Planning", "Searching", "Assessing", "Scoring", "Finalized").
   - [ ] Handle single-claim failure gracefully without clearing completed siblings.
-- **Acceptance Criteria:**
-  - Page refresh on `/runs/[id]` reloads the persisted state correctly.
-  - Unresolved claims render with machine reason code instead of hanging.
-- **Evidence Level & Entry Point:** E2 (Playwright browser test: `tests/e2e/run-progress.spec.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G1; unblocks C04.
+- **Prerequisites:**
+  - **Start Prerequisites:** C02, B04b.
+  - **Integration / Completion Prerequisites:** None (polling fallback satisfies Gate G1; live SSE streaming is a Phase 3 non-blocking enhancement via B06).
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Server Action wrappers, React hooks with mock SSE generator, and state machine tests.
+- **Deliverable & Interface Handoff:** Handed downstream to C04 (split workspace & evidence inspection).
+- **Positive Acceptance Examples:** User submits paste, reviews preparation qualifiers, confirms, and watches live DAG progress on `/runs/[id]`; page refresh reloads state from snapshot.
+- **Relevant Negative / Failure Cases:** Network disconnect falls back gracefully to 2-second snapshot polling; stale preparation revision is rejected with error banner.
+- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/run-progress.spec.ts`.
+- **Evidence Level & Required Proof:** E2 (Playwright browser interaction test).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Advanced domain clarification forms (handled in C04).
 - **Blocker / Decision:** None.
 
 ---
 
-### Phase 2: Broad Coverage & Durability (Nov 9–11, 2026 IST)
+### Phase 2: Dynamic Execution, Broad Coverage & Durability (Nov 9–11, 2026 IST)
 
 #### A06: Build pricing, API, regulation and leadership policies {#a06-build-pricing-api-regulation-and-leadership-policies}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 10, 2026
-- **Dependencies:** A05, B03
+- **Plain-Language Outcome:** Implement specialized domain verification policies for Pricing, APIs, Regulations, and Leadership, enforcing qualifier constraints and triggering structured clarification questions.
+- **Planned Date:** Nov 10, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/policies/index.ts` (proposed), `src/server/policies/pricing.ts` (proposed), `src/server/policies/api.ts` (proposed), `src/server/policies/regulation.ts` (proposed), `src/server/policies/leadership.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 2 verifier deliverable; mandatory prerequisite for Gate G2 and B05.
+- **Canonical Design References:** [docs/VERIFICATION.md §4](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-015](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/policies/index.ts` (proposed), `src/server/policies/pricing.ts` (proposed), `src/server/policies/api.ts` (proposed), `src/server/policies/regulation.ts` (proposed), `src/server/policies/leadership.ts` (proposed), `tests/unit/policies/domain-policies.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Build policy registry mapping extracted claim attributes to domain policies.
   - [ ] Implement `pricing.ts` (match tier, currency, billing commitment, tax terms).
   - [ ] Implement `api.ts` (match vendor, REST vs SDK, version string, deprecated vs removed).
   - [ ] Implement `regulation.ts` (match jurisdiction, covered group, effective date).
   - [ ] Implement `leadership.ts` (match entity, office, acting vs permanent, handover date).
-- **Acceptance Criteria:**
-  - One mixed answer successfully validates claims across all 4 domains.
-  - Unsupported or ambiguous claims remain inspectable with reason codes.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/policies/domain-policies.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A07, A08, and B06.
+  - [ ] Implement domain-specific clarification question planning for material ambiguities.
+- **Prerequisites:**
+  - **Start Prerequisites:** A05, B03.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Policy interface definitions, qualifier matching algorithms, and unit test suites.
+- **Deliverable & Interface Handoff:** Handed downstream to B05 (dynamic DAG expansion), C04 (clarification form), A07, and A08.
+- **Positive Acceptance Examples:** One mixed answer successfully validates claims across all 4 domains; pricing policy rejects monthly assertion matched against annual rate.
+- **Relevant Negative / Failure Cases:** Deprecated API parameter claimed to be "removed" is marked contradicted; regulation claimed in force before effective date is flagged as upcoming change.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/policies/domain-policies.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite covering all 4 domain policies).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** UI rendering of clarification forms (handled in C04).
 - **Blocker / Decision:** None.
 
-#### B05: Implement signed delivery, leases and recovery {#b05-implement-signed-delivery-leases-and-recovery}
-- **Owner:** B / Platform
-- **Planned Date:** Nov 10, 2026
-- **Dependencies:** B04
+#### A11: Explore optional vector shortlisting and counter-hypothesis experiments (Experimental) {#a11-explore-optional-vector-shortlisting-and-counter-hypothesis-experiments}
+- **Owner:** A / Verification
+- **Plain-Language Outcome:** Implement and benchmark in-memory cosine shortlisting for large candidate sets (> 4 passages) and experimental counter-hypothesis testing, strictly validating that vector similarity never leaks into public truth scores and does not block core verifier operation.
+- **Planned Date:** Nov 10, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/jobs/worker.ts` (proposed), `src/app/api/internal/jobs/route.ts` (proposed), `src/app/api/internal/reconcile/route.ts` (proposed)
-- **Atomic Steps:**
-  - [ ] Implement QStash webhook verification in `/api/internal/jobs` via `verifySignatureAppRouter`.
-  - [ ] Implement atomic lease acquisition and fencing token (`leaseToken`, `leaseUntil = NOW() + 35s`).
-  - [ ] Enforce QStash flow control capping concurrent claim jobs to 3.
-  - [ ] Implement reconciliation route `/api/internal/reconcile` to recover expired leases and timed-out jobs.
-- **Acceptance Criteria:**
-  - Duplicate delivery of identical webhook cannot insert duplicate claim records.
-  - Worker losing its lease fails closed upon completion attempt (`409 Conflict`).
-- **Evidence Level & Entry Point:** E3 (Integration race test: `tests/integration/lease-fencing.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to B06, B07; completes Gate G2 platform requirement.
+- **Phase & Gate Contribution:** Phase 2 experimental study; strictly non-blocking for Gate G1, G2, or G3; evaluated as an ablation in A09.
+- **Canonical Design References:** [docs/VERIFICATION.md §6](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-020](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/verify/vector-ranker.ts` (proposed), `tests/unit/verify/vector-ranker.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Implement in-memory cosine similarity ranking over cached candidate embeddings in PostgreSQL or memory.
+  - [ ] Enforce bypass guard: if candidate passages count is $\le 4$, vector shortlisting is completely bypassed.
+  - [ ] Implement counter-hypothesis similarity experiment comparing candidate text against an inverted proposition.
+  - [ ] Verify score fencing: vector similarity metrics are strictly excluded from `DecisionRecord.score` and public outputs.
+- **Prerequisites:**
+  - **Start Prerequisites:** A04, B02.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Embedding model profile via Bifrost.
+  - **What Can Start Early:** Cosine similarity math, unit test suite with mock vectors, and score fencing assertion tests.
+- **Deliverable & Interface Handoff:** Handed downstream to A09 as an optional retrieval ablation.
+- **Positive Acceptance Examples:** When candidate count is 10, ranker shortlists top 4 passages for model assessment; cosine scores remain strictly internal.
+- **Relevant Negative / Failure Cases:** Injected test confirms that high vector similarity between contradictory claims never alters the deterministic contradicted verdict.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/vector-ranker.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite proving score fencing and shortlisting behavior).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Core verdict generation and public scoring (strictly forbidden from affecting truth scores).
+- **Blocker / Decision:** None.
+
+#### B05: Implement signed delivery, bounded concurrency, dynamic graph expansion and recovery {#b05-implement-signed-delivery-leases-and-recovery}
+- **Owner:** B / Platform
+- **Plain-Language Outcome:** Implement QStash webhook delivery with signature verification, bounded concurrency (max 3 claims), dynamic runtime graph expansion, zero-lease clarification pauses, and reconciliation sweeper.
+- **Planned Date:** Nov 10, 2026 IST
+- **Status:** TODO
+- **Phase & Gate Contribution:** Phase 2 platform deliverable; mandatory prerequisite for Gate G2 and C04.
+- **Canonical Design References:** [docs/ARCHITECTURE.md §4, §5](docs/ARCHITECTURE.md), [docs/DATA-AND-JOBS.md §2, §3](docs/DATA-AND-JOBS.md), [docs/DECISIONS.md#adr-013](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/jobs/worker.ts` (proposed), `src/app/api/verify/worker/route.ts` (proposed), `src/app/api/internal/reconcile/route.ts` (proposed), `src/server/services/clarification-service.ts` (proposed), `tests/integration/dynamic-dag-recovery.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Implement QStash webhook verification in `/api/verify/worker` via `verifySignatureAppRouter`.
+  - [ ] Enforce QStash flow control capping concurrent active claim branches to 3.
+  - [ ] Implement dynamic runtime graph expansion protocol (DFS cycle check $\to$ atomic commit of node outcome, newly expanded nodes/edges, and events).
+  - [ ] Implement non-blocking clarification wait states in `dag_nodes` (`waiting_for_input`) holding zero worker leases.
+  - [ ] Implement reconciliation route `/api/internal/reconcile` to recover expired leases, dispatch stranded eligible nodes, and handle clarification timeouts.
+- **Prerequisites:**
+  - **Start Prerequisites:** B04b.
+  - **Integration / Completion Prerequisites:** A06 (for multi-domain execution).
+  - **External Prerequisites:** Upstash QStash account, token, and signing keys (`QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`).
+  - **What Can Start Early:** Signature verification helpers, DFS cycle detection algorithm, and lease expiration logic.
+- **Deliverable & Interface Handoff:** Handed downstream to B06, B07, and C04; completes Gate G2 platform requirement.
+- **Positive Acceptance Examples:** Sibling claims fan out across QStash with max 3 concurrent branches; paused clarification branch holds zero leases; reconciliation sweeper re-enqueues timed-out nodes.
+- **Relevant Negative / Failure Cases:** Duplicate delivery of identical webhook cannot insert duplicate claim records; worker losing its lease fails closed upon completion attempt (`409 Conflict`).
+- **Verification Commands & Checks:** `pnpm vitest run tests/integration/dynamic-dag-recovery.test.ts`.
+- **Evidence Level & Required Proof:** E3 (Integration race test verifying lease fencing and recovery).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** UI form rendering.
 - **Blocker / Decision:** B confirms QStash project credentials and signing keys.
 
-#### C04: Implement evidence inspection screen {#c04-implement-evidence-inspection-screen}
+#### C04: Implement evidence inspection screen and dynamic clarification form {#c04-implement-evidence-inspection-screen}
 - **Owner:** C / Product
-- **Planned Date:** Nov 10, 2026
-- **Dependencies:** C03, A02
+- **Plain-Language Outcome:** Build the 55:45 split desktop workspace with responsive mobile sheet, interactive evidence inspection cards with counterevidence tabs, and generic accessible clarification form with 'I don't know' support.
+- **Planned Date:** Nov 10, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/components/ClaimMarker.tsx` (proposed), `src/components/ClaimSummary.tsx` (proposed), `src/components/VerdictChip.tsx` (proposed), `src/components/EvidenceCard.tsx` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 2 product deliverable; completes Gate G2 when paired with A06 and B05.
+- **Canonical Design References:** [docs/PRODUCT.md §2](docs/PRODUCT.md), [docs/VERIFICATION.md §2](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-015](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/components/ClaimMarker.tsx` (proposed), `src/components/ClaimSummary.tsx` (proposed), `src/components/VerdictChip.tsx` (proposed), `src/components/EvidenceCard.tsx` (proposed), `src/components/ClarificationForm.tsx` (proposed), `tests/e2e/evidence-inspection.spec.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Build 55:45 desktop split screen (source text left, evidence inspector right).
   - [ ] Build responsive bottom sheet for mobile viewports (< 768px).
   - [ ] Implement `ClaimMarker` with click and keyboard focus handlers.
   - [ ] Implement `EvidenceCard` displaying publisher, publication date, effective date, exact excerpt, and outbound link.
-- **Acceptance Criteria:**
-  - Activating a claim highlights the claim and populates matching evidence cards.
-  - Mobile layout at 360px viewport has zero horizontal scroll.
-- **Evidence Level & Entry Point:** E2 (Playwright visual regression: `tests/e2e/evidence-inspection.spec.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G2; unblocks C05 and C06.
+  - [ ] Implement accessible `ClarificationForm` rendering approved primitive types (select, short text, date, number, boolean) with "I don't know" button and calling `submitClarificationAction`.
+- **Prerequisites:**
+  - **Start Prerequisites:** C03, A10.
+  - **Integration / Completion Prerequisites:** B05 (clarification unpause), A06 (policy qualifiers).
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** 55:45 split layout, keyboard navigation, accessible form controls, and mock clarification state.
+- **Deliverable & Interface Handoff:** Handed downstream to C05 and C06; completes Gate G2 UI requirement.
+- **Positive Acceptance Examples:** Activating a claim highlights the source span and populates matching evidence cards; submitting clarification answer unblocks paused DAG branch; selecting "I don't know" proceeds with unresolved status.
+- **Relevant Negative / Failure Cases:** Mobile layout at 360px viewport has zero horizontal scroll; submitting stale question version renders conflict error banner.
+- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/evidence-inspection.spec.ts`.
+- **Evidence Level & Required Proof:** E2 (Playwright visual regression and interaction test).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Advanced timeline visualization (handled in C05).
 - **Blocker / Decision:** None.
 
 ---
@@ -397,135 +659,193 @@ IPP gates govern code correctness across stateful, distributed, and external int
 
 #### A07: Derive transitions and validate corrections {#a07-derive-transitions-and-validate-corrections}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 11, 2026
-- **Dependencies:** A05, A06
+- **Plain-Language Outcome:** Implement Then vs. Now chronological transition composer and surgical correction generator validated through a recursive verifier pass requiring score 100.
+- **Planned Date:** Nov 11, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/server/verify/transition.ts` (proposed), `src/server/verify/correction.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 3 verifier deliverable; mandatory prerequisite for Gate G3 and C05.
+- **Canonical Design References:** [docs/VERIFICATION.md §5, §11](docs/VERIFICATION.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-009](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/verify/transition.ts` (proposed), `src/server/verify/correction.ts` (proposed), `tests/unit/verify/transition-correction.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Implement chronology composer assembling then, transition, now, and upcoming timeline entries.
   - [ ] Separate announced date from effective date; flag future-effective changes with `Scheduled change`.
   - [ ] Implement surgical correction generator replacing only verified attributes.
-  - [ ] Run verifier against replacement text; withhold correction if score < 100.
-- **Acceptance Criteria:**
-  - Future-effective event maintains today's valid verdict and attaches `Scheduled change` badge.
-  - Withheld correction is marked `correction_unverified` rather than emitting speculative text.
-- **Evidence Level & Entry Point:** E2 (vitest test suite: `tests/unit/verify/transition-correction.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to C05, C06, and A09.
+  - [ ] Run recursive verifier against replacement text; withhold correction if score < 100.
+- **Prerequisites:**
+  - **Start Prerequisites:** A05, A06.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Timeline composer, date separation logic, and unit test suite.
+- **Deliverable & Interface Handoff:** Handed downstream to C05, C06, and A09.
+- **Positive Acceptance Examples:** Outdated claim produces structured Then vs. Now chronology; valid replacement achieves score 100 and emits clean diff.
+- **Relevant Negative / Failure Cases:** Future-effective event maintains today's valid verdict and attaches `Scheduled change` badge; withheld correction is marked `correction_unverified` rather than emitting speculative text.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/transition-correction.test.ts`.
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** UI rendering of timeline cards.
 - **Blocker / Decision:** None.
 
 #### A08: Freeze test set before tuning {#a08-freeze-the-test-set-before-tuning}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 12, 2026
-- **Dependencies:** A02, A06
+- **Plain-Language Outcome:** Curate 30 factual test claims across the 4 domains, freeze context-paired test cases, and partition into 20 development cases and 10 held-out cases.
+- **Planned Date:** Nov 12, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `eval/cases.jsonl` (proposed), `eval/schema.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 3 evaluation deliverable; mandatory prerequisite for Gate G3 and A09.
+- **Canonical Design References:** [docs/TESTING-AND-EVALUATION.md §4, §5](docs/TESTING-AND-EVALUATION.md), [docs/DECISIONS.md#adr-010](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `eval/cases.jsonl` (proposed), `eval/schema.ts` (proposed), `tests/unit/eval/test-set.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Curate 30 claims across pricing, APIs, regulations, and leadership.
   - [ ] Include at least 3 context pairs per domain where changing one qualifier flips ground truth.
   - [ ] Include negative cases: fabricated values, wrong jurisdiction, future effective date, missing history.
   - [ ] Split dataset: 20 cases for dev tuning, 10 held-out cases reserved exclusively for final benchmark.
-- **Acceptance Criteria:**
-  - Dataset committed and frozen before prompt tuning begins.
-  - Held-out cases remain uninspected during prompt modifications.
-- **Evidence Level & Entry Point:** E1 (Static schema validation of `eval/cases.jsonl`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to A09.
+  - [ ] Commit and freeze `eval/cases.jsonl` before prompt tuning begins.
+- **Prerequisites:**
+  - **Start Prerequisites:** A02.
+  - **Integration / Completion Prerequisites:** A06 (domain policies finalize gold labels).
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Collecting candidate URLs, drafting context pairs, and authoring schema.
+- **Deliverable & Interface Handoff:** Handed downstream to A09 for formal benchmark execution.
+- **Positive Acceptance Examples:** All 30 claims validate against `eval/schema.ts`; at least 3 context pairs per domain are present.
+- **Relevant Negative / Failure Cases:** Duplicate claims or ungrounded gold verdicts fail test set validation.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/eval/test-set.test.ts`.
+- **Evidence Level & Required Proof:** E1 (Static schema validation of `eval/cases.jsonl`).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Modifying held-out cases after prompt tuning starts.
 - **Blocker / Decision:** None.
 
-#### B06: Implement public run endpoints and SSE {#b06-implement-the-public-run-endpoints}
+#### B06: Implement public run endpoints, SSE replay and programmatic API adapter {#b06-implement-the-public-run-endpoints}
 - **Owner:** B / Platform
-- **Planned Date:** Nov 11, 2026
-- **Dependencies:** B04, B05, A06
+- **Plain-Language Outcome:** Implement public run snapshot route, reconnectable SSE progress stream with sequence replay (?afterSeq=N), and headless programmatic REST API adapter (POST /api/v1/verify) calling shared application services.
+- **Planned Date:** Nov 11, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/app/api/runs/[id]/route.ts` (proposed), `src/app/api/runs/[id]/events/route.ts` (proposed), `src/app/api/runs/[id]/compare/route.ts` (proposed), `src/app/api/runs/[id]/recheck/route.ts` (proposed)
-- **Atomic Steps:**
-  - [ ] Implement `GET /api/runs/[id]` snapshot route with `Cache-Control: no-store`.
+- **Phase & Gate Contribution:** Phase 3 platform deliverable; mandatory prerequisite for Gate G3, C06, and B07.
+- **Canonical Design References:** [docs/API.md §3](docs/API.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-011](docs/DECISIONS.md), [docs/DECISIONS.md#adr-012](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/app/api/runs/[id]/route.ts` (proposed), `src/app/api/runs/[id]/events/route.ts` (proposed), `src/app/api/v1/verify/route.ts` (proposed), `src/server/services/run-query-service.ts` (proposed), `tests/integration/run-endpoints.test.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Implement `GET /api/runs/[id]` snapshot route with sanitized projection and `Cache-Control: no-store`.
   - [ ] Implement `GET /api/runs/[id]/events` SSE stream with sequence replay (`?afterSeq=N`).
-  - [ ] Implement `POST /api/runs/[id]/compare` creating linked child run (`parentRunId`).
-  - [ ] Implement `POST /api/runs/[id]/recheck` creating child run with fresh retrieval.
-  - [ ] Enforce anonymous cookie ownership (`ownerHash`) across all routes.
-- **Acceptance Criteria:**
-  - SSE disconnect replays missed events from specified sequence number.
-  - Request with unowned run ID returns `404 Not Found`.
-- **Evidence Level & Entry Point:** E3 (Integration API test suite: `tests/integration/run-endpoints.test.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to C05, C06, C07, and B07.
+  - [ ] Implement `POST /api/v1/verify` programmatic REST verification adapter calling shared `VerificationService`.
+  - [ ] Enforce anonymous cookie ownership (`ownerHash`) and input schema validation across all routes.
+- **Prerequisites:**
+  - **Start Prerequisites:** B04b, B05.
+  - **Integration / Completion Prerequisites:** A06 (for multi-domain snapshots).
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Route skeletons, cookie hashing logic, and integration test doubles.
+- **Deliverable & Interface Handoff:** Handed downstream to C05, C06, C07, and B07; satisfies Gate G3 public API requirement.
+- **Positive Acceptance Examples:** SSE disconnect replays missed events from specified sequence number; snapshot polling provides reliable fallback; programmatic API verifies headlessly without bypassing validation.
+- **Relevant Negative / Failure Cases:** Request with mismatched `ownerHash` returns `404 Not Found` (cross-owner privacy isolation).
+- **Verification Commands & Checks:** `pnpm vitest run tests/integration/run-endpoints.test.ts`.
+- **Evidence Level & Required Proof:** E3 (Integration API test suite).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** UI presentation components.
 - **Blocker / Decision:** None.
 
 #### B07: Provision staging with real integrations {#b07-provision-staging-with-real-integrations}
 - **Owner:** B / Platform
-- **Planned Date:** Nov 12, 2026
-- **Dependencies:** B05, B06
+- **Plain-Language Outcome:** Deploy Next.js to Vercel staging, connect Neon staging branch, configure QStash signed webhooks over TLS, and verify end-to-end integration.
+- **Planned Date:** Nov 12, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `infra/staging.env` (proposed), `infra/smoke-staging.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 3 infrastructure deliverable; completes Gate G3 when paired with C07.
+- **Canonical Design References:** [docs/SETUP-AND-DEPLOYMENT.md §4](docs/SETUP-AND-DEPLOYMENT.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md).
+- **Allowed Scope & Expected Files:** `infra/staging.env` (proposed), `infra/smoke-staging.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Deploy Next.js staging build to Vercel with dedicated staging environment variables.
   - [ ] Configure separate Neon staging database branch.
   - [ ] Configure QStash topic pointing to staging URL with webhook bypass token.
   - [ ] Run automated fault injection test verifying Bifrost fallback and lease recovery on staging.
-- **Acceptance Criteria:**
-  - Vercel staging deployment reaches Neon, Tavily, and Bifrost over TLS.
-  - Signed background jobs complete end-to-end on staging domain.
-- **Evidence Level & Entry Point:** E4 (Staging automated smoke run).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G3; unblocks B08.
+- **Prerequisites:**
+  - **Start Prerequisites:** B05, B06.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Vercel staging project, Neon branch, QStash webhook endpoint.
+  - **What Can Start Early:** Infrastructure scripts, smoke test runner, and environment variable audits.
+- **Deliverable & Interface Handoff:** Handed downstream to B08 (production deployment); satisfies Gate G3 staging requirement.
+- **Positive Acceptance Examples:** Vercel staging deployment reaches Neon, Tavily, and Bifrost over TLS; signed background jobs complete end-to-end.
+- **Relevant Negative / Failure Cases:** Unauthenticated or unsigned webhook delivery to `/api/verify/worker` fails with `401 Unauthorized`.
+- **Verification Commands & Checks:** `pnpm tsx infra/smoke-staging.ts`.
+- **Evidence Level & Required Proof:** E4 (Staging automated smoke run).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Production custom domains and public DNS cutover.
 - **Blocker / Decision:** B confirms Vercel staging deployment URL.
 
 #### C05: Implement Then vs. Now and scheduled changes {#c05-implement-then-vs-now-and-scheduled-changes}
 - **Owner:** C / Product
-- **Planned Date:** Nov 11, 2026
-- **Dependencies:** C04, A07
+- **Plain-Language Outcome:** Build the Then vs. Now chronological transition cards linking to supporting evidence passages and render Scheduled change badges on future-effective events.
+- **Planned Date:** Nov 11, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/components/ChangeTimeline.tsx` (proposed), `src/components/ScheduledChangeBadge.tsx` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 3 product deliverable; contributes directly to Gate G3.
+- **Canonical Design References:** [docs/PRODUCT.md §3](docs/PRODUCT.md), [docs/VERIFICATION.md §5](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-009](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/components/ChangeTimeline.tsx` (proposed), `src/components/ScheduledChangeBadge.tsx` (proposed), `tests/e2e/timeline.spec.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Build `ChangeTimeline` displaying historical state, transition event, current state, and upcoming changes.
   - [ ] Link each timeline entry directly to its supporting evidence passage.
   - [ ] Implement `ScheduledChangeBadge` for future-effective regulations or API deprecations.
   - [ ] Display honest fallback message when historical transitions are unverified.
-- **Acceptance Criteria:**
-  - Current fact with a future-effective event displays a distinct `Scheduled change` badge without marking the claim outdated.
-- **Evidence Level & Entry Point:** E2 (Playwright component test: `tests/e2e/timeline.spec.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to C06.
+- **Prerequisites:**
+  - **Start Prerequisites:** C04, A07.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Component mockups, timeline layout, and fixture-driven rendering tests.
+- **Deliverable & Interface Handoff:** Handed downstream to C06.
+- **Positive Acceptance Examples:** Current fact with a future-effective event displays a distinct `Scheduled change` badge without marking the claim outdated.
+- **Relevant Negative / Failure Cases:** Claims lacking proof of prior validity omit the transition card and render contradicted verdict.
+- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/timeline.spec.ts`.
+- **Evidence Level & Required Proof:** E2 (Playwright component test).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Context comparison drawer (handled in C06).
 - **Blocker / Decision:** None.
 
-#### C06: Implement Compare, correction and Recheck {#c06-implement-compare-correction-and-recheck}
+#### C06: Implement Compare, correction, recheck and Expandable DAG Inspector {#c06-implement-compare-correction-and-recheck}
 - **Owner:** C / Product
-- **Planned Date:** Nov 11, 2026
-- **Dependencies:** C04, C05, B06
+- **Plain-Language Outcome:** Implement side-by-side context comparison drawer, inline surgical correction diffs with copy button, recheck freshness button, and expandable sanitized DAG inspector.
+- **Planned Date:** Nov 11, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/components/CompareDrawer.tsx` (proposed), `src/components/CorrectionDiff.tsx` (proposed)
-- **Atomic Steps:**
-  - [ ] Build `CompareDrawer` allowing user to change one context qualifier and trigger `POST /compare`.
+- **Phase & Gate Contribution:** Phase 3 product deliverable; contributes directly to Gate G3.
+- **Canonical Design References:** [docs/PRODUCT.md §4](docs/PRODUCT.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-017](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/components/CompareDrawer.tsx` (proposed), `src/components/CorrectionDiff.tsx` (proposed), `src/components/DagInspector.tsx` (proposed), `tests/e2e/compare-dag.spec.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Build `CompareDrawer` allowing user to change one context qualifier and trigger `compareAction`.
   - [ ] Render side-by-side comparison cards for original context vs target context.
   - [ ] Build `CorrectionDiff` component rendering inline word diff with "Copy Correction" button.
-  - [ ] Wire "Recheck Freshness" button to `POST /recheck` preserving original run reference.
-- **Acceptance Criteria:**
-  - Context comparison flips verdict on paired Stripe case without mutating original text.
-  - Failed recheck retains previous completed report intact.
-- **Evidence Level & Entry Point:** E2 (Playwright interaction test: `tests/e2e/compare-correction.spec.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G3; unblocks C07.
+  - [ ] Wire "Recheck Freshness" button to `recheckAction` preserving original run reference.
+  - [ ] Implement expandable `DagInspector` component displaying sanitized public projection of dynamic DAG nodes, active stage, and Tavily queries executed (scrubbing internal leases and tokens).
+- **Prerequisites:**
+  - **Start Prerequisites:** C04, C05, B06.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Drawer component layout, diff visualizer, and DAG viewer using mock graph data.
+- **Deliverable & Interface Handoff:** Handed downstream to C07; satisfies Gate G3 interactive comparison requirement.
+- **Positive Acceptance Examples:** Context comparison flips verdict on paired Stripe case without mutating original text; expandable DAG view displays active stages without exposing internal leases.
+- **Relevant Negative / Failure Cases:** Failed recheck retains previous completed report intact without data loss.
+- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/compare-dag.spec.ts`.
+- **Evidence Level & Required Proof:** E2 (Playwright interaction test).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Export formats and Ask drafting flow (handled in C07).
 - **Blocker / Decision:** None.
 
 #### C07: Finish Ask, export and polish {#c07-finish-ask-export-and-polish}
 - **Owner:** C / Product
-- **Planned Date:** Nov 12, 2026
-- **Dependencies:** B06, C03, C04, C05, C06
+- **Plain-Language Outcome:** Complete the Ask workflow tab, add Copy Report and Download JSON export actions, implement token trace viewer, and conduct full WCAG AA accessibility audit.
+- **Planned Date:** Nov 12, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `src/components/AskFlow.tsx` (proposed), `src/components/ExportReport.tsx` (proposed), `src/components/TraceViewer.tsx` (proposed)
-- **Atomic Steps:**
-  - [ ] Complete Ask workflow: user asks question $\to$ Bifrost drafts initial answer $\to$ verifier runs.
+- **Phase & Gate Contribution:** Phase 3 product completion deliverable; completes Gate G3 when paired with B07.
+- **Canonical Design References:** [docs/PRODUCT.md §2, §5](docs/PRODUCT.md), [CONTRIBUTING.md §2](CONTRIBUTING.md).
+- **Allowed Scope & Expected Files:** `src/components/AskFlow.tsx` (proposed), `src/components/ExportReport.tsx` (proposed), `src/components/TraceViewer.tsx` (proposed), `tests/e2e/ask-export.spec.ts` (proposed).
+- **Atomic Implementation Checklist:**
+  - [ ] Complete Ask workflow: user asks question $\to$ Bifrost drafts initial answer $	o$ verifier runs.
   - [ ] Add "Copy Report" and "Download JSON" export actions using public report schema.
   - [ ] Add collapsible trace viewer displaying Tavily query count and Bifrost model profile.
   - [ ] Perform WCAG AA accessibility audit (contrast, aria-live regions, focus rings).
-- **Acceptance Criteria:**
-  - Ask flow shares identical verification workspace as Paste flow.
-  - Exported JSON contains zero private tokens, internal database IDs, or secrets.
-- **Evidence Level & Entry Point:** E2 (Playwright e2e test suite: `tests/e2e/ask-export.spec.ts`).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G3; unblocks C08, B08.
+- **Prerequisites:**
+  - **Start Prerequisites:** B06, C03, C04, C05, C06.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** None.
+  - **What Can Start Early:** Export formatting logic, accessibility audit checklist, and trace viewer layout.
+- **Deliverable & Interface Handoff:** Handed downstream to C08 and B08; satisfies Gate G3 product completion requirement.
+- **Positive Acceptance Examples:** Ask flow shares identical verification workspace as Paste flow; exported JSON contains zero private tokens or secrets.
+- **Relevant Negative / Failure Cases:** Keyboard tab navigation reaches all controls without trapping focus; screen reader announces live DAG progress updates.
+- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/ask-export.spec.ts`.
+- **Evidence Level & Required Proof:** E2 (Playwright e2e test suite).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Video walkthrough recording (owned by C08).
 - **Blocker / Decision:** None.
 
 ---
@@ -534,82 +854,116 @@ IPP gates govern code correctness across stateful, distributed, and external int
 
 #### A09: Run baseline, full verifier evaluation and regressions {#a09-run-baseline-full-pipeline-and-regressions}
 - **Owner:** A / Verification
-- **Planned Date:** Nov 13, 2026
-- **Dependencies:** A07, A08, B06
+- **Plain-Language Outcome:** Execute benchmark evaluation comparing Afterfact against naive LLM baseline on 30 frozen cases, calculate metrics (paired accuracy, false reassurance < 5%, decisive coverage), and document findings.
+- **Planned Date:** Nov 13, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `eval/run-benchmark.ts` (proposed), `docs/BENCHMARK-RESULTS.md` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Core Phase 4 evaluation deliverable; mandatory prerequisite for Gate G4.
+- **Canonical Design References:** [docs/TESTING-AND-EVALUATION.md §4, §5](docs/TESTING-AND-EVALUATION.md).
+- **Allowed Scope & Expected Files:** `eval/run-benchmark.ts` (proposed), `docs/BENCHMARK-RESULTS.md` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Implement evaluation harness executing baseline system (evaluator model + single Tavily search).
   - [ ] Execute full Afterfact verification engine across all 30 cases (20 dev + 10 held-out).
   - [ ] Calculate paired accuracy, false reassurance rate, decisive coverage, and p50/p95 latency.
   - [ ] Document at least 1 observed failure case with root cause analysis.
-- **Acceptance Criteria:**
-  - Evaluation results logged with exact denominators; no fabricated statistics.
-  - False reassurance rate on held-out split is strictly measured.
-- **Evidence Level & Entry Point:** E4 (Evaluation script execution output).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to C08.
+- **Prerequisites:**
+  - **Start Prerequisites:** A07, A08, B06.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Active Tavily and Bifrost model provider credits.
+  - **What Can Start Early:** Eval harness scaffolding, metric calculation formulas, and markdown report generator.
+- **Deliverable & Interface Handoff:** Handed downstream to C08 for walkthrough presentation.
+- **Positive Acceptance Examples:** Full Afterfact pipeline achieves false reassurance rate $< 5\%$ on held-out split, outperforming baseline on paired context cases.
+- **Relevant Negative / Failure Cases:** Any failure case is documented honestly with root-cause analysis; no fabricated statistics.
+- **Verification Commands & Checks:** `pnpm tsx eval/run-benchmark.ts`.
+- **Evidence Level & Required Proof:** E4 (Evaluation script execution output against live staging environment).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Prompt tuning on the held-out split (strictly forbidden).
 - **Blocker / Decision:** None.
 
 #### B08: Deploy production and verify fallbacks {#b08-deploy-production-and-verify-fallbacks}
 - **Owner:** B / Platform
-- **Planned Date:** Nov 13, 2026
-- **Dependencies:** B07, C07
+- **Plain-Language Outcome:** Apply production database migrations, deploy Next.js application to Vercel on custom domain, secure Bifrost behind HTTPS, and verify automated model fallback failover.
+- **Planned Date:** Nov 13, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `infra/production.env` (proposed), `infra/smoke-production.ts` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Core Phase 4 platform release deliverable; mandatory prerequisite for Gate G4.
+- **Canonical Design References:** [docs/SETUP-AND-DEPLOYMENT.md §5](docs/SETUP-AND-DEPLOYMENT.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md).
+- **Allowed Scope & Expected Files:** `infra/production.env` (proposed), `infra/smoke-production.ts` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Apply final Drizzle migrations to Neon production database.
   - [ ] Deploy production Next.js application to Vercel on custom domain.
   - [ ] Point production QStash topic to live domain and enable recurring reconciliation schedule.
   - [ ] Perform live smoke test with mixed-domain answer on fresh browser session.
-- **Acceptance Criteria:**
-  - Production URL loads with HTTPS; end-to-end verification succeeds on fresh device.
-  - Previous Vercel build can be redeployed without database schema incompatibilities.
-- **Evidence Level & Entry Point:** E5 (Production live verification trace).
-- **Evidence:** *Pending execution*
-- **Handoff:** Completes Gate G4; unblocks C08.
+  - [ ] Test Bifrost primary model failure failover to fallback profile.
+- **Prerequisites:**
+  - **Start Prerequisites:** B07, C07.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Production Vercel domain, DNS records, HTTPS reverse proxy for Bifrost.
+  - **What Can Start Early:** Production configuration audit, SSH tunnel setup, and deployment runbooks.
+- **Deliverable & Interface Handoff:** Handed downstream to C08 and C09; completes Gate G4 platform requirement.
+- **Positive Acceptance Examples:** Production URL loads with HTTPS; end-to-end verification succeeds on fresh unauthenticated device.
+- **Relevant Negative / Failure Cases:** Primary provider outage transparently routes to secondary fallback without user error.
+- **Verification Commands & Checks:** `pnpm tsx infra/smoke-production.ts`.
+- **Evidence Level & Required Proof:** E5 (Production live verification trace).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Hackathon portal submission packaging (owned by C09).
 - **Blocker / Decision:** B confirms production domain DNS configuration.
 
 #### C08: Run final product walkthrough and recording {#c08-run-the-final-product-walkthrough}
 - **Owner:** C / Product
-- **Planned Date:** Nov 13–14, 2026
-- **Dependencies:** C07, B08, A09
+- **Plain-Language Outcome:** Execute 3-minute judge script on production domain, record high-resolution video walkthrough with voiceover, and author reproducible demonstration runbook.
+- **Planned Date:** Nov 13–14, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** `public/demo.mp4` (proposed), `docs/WALKTHROUGH.md` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Phase 4 demonstration deliverable; mandatory prerequisite for Gate G4.
+- **Canonical Design References:** [docs/DEMO-AND-SUBMISSION.md §1, §2](docs/DEMO-AND-SUBMISSION.md).
+- **Allowed Scope & Expected Files:** `public/demo.mp4` (proposed), `docs/WALKTHROUGH.md` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Execute 3-minute judge script on production domain.
   - [ ] Demonstrate: mixed live answer, clickable evidence, Then vs. Now, scheduled change badge, context compare, correction diff, and eval modal.
   - [ ] Record high-resolution screen demo with voiceover.
   - [ ] Capture verified replay mode fallback in case of live judging network failure.
-- **Acceptance Criteria:**
-  - Independent builder can reproduce entire walkthrough following README.
-  - Video length is under 3 minutes and covers all sponsor requirements.
-- **Evidence Level & Entry Point:** E5 (Completed video file and walkthrough transcript).
-- **Evidence:** *Pending execution*
-- **Handoff:** Downstream to C09.
+- **Prerequisites:**
+  - **Start Prerequisites:** C07, B08, A09.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Screen recording software, microphone.
+  - **What Can Start Early:** Script authoring, slide deck, demo outline, and walkthrough timing rehearsal.
+- **Deliverable & Interface Handoff:** Handed downstream to C09 for portal submission.
+- **Positive Acceptance Examples:** Independent builder can reproduce entire walkthrough following README; video length is under 3 minutes.
+- **Relevant Negative / Failure Cases:** Live network failure falls back cleanly to `[REPLAY MODE]` banner without crashing demo.
+- **Verification Commands & Checks:** Visual review of `public/demo.mp4` and execution of `docs/WALKTHROUGH.md`.
+- **Evidence Level & Required Proof:** E5 (Completed video file and walkthrough transcript).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Hackathon portal form submission (owned by C09).
 - **Blocker / Decision:** None.
 
 #### C09: Package and submit {#c09-package-and-submit}
 - **Owner:** C / Product
-- **Planned Date:** Nov 14–15, 2026
-- **Dependencies:** C08
+- **Plain-Language Outcome:** Verify public accessibility without login, package repository submission assets, complete hackathon platform entry, and archive submission confirmation receipt.
+- **Planned Date:** Nov 14–15, 2026 IST
 - **Status:** TODO
-- **Deliverable & Files:** Hackathon submission portal entry, `submission-receipt.png` (proposed)
-- **Atomic Steps:**
+- **Phase & Gate Contribution:** Project terminal milestone; closes Gate G4 and completes project lifecycle.
+- **Canonical Design References:** [docs/DEMO-AND-SUBMISSION.md §3](docs/DEMO-AND-SUBMISSION.md).
+- **Allowed Scope & Expected Files:** Hackathon submission portal entry, `submission-receipt.png` (proposed).
+- **Atomic Implementation Checklist:**
   - [ ] Verify public URL accessibility without authentication or team login.
   - [ ] Check repository completeness, license, and public visibility.
   - [ ] Assemble submission fields: public URL, video URL, GitHub link, benchmark summary, sponsor tags.
   - [ ] Submit before organizer cutoff time and archive confirmation receipt.
-- **Acceptance Criteria:**
-  - Submission receipt confirmed and stored in repository.
-- **Evidence Level & Entry Point:** E5 (Official platform confirmation receipt).
-- **Evidence:** *Pending execution*
-- **Handoff:** Project Complete.
+- **Prerequisites:**
+  - **Start Prerequisites:** C08.
+  - **Integration / Completion Prerequisites:** None.
+  - **External Prerequisites:** Hackathon submission portal credentials.
+  - **What Can Start Early:** Draft submission text, repository cleanup, and license audit.
+- **Deliverable & Interface Handoff:** Project Complete.
+- **Positive Acceptance Examples:** Submission receipt confirmed and stored in repository; judge link opens directly.
+- **Relevant Negative / Failure Cases:** Submission blocked if repository contains private secrets or broken URLs.
+- **Verification Commands & Checks:** Final URL smoke check and visual inspection of `submission-receipt.png`.
+- **Evidence Level & Required Proof:** E5 (Official platform confirmation receipt).
+- **Observed Evidence:** *Pending execution*
+- **Explicit Exclusions:** Post-submission feature development.
 - **Blocker / Decision:** Confirmation of official organizer cutoff deadline.
 
 ---
 
-## 6. Comprehensive Evidence Log
+## 7. Comprehensive Evidence Log
 
 | Date | Task ID | Command / Walkthrough | Environment | Observed Result | Link / Path |
 | :---: | :---: | :--- | :---: | :--- | :--- |
@@ -617,9 +971,28 @@ IPP gates govern code correctness across stateful, distributed, and external int
 | 2026-11-08 | A01 | `pnpm test` (vitest run `tests/unit/contracts/request-claim.test.ts`) | Local Dev | 25/25 tests passing natively under repository toolchain. | [A01](#a01-request-and-claim-schemas) |
 | 2026-11-08 | A02 | `pnpm test` (vitest run `tests/unit/contracts/report-fixture.test.ts`) | Local Dev | 30/30 tests passing natively under repository toolchain; full golden fixture validated. | [A02](#a02-report-and-event-schemas) |
 | 2026-11-08 | B01 | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` | Local Dev & Disposable Copy | All 6 checks passed cleanly (0 lint/type errors, 55 vitest tests, production build 4/4 static pages, 1/1 Playwright Chromium smoke test). | [B01](#b01-scaffold-and-pin-the-toolchain) |
+| *Pending* | A10 | `pnpm test tests/unit/contracts/dag-prep-contracts.test.ts` | Local Dev | *Pending execution* | [A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) |
 | *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
-| *Pending* | B04 | `pnpm vitest run tests/integration/vertical-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| *Pending* | C01 | `pnpm lint` | Local Dev | *Pending execution* | [C01](#c01-visual-tokens-and-component-states) |
+| *Pending* | C02 | `pnpm playwright test tests/e2e/input-composer.spec.ts` | Local Dev | *Pending execution* | [C02](#c02-input-and-report-skeleton) |
+| *Pending* | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | *Pending execution* | [A03](#a03-extract-and-locate-atomic-claims) |
+| *Pending* | A04 | `pnpm vitest run tests/unit/verify/assess-evidence.test.ts` | Local Dev | *Pending execution* | [A04](#a04-assess-passages-against-a-claim) |
+| *Pending* | A05 | `pnpm vitest run tests/unit/verify/decide.test.ts` | Local Dev | *Pending execution* | [A05](#a05-apply-deterministic-policy-and-score) |
+| *Pending* | B03 | `pnpm vitest run tests/integration/tavily-live.test.ts` | Staging / External | *Pending execution* | [B03](#b03-search-extract-and-evidence-capture) |
+| *Pending* | C03 | `pnpm playwright test tests/e2e/run-progress.spec.ts` | Local Dev | *Pending execution* | [C03](#c03-wire-real-runs-and-progress) |
+| *Pending* | A06 | `pnpm vitest run tests/unit/policies/domain-policies.test.ts` | Local Dev | *Pending execution* | [A06](#a06-build-pricing-api-regulation-and-leadership-policies) |
+| *Pending* | A11 | `pnpm vitest run tests/unit/verify/vector-ranker.test.ts` | Local Dev | *Pending execution* | [A11](#a11-explore-optional-vector-shortlisting-and-counter-hypothesis-experiments) |
+| *Pending* | B05 | `pnpm vitest run tests/integration/dynamic-dag-recovery.test.ts` | Staging / QStash | *Pending execution* | [B05](#b05-implement-signed-delivery-leases-and-recovery) |
+| *Pending* | C04 | `pnpm playwright test tests/e2e/evidence-inspection.spec.ts` | Local Dev | *Pending execution* | [C04](#c04-implement-evidence-inspection-screen) |
+| *Pending* | A07 | `pnpm vitest run tests/unit/verify/transition-correction.test.ts` | Local Dev | *Pending execution* | [A07](#a07-derive-transitions-and-validate-corrections) |
+| *Pending* | A08 | `pnpm vitest run tests/unit/eval/test-set.test.ts` | Local Dev | *Pending execution* | [A08](#a08-freeze-the-test-set-before-tuning) |
+| *Pending* | B06 | `pnpm vitest run tests/integration/run-endpoints.test.ts` | Local Dev | *Pending execution* | [B06](#b06-implement-the-public-run-endpoints) |
 | *Pending* | B07 | `pnpm tsx infra/smoke-staging.ts` | Vercel Staging | *Pending execution* | [B07](#b07-provision-staging-with-real-integrations) |
-| *Pending* | B08 | `pnpm tsx infra/smoke-production.ts` | Production | *Pending execution* | [B08](#b08-deploy-production-and-verify-fallbacks) |
+| *Pending* | C05 | `pnpm playwright test tests/e2e/timeline.spec.ts` | Local Dev | *Pending execution* | [C05](#c05-implement-then-vs-now-and-scheduled-changes) |
+| *Pending* | C06 | `pnpm playwright test tests/e2e/compare-dag.spec.ts` | Local Dev | *Pending execution* | [C06](#c06-implement-compare-correction-and-recheck) |
+| *Pending* | C07 | `pnpm playwright test tests/e2e/ask-export.spec.ts` | Local Dev | *Pending execution* | [C07](#c07-finish-ask-export-and-polish) |
 | *Pending* | A09 | `pnpm tsx eval/run-benchmark.ts` | Staging / Eval | *Pending execution* | [A09](#a09-run-baseline-full-pipeline-and-regressions) |
+| *Pending* | B08 | `pnpm tsx infra/smoke-production.ts` | Production | *Pending execution* | [B08](#b08-deploy-production-and-verify-fallbacks) |
 | *Pending* | C08 | 3-minute video recording | Production | *Pending execution* | [C08](#c08-run-the-final-product-walkthrough) |
+| *Pending* | C09 | Platform submission receipt | Production | *Pending execution* | [C09](#c09-package-and-submit) |
