@@ -228,32 +228,32 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Author Zod schemas for Universal Claim Tickets with typed context properties, decoupled evidence abstractions (SourceDocument, EvidenceUnit, ClaimEvidenceAssessment), ResearchPlan, DecisionRecord, preparation reviews, clarification forms, and dynamic DAG execution structures.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 0 foundation deliverable; mandatory prerequisite for Gate G0, B04a, and C02.
 - **Canonical Design References:** [docs/VERIFICATION.md §1, §3, §4, §10](docs/VERIFICATION.md), [docs/DATA-AND-JOBS.md §1](docs/DATA-AND-JOBS.md), [docs/DECISIONS.md#adr-018](docs/DECISIONS.md), [docs/DECISIONS.md#adr-019](docs/DECISIONS.md), [docs/DECISIONS.md#adr-021](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/lib/contracts/claim-ticket.ts` (proposed), `src/lib/contracts/evidence-objects.ts` (proposed), `src/lib/contracts/preparation.ts` (proposed), `src/lib/contracts/clarification.ts` (proposed), `src/lib/contracts/dag.ts` (proposed), `src/lib/contracts/actions.ts` (proposed), `tests/unit/contracts/dag-prep-contracts.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** [src/lib/contracts/claim-ticket.ts](src/lib/contracts/claim-ticket.ts), [src/lib/contracts/evidence-objects.ts](src/lib/contracts/evidence-objects.ts), [src/lib/contracts/preparation.ts](src/lib/contracts/preparation.ts), [src/lib/contracts/clarification.ts](src/lib/contracts/clarification.ts), [src/lib/contracts/research.ts](src/lib/contracts/research.ts), [src/lib/contracts/decision.ts](src/lib/contracts/decision.ts), [src/lib/contracts/dag.ts](src/lib/contracts/dag.ts), [src/lib/contracts/actions.ts](src/lib/contracts/actions.ts), [src/lib/contracts/index.ts](src/lib/contracts/index.ts), [tests/unit/contracts/dag-prep-contracts.test.ts](tests/unit/contracts/dag-prep-contracts.test.ts).
 - **Atomic Implementation Checklist:**
-  - [ ] Author Zod schemas for `ClaimTicket` and `VerificationProperty` supporting discriminated primitive property types (`string`, `number`, `boolean`, `date`, `selection`, `string_list`), origin tracking (`explicit_claim_text`, `user_target_context`, `model_inferred`, `unknown`), and scope precedence.
-  - [ ] Author Zod schemas for the three decoupled evidence entities: `SourceDocument` (provenance, final redirected URL, crawl hash, pub/effective dates, source role), `EvidenceUnit` (verbatim passage, locators, header hierarchy, table context, footnotes), and `ClaimEvidenceAssessment` (relational semantics, quotation verification, property matching).
-  - [ ] Author Zod schemas for `ResearchPlan` (planned queries, explicit purposes, target source roles, counterevidence requirement, stopping conditions) and `DecisionRecord` (categorical score rubric 100/75/0/null, reason code, primary/counter/excluded evidence IDs, temporal basis, trace IDs).
-  - [ ] Author Zod schema for `PreparationRecord`: input hash binding, explicit qualifiers with text spans, inferred suggestions, and preparation status (`drafting`, `ready`, `superseded`).
-  - [ ] Author Zod schema for `ClarificationQuestion` and `ClarificationAnswers` supporting approved primitive field types (`select`, `short text`, `date`, `number`, `boolean`) and `allowUnknown: true`.
-  - [ ] Author Zod schemas for `DagNodeSpec`, `DagEdgeSpec`, and DAG node state transitions (`pending`, `leased`, `waiting_for_input`, `completed`, `failed`, `skipped`).
-  - [ ] Author typed input and return payloads for Next.js Server Actions (`startPreparationAction`, `confirmPreparationAction`, `submitClarificationAction`, `compareAction`, `recheckAction`).
-  - [ ] Author unit test suite verifying valid contract fixtures and rejecting illegal mutations (unapproved field types, executable scripts, negative offsets, ungrounded quotes).
+  - [x] Author Zod schemas for `ClaimTicket` and `VerificationProperty` supporting discriminated primitive property types (`string`, `number`, `boolean`, `date`, `selection`, `string_list`), origin tracking (`explicit_claim_text`, `user_target_context`, `model_inferred`, `unknown`), and scope precedence.
+  - [x] Author Zod schemas for the three decoupled evidence entities: `SourceDocument` (provenance, final redirected URL, crawl hash, pub/effective dates, source role), `EvidenceUnit` (verbatim passage, locators, header hierarchy, table context, footnotes), and `ClaimEvidenceAssessment` (relational semantics, quotation verification, property matching).
+  - [x] Author Zod schemas for `ResearchPlan` (planned queries, explicit purposes, target source roles, counterevidence requirement, stopping conditions) and `DecisionRecord` (categorical score rubric 100/75/0/null, reason code, primary/counter/excluded evidence IDs, temporal basis, trace IDs).
+  - [x] Author Zod schema for `PreparationRecord`: input hash binding, explicit qualifiers with text spans, inferred suggestions, and preparation status (`drafting`, `ready`, `superseded`).
+  - [x] Author Zod schema for `ClarificationQuestion` and `ClarificationAnswers` supporting approved primitive field types (`select`, `short text`, `date`, `number`, `boolean`) and `allowUnknown: true`.
+  - [x] Author Zod schemas for `DagNodeSpec`, `DagEdgeSpec`, and DAG node state transitions (`pending`, `leased`, `waiting_for_input`, `completed`, `failed`, `skipped`).
+  - [x] Author typed input and return payloads for Next.js Server Actions (`startPreparationAction`, `confirmPreparationAction`, `submitClarificationAction`, `compareAction`, `recheckAction`).
+  - [x] Author unit test suite verifying valid contract fixtures and rejecting illegal mutations (unapproved field types, executable scripts, negative offsets, ungrounded quotes).
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, B01.
   - **Integration / Completion Prerequisites:** None.
   - **External Prerequisites:** None.
   - **What Can Start Early:** Full schema authoring and unit test fixtures.
-- **Deliverable & Interface Handoff:** Handed downstream to B04a (database baseline DDL), C02 (preparation review UI), A03 (extraction logic), and B05 (dynamic DAG expansion).
-- **Positive Acceptance Examples:** Valid `ClaimTicket` with typed context properties validates cleanly; `DecisionRecord` validates categorical score and trace IDs; clarification questions with approved primitive field types pass schema checks.
-- **Relevant Negative / Failure Cases:** Questions proposing unapproved field types (e.g. executable script, JSX, arbitrary validation code) fail validation; property with invalid origin is rejected; continuous floating-point score in `DecisionRecord` fails schema check.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck`.
-- **Evidence Level & Required Proof:** E1 (Static typecheck) + E2 (Vitest unit suite).
-- **Observed Evidence:** *Pending execution*
+- **Deliverable & Interface Handoff:** Handed downstream to B04a (database baseline DDL), C02 (preparation review UI), A03 (extraction logic), and B04b/B05 (dynamic DAG execution & budget exhaustion protocol: check proposed expansion against authoritative persisted graph and effective budget before accepting; reserve capacity for required decision/finalizer nodes; budget rejection fails closed to terminal outcome without stranding run; record BUDGET_EXHAUSTED as limitation when evidence is insufficient).
+- **Positive Acceptance Examples:** Valid `ClaimTicket` with typed context properties validates cleanly; `DecisionRecord` validates categorical score and trace IDs; clarification questions with approved primitive field types pass schema checks; effective budget resolver enforces tighter constraint across all combinations (BUD-01–BUD-04).
+- **Relevant Negative / Failure Cases:** Questions proposing unapproved field types fail validation; invalid numeric options (NaN, Infinity, negative, zero limit, fractional) fail explicitly; graphs exceeding effective budget fail validation.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck && pnpm lint && pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static typecheck & lint) + E2 (Vitest unit suite).
+- **Observed Evidence:** Executed all verification checks cleanly. `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts` passed 66/66 tests in 66ms; full test suite `pnpm test` passed 121/121 tests across 3 files; `pnpm typecheck` passed with 0 errors; `pnpm lint` passed with 0 errors and 0 warnings; `pnpm build` completed successfully with 4/4 static pages generated.
 - **Explicit Exclusions:** Database migrations, active worker leases, and API route implementations.
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** None. Fixed policy: 52-node run ceiling is an intentional execution/cost budget, not a claim that every branch can exhaust every optional allowance simultaneously. Runtime exhaustion handling owned by B04b/B05.
 
 #### B01: Scaffold and pin the toolchain {#b01-scaffold-and-pin-the-toolchain}
 - **Owner:** B / Platform
@@ -971,7 +971,7 @@ The following mapping documents the evolution from the initial planning baseline
 | 2026-11-08 | A01 | `pnpm test` (vitest run `tests/unit/contracts/request-claim.test.ts`) | Local Dev | 25/25 tests passing natively under repository toolchain. | [A01](#a01-request-and-claim-schemas) |
 | 2026-11-08 | A02 | `pnpm test` (vitest run `tests/unit/contracts/report-fixture.test.ts`) | Local Dev | 30/30 tests passing natively under repository toolchain; full golden fixture validated. | [A02](#a02-report-and-event-schemas) |
 | 2026-11-08 | B01 | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` | Local Dev & Disposable Copy | All 6 checks passed cleanly (0 lint/type errors, 55 vitest tests, production build 4/4 static pages, 1/1 Playwright Chromium smoke test). | [B01](#b01-scaffold-and-pin-the-toolchain) |
-| *Pending* | A10 | `pnpm test tests/unit/contracts/dag-prep-contracts.test.ts` | Local Dev | *Pending execution* | [A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) |
+| 2026-11-08 | A10 | `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 66/66 contract tests passing; 121/121 overall tests passing; 0 type errors; 0 lint errors/warnings; production build succeeded with 4/4 static pages. | [A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) |
 | *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
 | *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | *Pending* | C01 | `pnpm lint` | Local Dev | *Pending execution* | [C01](#c01-visual-tokens-and-component-states) |
