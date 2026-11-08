@@ -128,9 +128,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef verified fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
-    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
-    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5;
+    classDef verified fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#0f172a;
+    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5,color:#0f172a;
+    classDef gate fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#0f172a;
 
     DOC01["DOC01: Documentation Baseline"]:::verified
     B01["B01: Scaffold & Pin Toolchain"]:::verified
@@ -147,7 +148,7 @@ flowchart TD
     C01["C01: Visual Tokens & Colors"]:::unblocked
     C02["C02: Input, Prep Review & Report Skeleton"]:::unblocked
 
-    GateG0{{"Gate G0: Foundation Ready"}}
+    GateG0{{"Gate G0: Foundation Ready"}}:::gate
 
     DOC01 --> B01
     B01 --> A01
@@ -190,16 +191,18 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
-    classDef partial fill:#ede9fe,stroke:#7c3aed,stroke-width:2px;
-    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5;
+    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef partial fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#0f172a;
+    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5,color:#0f172a;
+    classDef upstream fill:#f1f5f9,stroke:#64748b,stroke-width:1px,stroke-dasharray: 3 3,color:#0f172a;
+    classDef gate fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#0f172a;
 
-    A01["A01: Contracts (Done)"]
-    A02["A02: Fixture (Done)"]
-    A10["A10: DAG Schemas (Phase 0)"]
-    B02["B02: Bifrost Client (Phase 0)"]
-    B04a["B04a: DB Schema (Phase 0)"]
-    C02["C02: UI Skeleton (Phase 0)"]
+    A01["A01: Contracts (Done)"]:::upstream
+    A02["A02: Fixture (Done)"]:::upstream
+    A10["A10: DAG Schemas (Phase 0)"]:::upstream
+    B02["B02: Bifrost Client (Phase 0)"]:::upstream
+    B04a["B04a: DB Schema (Phase 0)"]:::upstream
+    C02["C02: UI Skeleton (Phase 0)"]:::upstream
 
     TavilyKey(["Ext: Tavily API Key"]):::external
     B03["B03: Tavily Search & Extract Adapter"]:::unblocked
@@ -211,7 +214,7 @@ flowchart TD
     B04b["B04b: Wire Minimal Persisted DAG Slice"]:::unblocked
     C03["C03: Wire Runs, Server Actions & Progress"]:::unblocked
 
-    GateG1{{"Gate G1: Live Slice Verified"}}
+    GateG1{{"Gate G1: Live Slice Verified"}}:::gate
 
     A01 --> B03
     A02 --> B03
@@ -252,17 +255,19 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
-    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5;
-    classDef experimental fill:#f3e8ff,stroke:#9333ea,stroke-width:1px,stroke-dasharray: 4 4;
+    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5,color:#0f172a;
+    classDef experimental fill:#f3e8ff,stroke:#9333ea,stroke-width:1px,stroke-dasharray: 4 4,color:#0f172a;
+    classDef upstream fill:#f1f5f9,stroke:#64748b,stroke-width:1px,stroke-dasharray: 3 3,color:#0f172a;
+    classDef gate fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#0f172a;
 
-    A04["A04: Assess Evidence Passages (Phase 1)"]
-    A05["A05: Deterministic Scoring (Phase 1)"]
-    A10["A10: Clarification Schema (Phase 0)"]
-    B02["B02: Bifrost Client (Phase 0)"]
-    B03["B03: Tavily Adapter (Phase 1)"]
-    B04b["B04b: DAG Persistence Slice (Phase 1)"]
-    C03["C03: Server Actions & Progress (Phase 1)"]
+    A04["A04: Assess Evidence Passages (Phase 1)"]:::upstream
+    A05["A05: Deterministic Scoring (Phase 1)"]:::upstream
+    A10["A10: Clarification Schema (Phase 0)"]:::upstream
+    B02["B02: Bifrost Client (Phase 0)"]:::upstream
+    B03["B03: Tavily Adapter (Phase 1)"]:::upstream
+    B04b["B04b: DAG Persistence Slice (Phase 1)"]:::upstream
+    C03["C03: Server Actions & Progress (Phase 1)"]:::upstream
 
     A06["A06: Build 4 Domain Policies\n(Pricing, API, Regulation, Leadership)"]:::unblocked
     A11["A11: Vector Shortlisting & Counter-Hypothesis\n(Optional Experiment · Non-blocking)"]:::experimental
@@ -272,7 +277,7 @@ flowchart TD
 
     C04["C04: Evidence Inspection & Dynamic Clarification Form\n(55:45 Split Workspace)"]:::unblocked
 
-    GateG2{{"Gate G2: Durability, Dynamic Expansion & Broad Coverage"}}
+    GateG2{{"Gate G2: Durability, Dynamic Expansion & Broad Coverage"}}:::gate
 
     A05 --> A06
     B03 --> A06
@@ -300,15 +305,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
-    classDef partial fill:#ede9fe,stroke:#7c3aed,stroke-width:2px;
-    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5;
+    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef partial fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#0f172a;
+    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5,color:#0f172a;
+    classDef upstream fill:#f1f5f9,stroke:#64748b,stroke-width:1px,stroke-dasharray: 3 3,color:#0f172a;
+    classDef gate fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#0f172a;
 
-    A05["A05: Scoring Engine"]
-    A06["A06: Domain Policies"]
-    B04b["B04b: Persistence"]
-    B05["B05: QStash Worker & Dynamic DAG"]
-    C04["C04: Workspace & Clarification UI"]
+    A05["A05: Scoring Engine"]:::upstream
+    A06["A06: Domain Policies"]:::upstream
+    B04b["B04b: Persistence"]:::upstream
+    B05["B05: QStash Worker & Dynamic DAG"]:::upstream
+    C04["C04: Workspace & Clarification UI"]:::upstream
 
     A07["A07: Derive Transitions & Corrections"]:::unblocked
     A08["A08: Freeze Test Set (eval/cases.jsonl)"]:::partial
@@ -322,7 +329,7 @@ flowchart TD
     C06["C06: Compare, Recheck & Expandable DAG Inspector"]:::unblocked
     C07["C07: Finish Ask, Export & Polish"]:::unblocked
 
-    GateG3{{"Gate G3: Product Interactions on Staging"}}
+    GateG3{{"Gate G3: Product Interactions on Staging"}}:::gate
 
     A05 --> A07
     A06 --> A07
@@ -362,14 +369,16 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
-    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5;
+    classDef unblocked fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef external fill:#fef3c7,stroke:#d97706,stroke-width:1px,stroke-dasharray: 5 5,color:#0f172a;
+    classDef upstream fill:#f1f5f9,stroke:#64748b,stroke-width:1px,stroke-dasharray: 3 3,color:#0f172a;
+    classDef gate fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#0f172a;
 
-    A07["A07: Transitions/Corrections"]
-    A08["A08: Frozen Test Cases"]
-    B06["B06: Public APIs"]
-    B07["B07: Staging Integration"]
-    C07["C07: Polished UI Workspace"]
+    A07["A07: Transitions/Corrections"]:::upstream
+    A08["A08: Frozen Test Cases"]:::upstream
+    B06["B06: Public APIs"]:::upstream
+    B07["B07: Staging Integration"]:::upstream
+    C07["C07: Polished UI Workspace"]:::upstream
 
     A09["A09: Run Baseline, Full Verifier Eval & Regressions"]:::unblocked
 
@@ -379,7 +388,7 @@ flowchart TD
     C08["C08: Final Product Walkthrough & Demo Recording"]:::unblocked
     C09["C09: Package and Submit to Organizers"]:::unblocked
 
-    GateG4{{"Gate G4: Final Release & Submission"}}
+    GateG4{{"Gate G4: Final Release & Submission"}}:::gate
 
     A07 --> A09
     A08 --> A09
