@@ -36,13 +36,13 @@ Shared files (e.g., `package.json`, `docs/*`) require explicit cross-lane alignm
 
 ## 3. Task Claiming and Handoffs
 
-1. **Check Dependencies:**  
-   Before claiming a ticket in [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md), ensure all listed dependencies are marked `DONE`.
+1. **Check Dependencies & Readiness:**
+   Before claiming a ticket in [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md), inspect [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) to verify whether all start prerequisites and external integrations are satisfied, or if partial preparatory development is authorized.
 2. **Claiming:**  
    Change status to `IN PROGRESS` in the tracker with your branch link.
 3. **Completing Handoffs:**  
    When a ticket completes:
-   - Verify downstream tickets waiting on your output.
+   - Verify downstream tickets waiting on your output using the handoff matrix in [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md).
    - Post a concise handoff notice in chat/PR: deliverable path, exported types/routes, and verified test command.
    - Update ticket status to `DONE` in [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md).
 

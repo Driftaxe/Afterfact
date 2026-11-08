@@ -139,4 +139,5 @@ All project engineering standards, schemas, and workflows are canonically docume
 - [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md): 3-minute judge script, sponsor proof, and submission checklist.
 - [docs/DECISIONS.md](docs/DECISIONS.md): Architectural Decision Records (ADR-001 through ADR-010).
 - [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md): **Single source of truth for all 26 task tickets (A01–A09, B01–B08, C01–C09) and gates (G0–G4).**
+- [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md): **Canonical parallel-work plan, dependency graphs, waves, and cross-lane handoffs.**
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md): Standard PR submission template requiring evidence levels.
