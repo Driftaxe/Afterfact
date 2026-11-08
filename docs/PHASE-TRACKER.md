@@ -22,6 +22,9 @@ Tasks are strictly assigned to one of three accountable builder lanes:
 
 ## 2. Phase Schedule & Parallel Lane Grid
 
+> [!TIP]
+> For complete dependency graph topologies, start vs. integration prerequisites, parallel work waves, and cross-lane handoff contracts, see **[docs/PARALLEL-WORK-PLAN.md](PARALLEL-WORK-PLAN.md)**.
+
 | Phase / Target (IST) | Lane A (Verification) | Lane B (Platform) | Lane C (Product) | Release Gates |
 | :--- | :--- | :--- | :--- | :--- |
 | **Bootstrap** (Nov 7) | — | — | — | **DOC01** (Docs Baseline) |
@@ -292,7 +295,7 @@ IPP gates govern code correctness across stateful, distributed, and external int
 #### B04: Migrate data model and wire live vertical slice {#b04-migrate-the-data-model-and-wire-the-vertical-slice}
 - **Owner:** B / Platform
 - **Planned Date:** Nov 9, 2026
-- **Dependencies:** A01, A02, B02, B03
+- **Dependencies:** A01, A02, B02, B03 (and A05 for live slice integration)
 - **Status:** TODO
 - **Deliverable & Files:** `src/server/db/schema.ts` (proposed), `src/server/db/client.ts` (proposed), `drizzle.config.ts` (proposed), `src/app/api/verify/route.ts` (proposed)
 - **Atomic Steps:**
