@@ -478,12 +478,15 @@ COMMIT;
    - **Clarification Expiration:** If a clarification has remained unanswered for 30 minutes, marks it `'exhausted'`, unblocks the waiting node with default unresolved status (`reasonCode: CLARIFICATION_TIMED_OUT`), and schedules finalization.
    - **Stranded Finalization:** If all upstream nodes are terminal but `finalize_run` was never dispatched, enqueues `finalize_run`.
 5. **Execution Guardrails & Resource Limits:**
-   To prevent runaway DAG recursion or excessive API spend:
-   - Maximum Nodes per Run: 16.
-   - Maximum Graph Depth: 5.
-   - Maximum Retries per Logical Node: 3.
-   - Maximum Clarification Rounds: 2.
-   - Maximum Total Run Duration: 180 seconds.
+   To prevent runaway DAG recursion, excessive external API spend, or serverless execution timeouts:
+   - **Execution Budget:** Hard run ceiling of **52 nodes** (`MAX_DAG_NODES_PER_RUN = 52`). This represents an intentional execution and cost budget for this release to protect serverless duration and QStash worker delivery, NOT an exhaustive capacity claim.
+   - **Dynamic Budget Allocation:** Scaled per run via `computeMaxDagNodes(claimCount) = min(52, max(16, 2 + 10 * claimCount))` for $N \ge 1$ (and 2 nodes for empty runs with zero claims). Single-claim runs enforce the 16-node baseline budget (`SINGLE_CLAIM_MAX_DAG_NODES = 16`).
+   - **Individual Round Bounds vs. Shared Budget:** Individual stage limits (max 2 research rounds, max 2 clarification rounds, optional vector shortlisting when candidate passages $> 4$) define per-claim capabilities. The shared node budget can stop optional expansion before those individual upper bounds are reached. The theoretical sum of all optional stages across multiple branches can exceed 52.
+   - **Budget Exhaustion Behavior:** Reaching the budget does not mean a claim is false or missing context. When expansion is rejected by budget guardrails, the claim branch fails closed directly to `decide_claim` with existing evidence, recording `BUDGET_EXHAUSTED` in the limitations array.
+   - **Maximum Graph Depth:** 5.
+   - **Maximum Retries per Logical Node:** 3.
+   - **Maximum Clarification Rounds:** 2 per claim branch.
+   - **Maximum Total Run Duration:** 180 seconds.
 
 ---
 
