@@ -137,7 +137,7 @@ flowchart TD
     B01["B01: Scaffold & Pin Toolchain"]:::verified
     A01["A01: Request & Claim Contracts"]:::verified
     A02["A02: Report Schemas & Golden Fixture"]:::verified
-    A10["A10: Prep, Clarification & DAG Schemas"]:::unblocked
+    A10["A10: Prep, Clarification & DAG Schemas"]:::verified
 
     DockerHost(["Ext: Docker Host / Local Docker"]):::external
     B02["B02: Provision Bifrost & Profiles"]:::unblocked
@@ -199,7 +199,7 @@ flowchart TD
 
     A01["A01: Contracts (Done)"]:::upstream
     A02["A02: Fixture (Done)"]:::upstream
-    A10["A10: DAG Schemas (Phase 0)"]:::upstream
+    A10["A10: Contracts (Done)"]:::upstream
     B02["B02: Bifrost Client (Phase 0)"]:::upstream
     B04a["B04a: DB Schema (Phase 0)"]:::upstream
     C02["C02: UI Skeleton (Phase 0)"]:::upstream
@@ -263,7 +263,7 @@ flowchart TD
 
     A04["A04: Assess Evidence Passages (Phase 1)"]:::upstream
     A05["A05: Deterministic Scoring (Phase 1)"]:::upstream
-    A10["A10: Clarification Schema (Phase 0)"]:::upstream
+    A10["A10: Contracts (Done)"]:::upstream
     B02["B02: Bifrost Client (Phase 0)"]:::upstream
     B03["B03: Tavily Adapter (Phase 1)"]:::upstream
     B04b["B04b: DAG Persistence Slice (Phase 1)"]:::upstream
@@ -419,7 +419,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | :---: | :--- | :---: | :---: | :--- | :--- | :--- | :--- | :--- |
 | **A01** | [Request & Claim Schemas](PHASE-TRACKER.md#a01-request-and-claim-schemas) | A | 0 | B01 (toolchain) | None | None | Completed | `request.ts`, `claim.ts`, `dates.ts` |
 | **A02** | [Report/Event Schemas & Fixture](PHASE-TRACKER.md#a02-report-and-event-schemas) | A | 0 | A01 | None | None | Completed | `evidence.ts`, `report.ts`, `events.ts`, `golden-mixed-report.json` |
-| **A10** | [Prep, Clarification & DAG Schemas](PHASE-TRACKER.md#a10-define-preparation-clarification-and-dynamic-dag-schemas) | A | 0 | B01, A01, A02 | None | None | Full schema authoring | `claim-ticket.ts`, `evidence.ts`, `preparation.ts`, `clarification.ts`, `dag.ts`, `actions.ts` |
+| **A10** | [Prep, Clarification & DAG Schemas](PHASE-TRACKER.md#a10-define-preparation-clarification-and-dynamic-dag-schemas) | A | 0 | B01, A01, A02 | None | None | Completed | `claim-ticket.ts`, `evidence-objects.ts`, `preparation.ts`, `clarification.ts`, `research.ts`, `decision.ts`, `dag.ts`, `actions.ts` |
 | **B01** | [Scaffold & Pin Toolchain](PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) | B | 0 | DOC01 (repo baseline) | None | None | Completed | Next.js 15, pnpm 11, Node 22, ESLint, Tailwind, Vitest, Playwright, CI |
 | **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Docker host / Local Docker, Model provider keys | Client fetch wrapper & profile types | `docker-compose.yml`, `src/server/bifrost/client.ts`, `profiles.ts` |
 | **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Entire task | Design tokens in `globals.css`, button/card states, reduced motion |
@@ -464,7 +464,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **Process State Projection** | Simple progress badges | Sanitized DAG stage projection and expandable DAG inspector in **C06** | Exposes structured DAG stages and Tavily query counts while strictly scrubbing internal tokens and provider errors. |
 
 #### Materially Changed Gates:
-- **Gate G0:** Requires `A10` contract schemas (`claim-ticket.ts`, `evidence.ts`, `preparation.ts`, `clarification.ts`, `dag.ts`, `actions.ts`) in addition to `A01` and `A02`. Lane C renders preparation review in fixture mode.
+- **Gate G0:** Requires `A10` contract schemas (`claim-ticket.ts`, `evidence-objects.ts`, `preparation.ts`, `clarification.ts`, `research.ts`, `decision.ts`, `dag.ts`, `actions.ts`) in addition to `A01` and `A02`. Lane C renders preparation review in fixture mode.
 - **Gate G1:** The first live claim round-trip executes through **real persisted DAG nodes** in PostgreSQL (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`), completely retiring temporary synchronous shortcuts.
 - **Gate G2:** Verifies dynamic graph expansion, bounded concurrency (max 3 active claim branches), and non-blocking clarification wait states where paused branches hold zero worker leases.
 - **Gate G3:** Verifies Server Actions, headless programmatic REST verification (`POST /api/v1/verify`), SSE replay (`?afterSeq=N`), and the expandable DAG inspector.
@@ -474,8 +474,8 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 ## 5. Parallel Work Waves
 
 ### Wave 0: Foundation (Day 1 · Gate G0)
-- **Lane A Work:** Deliver A01 (request/claim schemas) and A02 (report/event schemas, golden fixture) *(Complete in branch review)*. Deliver **A10** (preparation, clarification, DAG, and Server Action schemas).
-- **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI) *(Complete in branch review)*. B02 (Bifrost gateway) and B03 (Tavily adapter) proceed immediately. B04a (Neon database baseline schema & migration) incorporates A10 contracts.
+- **Lane A Work:** Deliver A01 (request/claim schemas) and A02 (report/event schemas, golden fixture) *(Completed & Merged into main)*. Deliver **A10** (preparation, clarification, DAG, and Server Action schemas) *(Completed & Merged into main)*.
+- **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI) *(Completed & Merged into main)*. B02 (Bifrost gateway) and B03 (Tavily adapter) proceed immediately. B04a (Neon database baseline schema & migration) incorporates A10 contracts.
 - **Lane C Work:** Deliver C01 (visual design tokens) and C02 (workspace UI skeleton rendering golden fixture and preparation review in `[REPLAY MODE]`).
 - **Shared Inputs:** [fixtures/golden-mixed-report.json](file:///C:/Users/Mayur/Desktop/Afterfact/fixtures/golden-mixed-report.json), `src/lib/contracts/*`.
 - **Exit Evidence:** Gate G0 passed: App builds, fixture validates, Bifrost container responds, database migration executes, C renders fixture mode and preparation review.
@@ -519,39 +519,39 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 
 ## 6. Current Ready-to-Start Snapshot
 
-**Snapshot Date:** November 8, 2026 IST
-**Reference Commit:** [`2e980d7`](https://github.com/Driftaxe/Afterfact/commit/2e980d7) on `feat/b01-scaffold`
+**Snapshot Date:** November 9, 2026 IST
+**Reference Commit:** [`04a8081`](https://github.com/Driftaxe/Afterfact/commit/04a8081) on `origin/main` (PR #9 merged)
 
 ```
  ┌─────────────────────────────────────────────────────────────────────────────┐
  │                         IMMEDIATE READINESS STATUS                          │
  ├──────────────────────────────────────────┬──────────────────────────────────┤
  │ Ready to Start Immediately (Unblocked):  │ Awaiting Prerequisites:          │
- │ • Lane A: A10 (Prep, Clarification & DAG)│ • A04, A05, A06, A07, A08, A09,  │
- │ • Lane B: B02 (Bifrost Gateway & Client) │   A11 (Lane A)                   │
- │ • Lane B: B03 (Tavily Search Adapter)    │ • B04b, B05, B06, B07, B08       │
+ │ • Lane B: B02 (Bifrost Gateway & Client) │ • A04, A05, A06, A07, A08, A09,  │
+ │ • Lane B: B03 (Tavily Search Adapter)    │   A11 (Lane A)                   │
+ │ • Lane B: B04a (DB Baseline Migration)   │ • B04b, B05, B06, B07, B08       │
  │ • Lane C: C01 (Visual Design Tokens)     │   (Lane B)                       │
- │                                          │ • C03, C04, C05, C06, C07, C08,  │
- │                                          │   C09 (Lane C)                   │
- ├──────────────────────────────────────────┼──────────────────────────────────┤
- │ Ready After A10 Schemas:                 │ Existing Work Awaiting PR Merge: │
- │ • Lane B: B04a (DB Baseline Migration)   │ • Lane A: A01 (Request & Claim)  │
- │ • Lane C: C02 (Input & Prep Skeleton)    │ • Lane A: A02 (Report & Events)  │
- │ • Lane A: A03 (Extraction Prompts/Logic) │ • Lane B: B01 (Scaffold & CI)    │
- └──────────────────────────────────────────┴──────────────────────────────────┘
+ │ • Lane C: C02 (Input & Prep Skeleton)    │ • C03, C04, C05, C06, C07, C08,  │
+ │ • Lane A: A03 (Extraction Prompts/Logic) │   C09 (Lane C)                   │
+ ├──────────────────────────────────────────┴──────────────────────────────────┤
+ │ Completed & Merged into main:                                               │
+ │ • Lane A: A01 (Request & Claim), A02 (Report & Events), A10 (Contracts)     │
+ │ • Lane B: B01 (Scaffold & Pin Toolchain, Vitest, Playwright, CI)            │
+ └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Lane Alignment & Immediate Workstream Guidance:
 1. **What Lane B Can Continue Unchanged:**
    - **B02 (Bifrost Gateway):** Docker container setup, model profile definitions, and client fetch wrapper proceed immediately without dependency on A10.
    - **B03 (Tavily Search Adapter):** Query generation templates and Tavily API REST client proceed immediately; depends only on completed schemas A01/A02.
-2. **What Needs Revised Contracts First:**
-   - **B04a (Database Baseline & Migration):** Requires `A10` schemas (`preparations`, `clarifications`, `dag_nodes`, `dag_edges`) before finalizing Drizzle ORM table models and running initial Neon DDL migrations.
-   - **C02 (Input & Report Skeleton):** Requires `A10` schemas to render the Preparation Review qualifier review fields.
-3. **What Lanes A & C Can Develop in Parallel:**
-   - **Lane A** immediately implements `A10` (contracts & unit tests) and begins `A03` extraction prompts.
-   - **Lane C** builds `C01` styling tokens and `C02` layout skeletons.
-   - **Lane B** builds `B02` and `B03`.
+2. **What Has Been Unblocked by A10 Contracts (Now in Main):**
+   - **B04a (Database Baseline & Migration):** Unblocked by merged `A10` schemas (`preparations`, `clarifications`, `dag_nodes`, `dag_edges`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`) to finalize Drizzle ORM table models and run initial Neon DDL migrations.
+   - **C02 (Input & Report Skeleton):** Unblocked by merged `A10` schemas to render the Preparation Review qualifier review fields.
+   - **A03 (Extract & Locate Atomic Claims):** Unblocked to parse text into `ClaimTicket[]` carrying strongly typed `VerificationProperty[]` context properties.
+3. **What Lanes Can Develop in Parallel:**
+   - **Lane A** builds `A03` (claim extraction prompts & UTF-16 span resolver).
+   - **Lane B** builds `B02` (Bifrost gateway), `B03` (Tavily search client), and `B04a` (database baseline migrations).
+   - **Lane C** builds `C01` (styling tokens) and `C02` (input composer & preparation review UI skeleton).
 4. **How Database Baseline and DAG Milestones Avoid Phase Cycles:**
    - `B04a` (Database Baseline DDL) satisfies Gate G0 (Foundation).
    - `B04b` (Minimal Persisted DAG Execution Engine) satisfies Gate G1 (Live Slice).
@@ -566,7 +566,7 @@ To prevent integration bugs, boundaries between lanes are mediated by strict con
 
 | Producer | Consumer | Interface Artifact | Contract Authority | Availability Point | Verification Requirement |
 | :--- | :--- | :--- | :--- | :---: | :--- |
-| **A (A10)** | **B (B04a), C (C02)** | `src/lib/contracts/dag.ts`, `preparation.ts` | [docs/DATA-AND-JOBS.md](DATA-AND-JOBS.md) | **Immediate (Wave 0)** | Zod schemas validate DAG nodes, edges, preparation records, and Server Action payloads. |
+| **A (A10)** | **B (B04a), C (C02)** | `src/lib/contracts/dag.ts`, `preparation.ts` | [docs/DATA-AND-JOBS.md](DATA-AND-JOBS.md) | **Completed & Merged (main)** | Zod schemas validate DAG nodes, edges, preparation records, and Server Action payloads. |
 | **B (B02)** | **A (A03, A04)** | `src/server/bifrost/client.ts` | [docs/ARCHITECTURE.md](ARCHITECTURE.md#2-service-boundaries--hosting-topology) | End of Phase 0 | Mock model profile returns typed JSON; error maps to typed failure. |
 | **B (B03)** | **A (A04)** | `src/server/tavily/client.ts` | [src/lib/contracts/evidence.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/evidence.ts) | Wave 1 | Returns `EvidenceItem[]` with valid HTTP URLs, passages, and UTC dates. |
 | **A (A05)** | **B (B04b, B05)**| `src/server/verify/decide.ts` | [src/lib/contracts/report.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/report.ts) | Wave 1 | Returns `AssessedClaimResult` obeying verdict score rubric (100, 75, 0, null). |
