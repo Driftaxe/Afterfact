@@ -14,7 +14,7 @@ This document tracks the foundational architectural decisions made for **Afterfa
 ---
 
 ### ADR-002: Dual-Tier Relational Persistence with Neon PostgreSQL
-- **Status:** Approved
+- **Status:** Superseded by [ADR-022](#adr-022-prisma-orm-for-application-persistence-and-migrations)
 - **Date:** 2026-11-07
 - **Choice:** Use Neon PostgreSQL with Drizzle ORM and `pg` connection pooling.
 - **Rationale:** Verification runs require relational consistency (foreign keys, atomic multi-table commits, monotonic event sequencing) and transactional lease fencing. Neon provides instant serverless branching and pooling.
@@ -23,7 +23,7 @@ This document tracks the foundational architectural decisions made for **Afterfa
 ---
 
 ### ADR-003: Model Gateway Isolation with Bifrost in Docker
-- **Status:** Approved
+- **Status:** Superseded by [ADR-023](#adr-023-railway-hosted-bifrost-and-docker-free-local-development)
 - **Date:** 2026-11-07
 - **Choice:** Deploy Bifrost gateway on a dedicated always-on Docker host behind HTTPS; configure automated fallback profiles.
 - **Rationale:** Prevents exposing model provider API keys in application bundles; centralizes rate limiting, latency metrics, and seamless failover between LLM providers during live evaluation.
@@ -91,7 +91,6 @@ This document tracks the foundational architectural decisions made for **Afterfa
 - **Choice:** Live web retrieval is the production default. Cached fixture replay is supported but must display a prominent `[REPLAY MODE]` banner.
 - **Rationale:** Ensures complete intellectual honesty during judging while providing a reliable fallback in case of conference network outages.
 - **Unresolved Questions:** None.
-
 
 ---
 
@@ -190,4 +189,22 @@ This document tracks the foundational architectural decisions made for **Afterfa
 - **Date:** 2026-11-08
 - **Choice:** Formalize claim verdict synthesis through an immutable `DecisionRecord` produced by a deterministic TypeScript decision gate executing a strict precedence hierarchy (Scope Filter $\to$ Essential Ambiguity $\to$ Contradiction / Outdated $\to$ Irreconcilable Conflict $\to$ Primary Support $\to$ Secondary Support $\to$ Fallback). Preserve the categorical 100 / 75 / 0 / null score rubric, explicit reason codes, evaluated evidence IDs, counterevidence IDs, and excluded evidence rationales.
 - **Rationale:** Asking an LLM to generate the final confidence score or verdict introduces nondeterministic drift, hallucinated compromises, and uncalibrated probabilities. Storing full decision records ensures end-to-end transparency, enables automated regression auditing, and satisfies UPPR Revision 4 invariant-to-proof verification requirements.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-022: Prisma ORM for Application Persistence & Schema Migrations
+- **Status:** Approved (Supersedes ADR-002)
+- **Date:** 2026-11-10
+- **Choice:** Replace Drizzle ORM with Prisma (`@prisma/client` and `prisma` CLI v6.x) as the sole application data layer, schema definition authority (`prisma/schema.prisma`), and migration engine. Configure a dual-connection model in `schema.prisma` targeting Neon PostgreSQL: connection-pooled `DATABASE_URL` (PgBouncer) for runtime queries in Server Actions and QStash workers, and direct unpooled `DIRECT_URL` for DDL migrations (`prisma migrate dev` / `prisma migrate deploy`). Use a global client singleton in `src/server/db/client.ts` for Next.js hot module reloading safety.
+- **Rationale:** Drizzle was previously listed as a dependency in `package.json`, but zero Drizzle schema files, migrations, or database queries existed in `src/` (Case A clean replacement). Prisma provides robust declarative schema modeling, strongly typed query builders, automated client generation, migration tracking, and visual database inspection via `prisma studio`. In Vercel's Node.js 22 runtime, standard `@prisma/client` binary engine provides fast in-process query execution. Atomic lease fencing and database-clock calculations (`NOW() + INTERVAL '35 seconds'`) execute cleanly via parameterized raw SQL (`db.$executeRaw` / `db.$queryRaw`), while status updates use Prisma's atomic conditional `updateMany` API.
+- **Unresolved Questions:** None.
+
+---
+
+### ADR-023: Railway-Hosted Bifrost and Docker-Free Local Development
+- **Status:** Approved (Supersedes ADR-003)
+- **Date:** 2026-11-10
+- **Choice:** Deploy the Bifrost Model Gateway in staging and production on Railway using the official Maxim AI prebuilt container image (`maximhq/bifrost`), backed by a persistent Railway volume mounted at `/app/data` for Bifrost's internal SQLite database and configuration. Retain a Docker-free local development workflow using the repository's `pnpm bifrost` script (`dotenv -e .env -- pnpm dlx @maximhq/bifrost`) running on `127.0.0.1:8080`.
+- **Rationale:** Eliminates the operational overhead and single-point-of-failure of maintaining a custom Ubuntu VM or self-managed Docker host. Railway provides automated container lifecycle management, public HTTPS termination on port 8080, and persistent volume storage ensuring that Bifrost routing rules, API keys, and virtual credentials persist across restarts. Local developers do not need Docker installed, avoiding platform-specific daemon issues on Windows while maintaining full compatibility with the gateway contract.
 - **Unresolved Questions:** None.

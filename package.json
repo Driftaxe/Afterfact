@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost"
   },
   "dependencies": {
     "@upstash/qstash": "^2.12.1",
@@ -34,6 +35,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "dotenv-cli": "^11.1.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.20.0",
     "eslint-config-next": "15.5.29",

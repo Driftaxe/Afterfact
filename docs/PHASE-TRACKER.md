@@ -8,7 +8,7 @@ This document serves as the **single source of truth** for all engineering tasks
 
 Tasks are strictly assigned to one of three accountable builder lanes:
 - **Lane A:** `A / Verification` — Schemas, Universal Claim Tickets, research planning, context-preserving extraction, semantic assessment, date logic, domain policies, and evaluation benchmark.
-- **Lane B:** `B / Platform` — Scaffolding, Neon PostgreSQL, Drizzle ORM, Bifrost model gateway, Tavily adapter, QStash jobs, dynamic DAG runtime, API routes, and deployment.
+- **Lane B:** `B / Platform` — Scaffolding, Neon PostgreSQL, Prisma ORM, Bifrost model gateway (Railway hosted · Docker-free local), Tavily adapter, QStash jobs, dynamic DAG runtime, API routes, and deployment.
 - **Lane C:** `C / Product` — Visual design tokens, responsive UI components, split workspace, preparation review, dynamic clarification forms, SSE client, timeline, compare drawer, and demo walkthrough.
 
 ### Task Status Vocabulary
@@ -42,8 +42,8 @@ Tasks are strictly assigned to one of three accountable builder lanes:
 - **Gate G0 (Foundation Checkpoint · Nov 8):**
   - Contract schemas validate cleanly across request, claim, evidence, preparation, clarification, and DAG contracts (`A01`, `A02`, `A10`).
   - Next.js application builds cleanly (`pnpm build`, `B01`).
-  - Bifrost model gateway container smoke test succeeds on Docker host (`B02`).
-  - Drizzle relational baseline schema and migrations execute cleanly against Neon PostgreSQL (`B04a`, internal milestone of `B04`).
+  - Bifrost model gateway smoke test succeeds via local Docker-free script (`pnpm bifrost`) or Railway deployment (`B02`).
+  - Prisma relational baseline schema and migrations execute cleanly against Neon PostgreSQL (`B04a`, internal milestone of `B04`).
   - Lane C renders input composer, preparation review, and report skeleton in fixture replay mode (`C01`, `C02`).
   - Owning tickets: `A01`, `A02`, `A10`, `B01`, `B02`, `B04a`, `C01`, `C02`.
 - **Gate G1 (Live Slice via Persisted DAG · Nov 9):**
@@ -103,7 +103,7 @@ The following mapping documents the evolution from the initial planning baseline
 | **A02** | `evidence.ts`, `report.ts`, `events.ts`, `golden-mixed-report.json` validated natively (30 tests passing). | Status preserved as `REVIEW`. Extended decoupled evidence contracts (`SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`) and `DecisionRecord` authored in follow-up **A10**. | Keeps baseline report schema valid for fixture mode while introducing decoupled abstractions for multi-round DAG verifier. |
 | **A10** *(New)* | None (new ticket). | Contract definitions for `ClaimTicket`, `VerificationProperty`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `ResearchPlan`, `DecisionRecord`, `PreparationRecord`, `ClarificationQuestion`, `DagNodeSpec`, `DagEdgeSpec`, and Server Actions. | Status: `DONE` (PR #8 & #9 merged into `main`). Unified contract foundation for full dynamic DAG, interactive preparation, and decoupled evidence architecture. |
 | **B01** | Next.js 15 App Router, pnpm 11, Node 22, ESLint, Tailwind, Vitest, Playwright, CI scaffolded and verified. | Status preserved as `REVIEW`. | Foundation toolchain successfully pinned and tested across 55 unit tests and Playwright smoke test. |
-| **B02** | Docker Bifrost setup, model profile configs (`BIFROST_*`). | Remains focused on Bifrost client fetch wrapper, model fallback profiles, and local container smoke test. | Independent workstream; adapter outputs remain compatible with new contract schemas. |
+| **B02** | Bifrost gateway setup (Railway container & local Docker-free `pnpm bifrost` script), model profile configs (`BIFROST_*`). | Focuses on Bifrost client fetch wrapper, fallback profiles, persistent volume configuration on Railway, and local Docker-free execution. | Independent workstream; adapter outputs remain compatible with new contract schemas. |
 | **C01** | Visual design tokens in `globals.css` (Ink, Paper, Panel, Line, Accent). | Remains focused on tokens, card states, typography, and reduced-motion accessibility. | Visual foundation is independent of backend DAG changes. |
 | **C02** | Input composer skeleton with character counter and mode tabs. | Adds `PreparationReview` component displaying extracted claims, UTF-16 highlight spans, explicit qualifiers vs inferred suggestions, and editable target context fields. | Interactive preparation requires human review before verification confirms and materializes the DAG. |
 | **A03** | Text extraction logic and UTF-16 substring matching. | Parses text into `ClaimTicket[]` carrying strongly typed `VerificationProperty[]` context properties; enforces scope precedence invariant. | Claims must carry variable typed factual qualifiers rather than rigid dictionary fields or unvalidated JSON. |
@@ -269,6 +269,7 @@ The following mapping documents the evolution from the initial planning baseline
   - [x] Install runtime dependencies: `zod`, `drizzle-orm`, `pg`, `@upstash/qstash`.
   - [x] Install dev dependencies: `drizzle-kit`, `@types/pg`, `vitest`, `@playwright/test`, `tsx`.
   - [x] Configure GitHub Actions CI workflow for lint, typecheck, unit test, and build with frozen lockfile.
+  - [ ] Follow-up migration: Swap Drizzle packages (`drizzle-orm`, `drizzle-kit`) for Prisma packages (`@prisma/client`, `prisma`), verify `dotenv-cli` and `pnpm bifrost` script without modifying accepted foundation.
 - **Prerequisites:**
   - **Start Prerequisites:** DOC01.
   - **Integration / Completion Prerequisites:** None.
@@ -285,57 +286,60 @@ The following mapping documents the evolution from the initial planning baseline
 
 #### B02: Configure Bifrost and smoke-test model profiles {#b02-provision-bifrost-and-model-profiles}
 - **Owner:** B / Platform
-- **Plain-Language Outcome:** Deploy Bifrost model gateway in Docker behind an HTTPS reverse proxy, configure model profiles, implement client wrapper, and verify inference failover.
+- **Plain-Language Outcome:** Deploy Bifrost model gateway on Railway using the official prebuilt container image (`maximhq/bifrost`) with persistent volume `/app/data`, verify local Docker-free `pnpm bifrost` script, configure model profiles, implement client wrapper, and verify inference failover.
 - **Planned Date:** Nov 8, 2026 IST
 - **Status:** TODO
 - **Phase & Gate Contribution:** Phase 0 platform deliverable; mandatory prerequisite for Gate G0 and A03.
-- **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/SETUP-AND-DEPLOYMENT.md §3](docs/SETUP-AND-DEPLOYMENT.md), [docs/DECISIONS.md#adr-003](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `docker-compose.yml` (proposed), `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed), `infra/smoke-bifrost.ts` (proposed).
+- **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/SETUP-AND-DEPLOYMENT.md §4](docs/SETUP-AND-DEPLOYMENT.md), [docs/DECISIONS.md#adr-023](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed), `infra/smoke-bifrost.ts` (proposed).
 - **Atomic Implementation Checklist:**
-  - [ ] Create `docker-compose.yml` for Bifrost container pinning tested image tag, bound to `127.0.0.1:8080`.
+  - [ ] Deploy official container `maximhq/bifrost` on Railway with persistent volume mounted at `/app/data` and port 8080 HTTPS ingress.
+  - [ ] Verify local Bifrost startup via `pnpm bifrost` without requiring local Docker.
   - [ ] Configure model profiles: `BIFROST_EXTRACT_MODEL`, `BIFROST_ASSESS_MODEL`, `BIFROST_DRAFT_MODEL`, and `BIFROST_ASSESS_FALLBACK`.
-  - [ ] Implement server client in `bifrost/client.ts` using `fetch` with AbortSignal, auth headers, and typed error handling.
+  - [ ] Generate application virtual key `BIFROST_GATEWAY_TOKEN` and initialize admin credentials with `BIFROST_SETUP_TOKEN`.
+  - [ ] Implement server client in `src/server/bifrost/client.ts` using `fetch` with AbortSignal, auth headers, and typed error handling.
   - [ ] Execute smoke test verifying inference call on each profile.
 - **Prerequisites:**
   - **Start Prerequisites:** B01.
   - **Integration / Completion Prerequisites:** None.
-  - **External Prerequisites:** Dedicated Docker host or local Docker engine; LLM provider API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+  - **External Prerequisites:** Railway project with persistent volume `/app/data` or local Node runtime; LLM provider API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`).
   - **What Can Start Early:** Client fetch wrapper, typed error handling, and mock provider doubles.
 - **Deliverable & Interface Handoff:** Handed downstream to A03 (claim extraction) and B04b (DAG slice).
-- **Positive Acceptance Examples:** One test request per profile returns valid response with `x-request-id` and served model metadata.
+- **Positive Acceptance Examples:** One test request per profile returns valid response with `x-request-id` and served model metadata over HTTPS; local `pnpm bifrost` starts on `127.0.0.1:8080` without Docker.
 - **Relevant Negative / Failure Cases:** Primary provider failure or 500 error transparently fails over to configured fallback profile.
 - **Verification Commands & Checks:** `pnpm tsx infra/smoke-bifrost.ts`.
-- **Evidence Level & Required Proof:** E3 (Integration script against live Bifrost container).
+- **Evidence Level & Required Proof:** E4 (Staging integration script against live Railway Bifrost gateway) / E2 (Local mock double).
 - **Observed Evidence:** *Pending execution*
 - **Explicit Exclusions:** Browser client bundles (API keys strictly isolated on server).
-- **Blocker / Decision:** B confirms access to Docker host and two compatible model providers.
+- **Blocker / Decision:** B confirms Railway deployment URL or local Bifrost startup and provider API keys.
 
 #### B04: Migrate data model and wire minimal persisted DAG execution slice {#b04-migrate-the-data-model-and-wire-the-vertical-slice}
 - **Owner:** B / Platform
-- **Plain-Language Outcome:** Define Drizzle relational tables in PostgreSQL, run migrations, and wire the minimal persisted DAG execution slice connecting preparation, retrieval, assessment, and terminal decision records.
+- **Plain-Language Outcome:** Define Prisma relational models in PostgreSQL, run migrations, and wire the minimal persisted DAG execution slice connecting preparation, retrieval, assessment, and terminal decision records.
 - **Planned Date:** Nov 8–9, 2026 IST
 - **Status:** TODO
 - **Phase & Gate Contribution:** Internal Milestone B04a satisfies Gate G0 (Foundation). Internal Milestone B04b satisfies Gate G1 (Live Slice).
-- **Canonical Design References:** [docs/DATA-AND-JOBS.md §1, §2](docs/DATA-AND-JOBS.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-013](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/db/schema.ts` (proposed), `src/server/db/client.ts` (proposed), `drizzle.config.ts` (proposed), `src/server/services/prep-service.ts` (proposed), `src/server/services/dag-service.ts` (proposed), `tests/integration/dag-slice.test.ts` (proposed).
+- **Canonical Design References:** [docs/DATA-AND-JOBS.md §1, §2](docs/DATA-AND-JOBS.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-013](docs/DECISIONS.md), [docs/DECISIONS.md#adr-022](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `prisma/schema.prisma` (proposed), `src/server/db/client.ts` (proposed), `src/server/services/prep-service.ts` (proposed), `src/server/services/dag-service.ts` (proposed), `tests/integration/dag-slice.test.ts` (proposed).
 - **Atomic Implementation Checklist:**
   - [ ] **Internal Milestone B04a (Database Baseline & DDL Migrations · Phase 0 / Gate G0):**
-    - [ ] Define Drizzle relational tables: `runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`.
-    - [ ] Configure Neon database client with pooler URL for runtime traffic and direct URL for DDL migrations.
-    - [ ] Run initial migration creating all tables, indexes, unique constraints, and foreign keys against Neon test branch.
+    - [ ] Define Prisma relational models: `VerificationRun`, `Preparation`, `Claim`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `DecisionRecord`, `RunEvent`, `DagNode`, `DagEdge`, `Clarification`.
+    - [ ] Configure Prisma with pooled `DATABASE_URL` (PgBouncer) for runtime queries and direct `DIRECT_URL` for DDL migrations.
+    - [ ] Run baseline migration (`pnpm prisma migrate dev --name init`) creating all tables, indexes, unique constraints, and foreign keys against Neon dev branch (`afterfact-dev`).
+    - [ ] Implement Prisma client singleton in `src/server/db/client.ts` with Next.js hot module reloading guard.
   - [ ] **Internal Milestone B04b (Wire Minimal Persisted DAG Slice · Phase 1 / Gate G1):**
     - [ ] Implement `PreparationService` (input hash binding and claim ticket/qualifier persistence).
     - [ ] Implement local `DagExecutionService` executing a single-claim paste through real persisted DAG nodes (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`).
-    - [ ] Enforce atomic node completion transaction and lease-fenced status updates, completely retiring temporary synchronous orchestration.
+    - [ ] Enforce atomic node completion transaction and lease-fenced status updates using Prisma interactive transactions, completely retiring temporary synchronous orchestration.
 - **Prerequisites:**
   - **Start Prerequisites (for B04a):** B01, A01, A02, A10.
   - **Integration / Completion Prerequisites (for B04b):** B02, B03, A03, A04, A05.
-  - **External Prerequisites:** Neon PostgreSQL account (`DATABASE_URL`, `DATABASE_MIGRATION_URL`).
-  - **What Can Start Early:** Drizzle schema definitions and local SQLite/Postgres unit tests.
+  - **External Prerequisites:** Neon PostgreSQL account (`DATABASE_URL`, `DIRECT_URL`).
+  - **What Can Start Early:** Prisma schema definitions and local unit tests with mocked client.
 - **Deliverable & Interface Handoff:** B04a unblocks C02 and satisfies Gate G0. B04b unblocks C03 and completes Gate G1.
-- **Positive Acceptance Examples:** From fresh database, migrations run cleanly; submitting a live claim persists real DAG nodes and returns terminal report with an auditable decision record.
+- **Positive Acceptance Examples:** From fresh database, migrations run cleanly via `pnpm prisma migrate dev`; submitting a live claim persists real DAG nodes and returns terminal report with an auditable decision record.
 - **Relevant Negative / Failure Cases:** Premature finalization attempt while nodes are pending rolls back; stale lease update matches 0 rows and aborts (`409 Conflict`).
-- **Verification Commands & Checks:** `pnpm drizzle-kit push && pnpm vitest run tests/integration/dag-slice.test.ts`.
+- **Verification Commands & Checks:** `pnpm prisma migrate dev && pnpm vitest run tests/integration/dag-slice.test.ts`.
 - **Evidence Level & Required Proof:** E3 (Integration test against live Neon PostgreSQL database).
 - **Observed Evidence:** *Pending execution*
 - **Explicit Exclusions:** External QStash message broker dispatch (handled in B05).
@@ -894,7 +898,7 @@ The following mapping documents the evolution from the initial planning baseline
 - **Canonical Design References:** [docs/SETUP-AND-DEPLOYMENT.md §5](docs/SETUP-AND-DEPLOYMENT.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md).
 - **Allowed Scope & Expected Files:** `infra/production.env` (proposed), `infra/smoke-production.ts` (proposed).
 - **Atomic Implementation Checklist:**
-  - [ ] Apply final Drizzle migrations to Neon production database.
+  - [ ] Apply final Prisma migrations to Neon production database (`pnpm prisma migrate deploy`).
   - [ ] Deploy production Next.js application to Vercel on custom domain.
   - [ ] Point production QStash topic to live domain and enable recurring reconciliation schedule.
   - [ ] Perform live smoke test with mixed-domain answer on fresh browser session.
@@ -978,8 +982,8 @@ The following mapping documents the evolution from the initial planning baseline
 | 2026-11-08 | A02 | `pnpm test` (vitest run `tests/unit/contracts/report-fixture.test.ts`) | Local Dev | 30/30 tests passing natively under repository toolchain; full golden fixture validated. | [A02](#a02-report-and-event-schemas) |
 | 2026-11-08 | B01 | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` | Local Dev & Disposable Copy | All 6 checks passed cleanly (0 lint/type errors, 55 vitest tests, production build 4/4 static pages, 1/1 Playwright Chromium smoke test). | [B01](#b01-scaffold-and-pin-the-toolchain) |
 | 2026-11-08 | A10 | `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 66/66 contract tests passing; 121/121 overall tests passing; 0 type errors; 0 lint errors/warnings; production build succeeded with 4/4 static pages. Merged into `main` via PR #8 & #9 (DONE). | [A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) |
-| *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Docker | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
-| *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Test DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Railway / Local | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
+| *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Dev DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | 2026-11-09 | C01 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 131/131 unit tests passed; 0 type/lint errors; production build 5/5 static pages; 11/11 Playwright E2E tests passed; dark/light theme toggle, local validation demo, and responsive screenshots verified. | [C01](#c01-visual-tokens-and-component-states) |
 | 2026-11-09 | C02 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 147/147 unit tests passed; 0 type/lint errors; 23/23 Playwright tests passed; input composer validation, span segmentation, honest replay labeling, and sample report experience verified. Accepted by user for documented scope. | [C02](#c02-input-and-report-skeleton) |
 | *Pending* | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | *Pending execution* | [A03](#a03-extract-and-locate-atomic-claims) |

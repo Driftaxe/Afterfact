@@ -12,7 +12,7 @@ Every test, check, and pull request must declare its evidence tier:
 | :---: | :--- | :--- | :--- |
 | **E1** | **Static Verification** | Syntax correctness, types, schema shape validation. | `pnpm lint`, `pnpm typecheck`, Zod schema validation. |
 | **E2** | **Unit & Logic Proof** | Deterministic business rules, date resolution, score calculation. | Vitest unit tests with frozen mock inputs. |
-| **E3** | **Disposable Integration** | Relational transactions, lease CAS, foreign keys, outbox. | Neon Postgres test database / ephemeral containers. |
+| **E3** | **Disposable Integration** | Relational transactions, lease CAS, foreign keys, outbox. | Neon Postgres test database (`afterfact-test` branch) with guarded table truncation. |
 | **E4** | **Staging Sandbox** | Real cloud providers, QStash signed webhooks, Bifrost fallback. | Staging environment with live provider keys and webhooks. |
 | **E5** | **Production Operations** | End-to-end user workflows on live web data. | Live site walkthrough, latency benchmarks, trace audits. |
 
@@ -118,7 +118,7 @@ The following 15 adversarial test specifications define required quality gates f
 
 ## 7. Release Gate Checklist (G0–G4)
 
-- [ ] **G0 (Foundation Gate):** Contract schemas validate; Next.js builds cleanly; Bifrost Docker smoke test passes; Drizzle migrations execute against Neon.
+- [ ] **G0 (Foundation Gate):** Contract schemas validate; Next.js builds cleanly; Bifrost smoke test passes (local Docker-free `pnpm bifrost` / Railway); Prisma baseline migration executes against Neon.
 - [ ] **G1 (Live Slice Gate):** Real paste submission verifies at least 1 live claim end-to-end via Bifrost and Tavily; claim links to an exact quoted excerpt.
 - [ ] **G2 (Coverage & Durability Gate):** Multi-claim answer covering all 4 domains verifies successfully; failed claim leaves completed siblings visible; refresh preserves state.
 - [ ] **G3 (Product Flow Gate):** Ask question flow, Then vs. Now timeline, Scheduled change badge, Context comparison, and Live recheck function seamlessly on staging.

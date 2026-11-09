@@ -4,7 +4,7 @@ This document specifies the database schemas, transaction protocols, lease fenci
 
 ---
 
-## 1. Relational Schema Specification (Neon PostgreSQL + Drizzle ORM)
+## 1. Relational Schema Specification (Neon PostgreSQL + Prisma ORM)
 
 ```mermaid
 erDiagram
@@ -334,6 +334,268 @@ erDiagram
 - **Constraints & Indexes:**
   - `INDEX (runId, nodeId, status)`.
 
+### Authoritative Prisma Schema (`prisma/schema.prisma`)
+
+```prisma
+// datasource and generator configuration
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // Pooled connection string (Neon PgBouncer) for application queries
+  directUrl = env("DIRECT_URL")     // Direct unpooled connection string (port 5432) for DDL migrations
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model VerificationRun {
+  id             String    @id @default(cuid()) @db.VarChar(36)
+  ownerHash      String    @db.VarChar(64)
+  inputHash      String    @db.VarChar(64)
+  prepId         String?   @db.VarChar(36)
+  idempotencyKey String?   @db.VarChar(64)
+  mode           String    @db.VarChar(16)
+  text           String    @db.Text
+  question       String?   @db.Text
+  context        Json      @db.JsonB
+  parentRunId    String?   @db.VarChar(36)
+  state          String    @db.VarChar(16)
+  graphVersion   Int       @default(1)
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  finishedAt     DateTime? @db.Timestamptz
+  expiresAt      DateTime  @db.Timestamptz
+  nextEventSeq   Int       @default(1)
+
+  preparation    Preparation?       @relation(fields: [prepId], references: [id], onDelete: SetNull)
+  claims         Claim[]
+  sourceDocs     SourceDocument[]
+  events         RunEvent[]
+  dagNodes       DagNode[]
+  dagEdges       DagEdge[]
+  clarifications Clarification[]
+
+  @@unique([ownerHash, idempotencyKey])
+  @@index([ownerHash, createdAt])
+  @@index([expiresAt])
+  @@map("runs")
+}
+
+model Preparation {
+  id                     String    @id @default(cuid()) @db.VarChar(36)
+  ownerHash              String    @db.VarChar(64)
+  inputHash              String    @db.VarChar(64)
+  mode                   String    @db.VarChar(16)
+  text                   String    @db.Text
+  question               String?   @db.Text
+  status                 String    @db.VarChar(16)
+  claims                 Json      @db.JsonB
+  inferredSuggestions    Json      @db.JsonB
+  clarificationQuestions Json?     @db.JsonB
+  createdAt              DateTime  @default(now()) @db.Timestamptz
+  expiresAt              DateTime  @db.Timestamptz
+
+  runs                   VerificationRun[]
+
+  @@index([ownerHash, inputHash, status])
+  @@map("preparations")
+}
+
+model Claim {
+  id               String          @id @default(cuid()) @db.VarChar(36)
+  runId            String          @db.VarChar(36)
+  ordinal          Int
+  spec             Json            @db.JsonB
+  decisionRecordId String?         @db.VarChar(36)
+  result           Json?           @db.JsonB
+  state            String          @db.VarChar(16)
+
+  run              VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  decisionRecord   DecisionRecord? @relation(fields: [decisionRecordId], references: [id], onDelete: SetNull)
+  assessments      ClaimEvidenceAssessment[]
+  dagNodes         DagNode[]
+  clarifications   Clarification[]
+
+  @@unique([runId, ordinal])
+  @@index([runId, state])
+  @@map("claims")
+}
+
+model SourceDocument {
+  id              String          @id @default(cuid()) @db.VarChar(36)
+  runId           String          @db.VarChar(36)
+  url             String          @db.Text
+  finalUrl        String          @db.Text
+  title           String          @db.Text
+  publisher       String          @db.VarChar(128)
+  contentHash     String          @db.VarChar(64)
+  sourceRole      String          @db.VarChar(32)
+  publicationDate DateTime?       @db.Date
+  effectiveDate   DateTime?       @db.Date
+  retrievedAt     DateTime        @default(now()) @db.Timestamptz
+
+  run             VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  evidenceUnits   EvidenceUnit[]
+
+  @@index([runId, contentHash])
+  @@map("source_documents")
+}
+
+model EvidenceUnit {
+  id                  String                    @id @default(cuid()) @db.VarChar(36)
+  documentId          String                    @db.VarChar(36)
+  verbatimText        String                    @db.Text
+  locator             Json                      @db.JsonB
+  surroundingHeaders  Json                      @db.JsonB
+  tableContext        Json?                     @db.JsonB
+  footnotes           Json?                     @db.JsonB
+  extractedProperties Json                      @db.JsonB
+
+  document            SourceDocument            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  assessments         ClaimEvidenceAssessment[]
+
+  @@index([documentId])
+  @@map("evidence_units")
+}
+
+model ClaimEvidenceAssessment {
+  id                     String       @id @default(cuid()) @db.VarChar(36)
+  claimId                String       @db.VarChar(36)
+  evidenceUnitId         String       @db.VarChar(36)
+  claimRevision          Int          @default(1)
+  relationship           String       @db.VarChar(32)
+  quotationVerified      Boolean
+  propertyMatchStatus    Json         @db.JsonB
+  temporalApplicability  String       @db.VarChar(32)
+  sourceSuitability      String       @db.VarChar(32)
+  reasoning              String       @db.Text
+
+  claim                  Claim        @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  evidenceUnit           EvidenceUnit @relation(fields: [evidenceUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([claimId, evidenceUnitId, claimRevision])
+  @@index([claimId, relationship])
+  @@map("claim_evidence_assessments")
+}
+
+model DecisionRecord {
+  id                  String   @id @default(cuid()) @db.VarChar(36)
+  claimId             String   @db.VarChar(36)
+  claimRevision       Int      @default(1)
+  appliedPolicy       String   @db.VarChar(32)
+  verdict             String   @db.VarChar(32)
+  score               Int?
+  reasonCode          String   @db.VarChar(48)
+  scoreReason         String   @db.Text
+  primaryEvidenceIds  Json     @db.JsonB
+  counterEvidenceIds  Json     @db.JsonB
+  excludedEvidence    Json     @db.JsonB
+  extractedQualifiers Json     @db.JsonB
+  temporalBasis       Json     @db.JsonB
+  limitations         Json     @db.JsonB
+  traceIds            Json     @db.JsonB
+  createdAt           DateTime @default(now()) @db.Timestamptz
+
+  claims              Claim[]
+
+  @@index([claimId, claimRevision])
+  @@map("decision_records")
+}
+
+model RunEvent {
+  runId     String          @db.VarChar(36)
+  seq       Int
+  type      String          @db.VarChar(32)
+  payload   Json            @db.JsonB
+  createdAt DateTime        @default(now()) @db.Timestamptz
+
+  run       VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@id([runId, seq])
+  @@map("events")
+}
+
+model DagNode {
+  id              String          @id @db.VarChar(48)
+  runId           String          @db.VarChar(36)
+  claimId         String?         @db.VarChar(36)
+  nodeType        String          @db.VarChar(32)
+  state           String          @db.VarChar(20)
+  attempt         Int             @default(0)
+  leaseToken      String?         @db.VarChar(36)
+  leaseUntil      DateTime?       @db.Timestamptz
+  nextAttemptAt   DateTime        @default(now()) @db.Timestamptz
+  publishedAt     DateTime?       @db.Timestamptz
+  outputReference Json?           @db.JsonB
+  errorMessage    String?         @db.Text
+
+  run             VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  claim           Claim?          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  clarifications  Clarification[]
+  predecessorOf   DagEdge[]       @relation("PredecessorEdges")
+  successorOf     DagEdge[]       @relation("SuccessorEdges")
+
+  @@unique([runId, id])
+  @@index([runId, state])
+  @@index([state, nextAttemptAt])
+  @@map("dag_nodes")
+}
+
+model DagEdge {
+  id            String          @id @db.VarChar(48)
+  runId         String          @db.VarChar(36)
+  predecessorId String          @db.VarChar(48)
+  successorId   String          @db.VarChar(48)
+  condition     String          @db.VarChar(16)
+  createdAt     DateTime        @default(now()) @db.Timestamptz
+
+  run           VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  predecessor   DagNode         @relation("PredecessorEdges", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor     DagNode         @relation("SuccessorEdges", fields: [successorId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, predecessorId, successorId])
+  @@index([runId, predecessorId])
+  @@map("dag_edges")
+}
+
+model Clarification {
+  id                 String          @id @default(cuid()) @db.VarChar(36)
+  runId              String          @db.VarChar(36)
+  nodeId             String          @db.VarChar(48)
+  claimId            String?         @db.VarChar(36)
+  version            Int             @default(1)
+  status             String          @db.VarChar(16)
+  questionDefinition Json            @db.JsonB
+  answers            Json?           @db.JsonB
+  answeredAt         DateTime?       @db.Timestamptz
+
+  run                VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  node               DagNode         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  claim              Claim?          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([runId, nodeId, status])
+  @@map("clarifications")
+}
+```
+
+### Prisma Client Singleton (`src/server/db/client.ts`)
+
+```typescript
+import { PrismaClient } from '@prisma/client';
+
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+```
+
+> [!NOTE]
+> **Query Logging Security:** Notice that `log: ['error']` is used in production. Unrestricted query logging (e.g. `query`) is avoided because it can log sensitive user-pasted text and private context fields directly into runtime serverless logs.
+
 ---
 
 ## 2. Transaction Boundaries & Non-Blocking Rules
@@ -456,19 +718,52 @@ COMMIT;
 ## 3. Dynamic DAG Execution, Leases & Recovery
 
 1. **Database-Clock Lease Fencing:**
-   Workers acquire an execution lease on a node via atomic conditional update:
+   Workers acquire an execution lease on a node via an atomic conditional update enforcing database-clock authority (PostgreSQL `NOW()`, never client wall-clock):
    ```sql
    UPDATE dag_nodes
       SET state = 'leased',
-          leaseToken = $newToken,
-          leaseUntil = NOW() + INTERVAL '35 seconds',
+          "leaseToken" = $newToken,
+          "leaseUntil" = NOW() + INTERVAL '35 seconds',
           attempt = attempt + 1
     WHERE id = $nodeId
-      AND (state = 'pending' OR (state = 'leased' AND leaseUntil < NOW()))
+      AND (state = 'pending' OR (state = 'leased' AND "leaseUntil" < NOW()))
       AND attempt < 3;
    ```
+   In the Prisma runtime layer, this is executed using parameterized raw SQL to guarantee strict database-clock authority:
+   ```typescript
+   const rowsAffected = await db.$executeRaw`
+     UPDATE dag_nodes
+        SET state = 'leased',
+            "leaseToken" = ${newToken},
+            "leaseUntil" = NOW() + INTERVAL '35 seconds',
+            attempt = attempt + 1
+      WHERE id = ${nodeId}
+        AND (state = 'pending' OR (state = 'leased' AND "leaseUntil" < NOW()))
+        AND attempt < 3;
+   `;
+   if (rowsAffected === 0) {
+     throw new LeaseAcquisitionError('Node already claimed, leased, or attempts exhausted');
+   }
+   ```
 2. **Competing Worker & Split-Brain Containment:**
-   If Worker A takes longer than 35 seconds to assess evidence, its lease expires. Worker B (or the sweeper) steals the lease with a fresh `leaseToken`. When Worker A attempts to commit, its update `WHERE leaseToken = $oldToken` matches 0 rows, forcing Worker A to fail closed and roll back immediately.
+   If Worker A takes longer than 35 seconds to assess evidence, its lease expires. Worker B (or the sweeper) steals the lease with a fresh `leaseToken`. When Worker A attempts to commit, its update `WHERE leaseToken = $oldToken` matches 0 rows, forcing Worker A to fail closed and roll back immediately:
+   ```typescript
+   // Enforced inside Prisma interactive transaction (Protocol B):
+   const commitResult = await tx.dagNode.updateMany({
+     where: {
+       id: currentNodeId,
+       leaseToken: workerLeaseToken,
+     },
+     data: {
+       state: 'completed',
+       leaseToken: null,
+       outputReference: outputRef,
+     },
+   });
+   if (commitResult.count === 0) {
+     throw new StaleLeaseConflictError('Worker lease expired or was stolen; aborting transaction');
+   }
+   ```
 3. **Clarification Wait States:**
    When a node enters `waiting_for_input`, it explicitly clears `leaseToken = NULL` and `leaseUntil = NULL`. The node is **not** considered stuck or expired; the sweeper leaves it intact until the 24-hour run expiration or until the user submits answers.
 4. **Idempotent Reconciliation Sweeper (`/api/internal/reconcile`):**

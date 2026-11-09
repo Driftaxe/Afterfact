@@ -11,7 +11,7 @@ The codebase is strictly divided into three parallel engineering lanes:
 | Lane | Focus | Primary Responsibilities | File & Directory Ownership |
 | :---: | :--- | :--- | :--- |
 | **A** | **Verification** | Claim extraction, passage assessment, date logic, domain policies, and evaluation benchmark. | `src/lib/contracts/*`<br>`src/server/verify/*`<br>`src/server/policies/*`<br>`src/server/prompts/*`<br>`fixtures/*`, `eval/*` |
-| **B** | **Platform** | Toolchain, Neon DB, Drizzle migrations, QStash jobs, dynamic DAG engine, Bifrost gateway, API routes, and deployment. | `src/server/db/*`<br>`src/server/jobs/*`<br>`src/server/services/*`<br>`src/server/bifrost/*`<br>`src/server/tavily/*`<br>`src/app/api/*`, `infra/*` |
+| **B** | **Platform** | Toolchain, Neon DB, Prisma migrations, QStash jobs, dynamic DAG engine, Bifrost gateway, API routes, and deployment. | `src/server/db/*`<br>`src/server/jobs/*`<br>`src/server/services/*`<br>`src/server/bifrost/*`<br>`src/server/tavily/*`<br>`src/app/api/*`, `infra/*` |
 | **C** | **Product** | Design system, UI components, split workspace, Server Actions, progress SSE, context comparison, and demo polish. | `src/app/page.tsx`<br>`src/app/runs/[id]/page.tsx`<br>`src/components/*`<br>`src/actions/*`<br>`src/hooks/*`, `public/*` |
 
 Shared files (e.g., `package.json`, `docs/*`) require explicit cross-lane alignment.

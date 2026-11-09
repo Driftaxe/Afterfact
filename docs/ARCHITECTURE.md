@@ -49,7 +49,7 @@ flowchart TD
         FlowControl["Flow Control: Max 3 Concurrent Claim Branches"]
     end
 
-    subgraph Database ["Persistence: Neon PostgreSQL"]
+    subgraph Database ["Persistence: Neon PostgreSQL (Prisma ORM)"]
         RunsTable["runs (Lifecycle, InputHash, Limits)"]
         PrepTable["preparations (Extracted Spans, Inferred Scope)"]
         ClaimsTable["claims (ClaimTicket Spec, Result, Chronology)"]
@@ -63,7 +63,7 @@ flowchart TD
         ClarificationsTable["clarifications (Questions, Answers, Versions)"]
     end
 
-    subgraph Gateway ["Model Gateway: Bifrost Host (Docker over HTTPS)"]
+    subgraph Gateway ["Model Gateway: Bifrost (Railway Staging/Prod · Docker-free Local)"]
         Bifrost["Bifrost Gateway (Port 8080)"]
         DraftModel["Drafting Profile (Ask mode)"]
         ExtractModel["Claim & Context Extraction Profile"]
@@ -133,10 +133,25 @@ flowchart TD
 | **Programmatic API (`/api/v1/verify`)** | Vercel (Next.js Serverless) | HTTPS, Bearer API Token or Anonymous Session | Thin adapter calling `VerificationService`; executes identical preparation and DAG verification workflow without bypassing validation or safety invariants. |
 | **Worker Ingress (`/api/verify/worker`)** | Vercel Serverless | HTTPS + QStash Webhook Signature | Protected by `@upstash/qstash` `verifySignatureAppRouter`. Browser or unauthenticated requests fail with `401 Unauthorized`. |
 | **Recovery Sweeper (`/api/internal/reconcile`)** | Vercel Serverless | HTTPS + Signed Cron / Admin Secret | Vercel Cron or admin header authentication; reclaims expired leases and undispatched nodes. |
-| **Relational Database** | Neon PostgreSQL | TLS TCP (port 5432) | Split connection model: pooled `DATABASE_URL` (PgBouncer) for application runtime; direct `DATABASE_MIGRATION_URL` for DDL migrations. |
+| **Relational Database (Prisma ORM)** | Neon PostgreSQL | TLS TCP (port 5432) | Split connection model: pooled `DATABASE_URL` (PgBouncer) for application runtime queries; direct `DIRECT_URL` for Prisma DDL migrations (`prisma migrate dev` / `prisma migrate deploy`). No local Docker required. |
 | **Message Broker** | Upstash QStash | HTTPS REST API | Server-side publishing only using `QSTASH_TOKEN`. Concurrency flow control capped at 3 active claim branches per run. |
-| **Model Gateway (Bifrost)** | Dedicated Docker Host | HTTPS Reverse Proxy (Caddy/Nginx) | Ingress restricted to authenticated inference route (`BIFROST_GATEWAY_TOKEN`). Admin dashboard bound to `127.0.0.1:8080` (accessible via SSH tunnel only). Content logging disabled. |
+| **Model Gateway (Bifrost Hosted)** | Railway (Staging / Prod) | HTTPS Ingress (Port 8080) | Official prebuilt container (`maximhq/bifrost`) deployed on Railway with persistent volume `/app/data` (SQLite storage for routing/virtual keys). Authenticated via `BIFROST_GATEWAY_TOKEN` Bearer header. Content logging disabled in production. |
+| **Model Gateway (Bifrost Local)** | Local Dev Machine | HTTP (`127.0.0.1:8080`) | Docker-free local process started via `pnpm bifrost` (`dotenv -e .env -- pnpm dlx @maximhq/bifrost`). Zero local Docker container requirement. |
 | **Web Retrieval (Tavily)** | Tavily Cloud REST API | HTTPS Bearer Auth | Server-side calls only using `TAVILY_API_KEY`. Browser never calls Tavily directly. |
+
+### Infrastructure Responsibility Matrix
+
+| Component | Where It Runs | What It Stores / Does | Who Configures It | Persistence & Storage Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Afterfact App Server** | Vercel Serverless | Next.js 15 App Router, Server Actions, API routes, DAG worker handler | Builder B (deployment & secrets) | Ephemeral serverless execution; no local disk state. |
+| **Application Persistence** | Neon Cloud PostgreSQL | Runs, claims, preparations, evidence, DAG nodes, events, clarifications | Builder B (via Prisma schema & migrations) | Managed PostgreSQL with point-in-time recovery and branch isolation (`dev`, `test`, `staging`, `main`). |
+| **Model Gateway (Hosted)** | Railway Container Service | Bifrost gateway process routing requests to OpenAI, Anthropic, Groq | Builder B (Railway volume & config) | Dedicated persistent Railway volume (`/app/data`) for Bifrost's internal SQLite database (`bifrost.db`). |
+| **Model Gateway (Local)** | Developer Workstation | Local Bifrost routing instance for offline/dev testing | Builder B / Developer (`pnpm bifrost`) | Local process via `pnpm dlx`; loads keys from `.env`. Zero local Docker required. |
+| **Message Queue & Delivery** | Upstash QStash | Asynchronous webhook delivery to `/api/verify/worker` with bounded concurrency | Builder B (QStash dashboard & webhook URL) | Managed cloud queue with retries and signature verification. |
+| **Web Intelligence** | Tavily Cloud REST API | Web search (`/search`) and passage extraction (`/extract`) | Builder B (Tavily account & API key) | Third-party cloud service; no persistent storage in Tavily. |
+
+> [!NOTE]
+> **Data Separation Invariant:** Application relational data resides exclusively in **Neon PostgreSQL** managed by Prisma. Bifrost's internal configuration, virtual keys, and request metrics reside in Bifrost's internal **SQLite database** stored on Railway's persistent volume (`/app/data`). Transitioning the application persistence layer to Prisma has zero impact on Bifrost's internal storage engine.
 
 ---
 

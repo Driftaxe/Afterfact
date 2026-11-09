@@ -1,0 +1,62 @@
+# docs/lane-b/README.md — Lane B (Platform) Execution Handbook
+
+Welcome to the **Lane B (Platform) Execution Handbook** for **Afterfact**.
+
+If you are a developer, apprentice, or autonomous agent assigned to Lane B, this handbook guides you step by step through every platform task without assuming prior knowledge of distributed queues, lease fencing, or cloud infrastructure.
+
+> [!IMPORTANT]
+> **Authority Rule:**
+> - [docs/PHASE-TRACKER.md](../PHASE-TRACKER.md) is the **single source of truth** for official task statuses (`TODO`, `IN PROGRESS`, `REVIEW`, `DONE`), owners, and evidence logs.
+> - [docs/ARCHITECTURE.md](../ARCHITECTURE.md) and [docs/DATA-AND-JOBS.md](../DATA-AND-JOBS.md) own **technical policy and architectural invariants**.
+> - This handbook explains **how to execute and verify** those tasks on Windows with PowerShell and pnpm.
+
+---
+
+## 1. Recommended Reading Order
+
+1. **Start Here:** Read [00-system-overview.md](00-system-overview.md) to understand the "big picture" of how Afterfact runs.
+2. **Setup Your Machine:** Read [01-workstation-and-accounts.md](01-workstation-and-accounts.md) to install tools, configure PowerShell, and set up your cloud accounts.
+3. **Task Guides in Order:**
+   - [b01-toolchain-and-dependencies.md](b01-toolchain-and-dependencies.md) — Follow-up dependency migration (Prisma & Bifrost script)
+   - [b02-bifrost-gateway-setup.md](b02-bifrost-gateway-setup.md) — Model gateway on Railway & local Docker-free script
+   - [b03-tavily-search-adapter.md](b03-tavily-search-adapter.md) — Tavily live web retrieval adapter
+   - [b04a-prisma-and-neon-database.md](b04a-prisma-and-neon-database.md) — Neon Postgres dev database & Prisma baseline migrations
+   - [b04b-persisted-dag-execution-slice.md](b04b-persisted-dag-execution-slice.md) — Minimal persisted DAG execution slice
+   - [b05-qstash-delivery-and-recovery.md](b05-qstash-delivery-and-recovery.md) — QStash webhooks, lease fencing, and recovery sweeper
+   - [b06-public-endpoints-and-sse.md](b06-public-endpoints-and-sse.md) — Public API snapshot, SSE replay, and programmatic REST adapter
+   - [b07-staging-deployment.md](b07-staging-deployment.md) — Staging cloud deployment on Vercel + Neon + Railway
+   - [b08-production-release.md](b08-production-release.md) — Production release, failover verification, and health checks
+4. **Whenever Blocked:** Consult [troubleshooting.md](troubleshooting.md) for quick solutions to common errors.
+
+---
+
+## 2. Lane B Ticket Map & Parallel Execution Matrix
+
+| Ticket ID | Guide File | Responsibility | Can Start In Parallel? | Blocked On Another Lane? | Phase Tracker Link |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| **B01** | [b01-toolchain...](b01-toolchain-and-dependencies.md) | Pin toolchain & swap Drizzle for Prisma | Independent | None (Follow-up) | [B01 Tracker](../PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) |
+| **B02** | [b02-bifrost...](b02-bifrost-gateway-setup.md) | Railway Bifrost & local `pnpm bifrost` | Parallel with B03/B04a | None | [B02 Tracker](../PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) |
+| **B03** | [b03-tavily...](b03-tavily-search-adapter.md) | Tavily search & extract client | Parallel with B02/B04a | None (uses mock responses early) | [B03 Tracker](../PHASE-TRACKER.md#b03-search-extract-and-evidence-capture) |
+| **B04a** | [b04a-prisma...](b04a-prisma-and-neon-database.md) | Neon setup & Prisma baseline DDL | Parallel with B02/B03 | Requires A10 contract schemas | [B04a Tracker](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| **B04b** | [b04b-persisted...](b04b-persisted-dag-execution-slice.md) | Wire persisted minimal DAG slice | After B04a | Requires B02, B03, A03, A04, A05 | [B04b Tracker](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| **B05** | [b05-qstash...](b05-qstash-delivery-and-recovery.md) | QStash signed delivery & recovery | After B04b | Requires A06 (domain policies) | [B05 Tracker](../PHASE-TRACKER.md#b05-implement-signed-delivery-leases-and-recovery) |
+| **B06** | [b06-public...](b06-public-endpoints-and-sse.md) | Public API, SSE stream & adapter | After B04b | None | [B06 Tracker](../PHASE-TRACKER.md#b06-implement-the-public-run-endpoints) |
+| **B07** | [b07-staging...](b07-staging-deployment.md) | Vercel staging deployment | After B05, B06 | None | [B07 Tracker](../PHASE-TRACKER.md#b07-provision-staging-with-real-integrations) |
+| **B08** | [b08-production...](b08-production-release.md) | Production release & failover | After B07 | Requires C07, A09 | [B08 Tracker](../PHASE-TRACKER.md#b08-deploy-production-and-verify-fallbacks) |
+
+---
+
+## 3. Platform Architecture Glossary
+
+- **ORM (Object-Relational Mapping):** A library (Prisma) that lets us write TypeScript models and queries instead of raw SQL strings. It translates `db.claim.findMany()` into SQL.
+- **Migration:** A timestamped SQL file generated by Prisma that alters the database structure (adding tables, columns, indexes).
+- **Pooled Connection (`DATABASE_URL`):** A connection string routed through Neon's PgBouncer pooler (port 5432 or 6543) so hundreds of serverless Vercel functions don't exhaust database connection limits.
+- **Direct Connection (`DIRECT_URL`):** An unpooled direct connection string straight to PostgreSQL (port 5432). Required for running migrations (`prisma migrate dev` / `prisma migrate deploy`) because migration commands perform DDL operations that connection poolers don't support.
+- **Model Gateway (Bifrost):** An intermediary service created by Maxim AI that sits between Afterfact and upstream LLMs (OpenAI, Anthropic, Groq). It centralizes API keys, routes traffic, handles retries, and fails over to backup models if a provider crashes.
+- **Model Profile:** A named route in Bifrost (e.g. `openai/gpt-4o-mini`) mapped to an upstream provider.
+- **Persistent Volume:** A dedicated cloud disk attached to a container (e.g. `/app/data` on Railway) that keeps its contents safe across container restarts or redeployments.
+- **Worker:** A serverless background route (`POST /api/verify/worker`) that executes one step of the verification process (like extracting text or assessing evidence).
+- **Webhook:** An HTTP POST request sent by an external service (Upstash QStash) to our worker endpoint to trigger processing.
+- **Lease & Fencing:** A temporary lock on a database record (`leaseUntil = NOW() + 35s`, `leaseToken = UUID`) ensuring only one worker processes a job at a time. If a worker runs too slow, its lease expires, and its write attempt is rejected with HTTP 409 (`Conflict`).
+- **Outbox:** A pattern where new jobs or events are saved to the database in the *same transaction* as the domain data, guaranteeing that network glitches never cause lost jobs.
+- **SSE (Server-Sent Events):** A continuous, one-way HTTP connection where the server pushes live updates to the browser as claims are verified. Reconnects seamlessly using sequence numbers (`?afterSeq=N`).
