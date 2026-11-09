@@ -46,10 +46,31 @@ Mock tests cannot prove that:
 
 ## 5. Numbered Implementation Steps
 
-### Step 1: Create Neon Staging Branch & Apply Migrations
+### Step 1: Create Neon Staging Branch & Author `infra/staging.env`
 1. In the Neon console, create a new branch named `afterfact-staging`.
 2. Copy `DATABASE_URL` (pooled) and `DIRECT_URL` (direct).
-3. Apply migrations to staging using the deployment command (which applies pending migrations without prompting for names):
+3. Create `infra/staging.env` with staging configuration:
+   ```bash
+   # infra/staging.env
+   NODE_ENV=staging
+   APP_BASE_URL=https://afterfact-staging.vercel.app
+
+   DATABASE_URL=postgres://user:pass@ep-staging-pooler.us-east-2.aws.neon.tech/afterfact?sslmode=require&pgbouncer=true
+   DIRECT_URL=postgres://user:pass@ep-staging.us-east-2.aws.neon.tech/afterfact?sslmode=require
+
+   BIFROST_BASE_URL=https://bifrost-staging.up.railway.app
+   BIFROST_GATEWAY_TOKEN=bf_gw_staging_token
+   BIFROST_EXTRACT_MODEL=openai/gpt-4o-mini
+   BIFROST_ASSESS_MODEL=anthropic/claude-3-5-sonnet-20241022
+   BIFROST_DRAFT_MODEL=openai/gpt-4o
+   BIFROST_ASSESS_FALLBACK=groq/llama-3.3-70b-versatile
+
+   TAVILY_API_KEY=tvly-staging-key
+   QSTASH_TOKEN=qstash_staging_token
+   QSTASH_CURRENT_SIGNING_KEY=sig_staging_curr
+   QSTASH_NEXT_SIGNING_KEY=sig_staging_next
+   ```
+4. Apply migrations to staging using the deployment command (which applies pending migrations without prompting for names):
    ```powershell
    dotenv -e infra/staging.env -- pnpm prisma migrate deploy
    ```
@@ -57,13 +78,7 @@ Mock tests cannot prove that:
 
 ### Step 2: Deploy Next.js to Vercel Staging
 1. In Vercel, click **Add New -> Project**, and import `Afterfact`.
-2. Under **Environment Variables**, add staging values:
-   - `DATABASE_URL`: Staging pooled Neon URL.
-   - `DIRECT_URL`: Staging direct Neon URL.
-   - `BIFROST_BASE_URL`: `https://bifrost-staging.up.railway.app`
-   - `BIFROST_GATEWAY_TOKEN`: Staging virtual key.
-   - `TAVILY_API_KEY`: Staging Tavily key.
-   - `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`.
+2. Under **Environment Variables**, add staging values matching `infra/staging.env`.
 3. Click **Deploy**. Note the staging deployment URL (e.g. `https://afterfact-staging.vercel.app`).
 
 ### Step 3: Configure QStash Webhook Ingress
@@ -71,12 +86,70 @@ Mock tests cannot prove that:
    `https://afterfact-staging.vercel.app/api/verify/worker`
 2. If Vercel Deployment Protection is active, add the bypass secret header (`x-vercel-protection-bypass`).
 
-### Step 4: Run Automated Staging Smoke Test (`infra/smoke-staging.ts`)
-Run the end-to-end cloud smoke test:
-```powershell
-pnpm tsx infra/smoke-staging.ts
+### Step 4: Author and Run Staging Smoke Test (`infra/smoke-staging.ts`)
+Author `infra/smoke-staging.ts` verifying end-to-end cloud execution and Bifrost fallback:
+```typescript
+// infra/smoke-staging.ts
+async function runStagingSmokeTest() {
+  const stagingUrl = process.env.APP_BASE_URL || 'https://afterfact-staging.vercel.app';
+  console.log(`Starting cloud smoke test against: ${stagingUrl}`);
+
+  // 1. Submit verification request via public API
+  const submitRes = await fetch(`${stagingUrl}/api/v1/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: 'Stripe standard transaction processing fee is 2.9% plus 30 cents.',
+      mode: 'paste',
+    }),
+  });
+
+  if (!submitRes.ok) {
+    const errText = await submitRes.text();
+    throw new Error(`Staging submission failed (HTTP ${submitRes.status}): ${errText}`);
+  }
+
+  const { runId } = await submitRes.json();
+  console.log(`Run submitted successfully. Run ID: ${runId}`);
+
+  // 2. Poll snapshot endpoint until terminal state or timeout
+  const startTime = Date.now();
+  let state = 'running';
+  let score: number | null = null;
+
+  while (Date.now() - startTime < 60000) { // 60s timeout
+    await new Promise((r) => setTimeout(r, 3000));
+    const snapshotRes = await fetch(`${stagingUrl}/api/runs/${runId}`);
+    if (!snapshotRes.ok) continue;
+
+    const data = await snapshotRes.json();
+    state = data.state;
+    if (state === 'completed' || state === 'failed') {
+      score = data.score ?? null;
+      break;
+    }
+    console.log(`Run ${runId} in progress... (state: ${state})`);
+  }
+
+  console.log(`Staging run completed with state: ${state}, score: ${score}`);
+  if (state !== 'completed') {
+    throw new Error(`Staging smoke test failed: run did not reach 'completed' state.`);
+  }
+
+  console.log('Staging cloud smoke test PASSED successfully.');
+}
+
+runStagingSmokeTest().catch((err) => {
+  console.error('Staging smoke test FAILED:', err);
+  process.exit(1);
+});
 ```
-- **What It Executes:** Submits a real 1-claim verification against the staging URL, watches the SSE stream over TLS, and confirms the terminal report is generated.
+
+Run the smoke test in PowerShell:
+```powershell
+dotenv -e infra/staging.env -- pnpm tsx infra/smoke-staging.ts
+```
+- **What It Executes:** Submits a real 1-claim verification against the staging URL, watches progress over TLS, and confirms the terminal report is generated.
 
 ---
 
