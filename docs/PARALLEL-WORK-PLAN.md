@@ -20,7 +20,7 @@ Work in Afterfact is strictly partitioned into three specialized engineering lan
  │  Lane A: Verification   │    Lane B: Platform     │     Lane C: Product     │
  │  ---------------------  │    ----------------     │     ---------------     │
  │  • Public & DB Schemas  │  • Toolchain & Config   │  • Design Tokens & CSS  │
- │  • Claim Extraction     │  • Docker & Bifrost GW  │  • Split Workspace UI   │
+ │  • Claim Extraction     │  • Railway & Bifrost GW │  • Split Workspace UI   │
  │  • Passage Assessment   │  • Tavily Web Adapter   │  • SSE Progress Hook    │
  │  • Date & Policy Logic  │  • Neon DB & Migrations │  • Then vs. Now Drawer  │
  │  • Benchmark Evaluation │  • QStash Job Queue     │  • Compare & Correction │
@@ -62,7 +62,7 @@ flowchart TD
     end
 
     subgraph Gate0 ["Gate G0: Foundation Checkpoint"]
-        G0_Crit["• Contract schemas validate (A01, A02, A10)<br/>• App builds cleanly (next build)<br/>• Bifrost gateway smoke test succeeds<br/>• Database migration executes against Neon<br/>• Lane C renders preparation & fixture mode"]
+        G0_Crit["• Contract schemas validate (A01, A02, A10)<br/>• App builds cleanly (next build)<br/>• Bifrost gateway smoke test succeeds (Railway / local script)<br/>• Prisma migration executes against Neon<br/>• Lane C renders preparation & fixture mode"]
     end
 
     subgraph Phase1 ["Phase 1: Live Slice via Persisted DAG (Target: Nov 8–9)"]
@@ -139,7 +139,7 @@ flowchart TD
     A02["A02: Report Schemas & Golden Fixture"]:::verified
     A10["A10: Prep, Clarification & DAG Schemas"]:::verified
 
-    DockerHost(["Ext: Docker Host / Local Docker"]):::external
+    BifrostExt(["Ext: Railway Account / Local Node"]):::external
     B02["B02: Provision Bifrost & Profiles"]:::unblocked
 
     NeonAcct(["Ext: Neon PostgreSQL Account"]):::external
@@ -156,7 +156,7 @@ flowchart TD
     A02 --> A10
     B01 --> A10
     B01 --> B02
-    DockerHost -.-> B02
+    BifrostExt -.-> B02
 
     B01 --> B04a
     A01 -.-> B04a
@@ -182,7 +182,7 @@ flowchart TD
 > **Resolution of the B04 / Gate G0 Ambiguity:**
 > In early drafts, Gate G0 listed "database migration executes" while all database work was cataloged under B04 (Phase 1). This created an apparent phase cycle.
 > As shown above, **B04a and B04b are internal planning milestones of canonical ticket B04 in [docs/PHASE-TRACKER.md](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice), not separate or newly invented tracker tickets**:
-> - **B04a (Database Baseline & DDL Migrations):** Creating Drizzle tables (runs, preparations, claims, evidence, events, dag_nodes, dag_edges, clarifications) and executing initial migrations against Neon satisfies Gate G0.
+> - **B04a (Database Baseline & DDL Migrations):** Creating Prisma models (runs, preparations, claims, evidence, events, dag_nodes, dag_edges, clarifications) and executing initial migrations against Neon satisfies Gate G0.
 > - **B04b (Live Persisted DAG Execution Slice):** Wiring live search, extraction, and local DAG execution into the database satisfies Gate G1 (retiring temporary synchronous orchestration).
 
 ---
@@ -421,10 +421,10 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **A02** | [Report/Event Schemas & Fixture](PHASE-TRACKER.md#a02-report-and-event-schemas) | A | 0 | A01 | None | None | Completed | `evidence.ts`, `report.ts`, `events.ts`, `golden-mixed-report.json` |
 | **A10** | [Prep, Clarification & DAG Schemas](PHASE-TRACKER.md#a10-define-preparation-clarification-and-dynamic-dag-schemas) | A | 0 | B01, A01, A02 | None | None | Completed | `claim-ticket.ts`, `evidence-objects.ts`, `preparation.ts`, `clarification.ts`, `research.ts`, `decision.ts`, `dag.ts`, `actions.ts` |
 | **B01** | [Scaffold & Pin Toolchain](PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) | B | 0 | DOC01 (repo baseline) | None | None | Completed | Next.js 15, pnpm 11, Node 22, ESLint, Tailwind, Vitest, Playwright, CI |
-| **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Docker host / Local Docker, Model provider keys | Client fetch wrapper & profile types | `docker-compose.yml`, `src/server/bifrost/client.ts`, `profiles.ts` |
+| **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Railway account / Local Node, Model provider keys | Client fetch wrapper & profile types | `src/server/bifrost/client.ts`, `src/server/bifrost/profiles.ts` |
 | **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Completed | Design tokens in `globals.css`, button/card states, reduced motion |
 | **C02** | [Input, Prep & Report Skeleton](PHASE-TRACKER.md#c02-input-and-report-skeleton) | C | 0 | C01, A02, A10 | B04a (for persistent preparation) | None | Layout & fixture playback | `InputComposer.tsx`, `PreparationReview.tsx`, `ReportSkeleton.tsx` |
-| **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DATABASE_MIGRATION_URL`) | Drizzle schema files | Drizzle tables (`runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) |
+| **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DIRECT_URL`) | Prisma schema files & client | Prisma models (`runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) |
 | **A03** | [Extract & Locate Atomic Claims](PHASE-TRACKER.md#a03-extract-and-locate-atomic-claims) | A | 1 | A01, A02, A10 | B02 (Bifrost model profiles) | Model provider credentials | Sentence splitting, span math, extraction prompt, unit fixture tests | `extract-claims.ts`, extraction prompt, span resolver, `ClaimTicket[]` |
 | **A04** | [Research Planning & Semantic Assessment](PHASE-TRACKER.md#a04-assess-passages-against-a-claim) | A | 1 | A01, A02, A10 | A03, B02, B03 (Tavily passages) | Model provider credentials | Research planning, context-preserving extraction, vector shortlisting, quote verification | `research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts` |
 | **A05** | [Apply Policy, Synthesis & Decisions](PHASE-TRACKER.md#a05-apply-deterministic-policy-and-score) | A | 1 | A04, A10 | None (pure deterministic TypeScript) | None | Precedence decision tree, date comparator, reason code registry, correction verifier | `decide.ts`, `correction.ts`, `DecisionRecord` generation |
@@ -443,7 +443,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **C06** | [Compare, Recheck & DAG Inspector](PHASE-TRACKER.md#c06-implement-compare-correction-and-recheck) | C | 3 | C04, C05, B06 | None | None | Side-by-side drawer UI, expandable DAG inspector component | `CompareDrawer.tsx`, `CorrectionDiff.tsx`, `DagInspector.tsx` |
 | **C07** | [Finish Ask, Export & Polish](PHASE-TRACKER.md#c07-finish-ask-export-and-polish) | C | 3 | B06, C03, C04, C05, C06 | None | None | Export Markdown/JSON formatters, token trace drawer | `AskFlow.tsx`, `ExportReport.tsx`, `TraceViewer.tsx` |
 | **A09** | [Run Benchmark & Regressions](PHASE-TRACKER.md#a09-run-baseline-full-pipeline-and-regressions) | A | 4 | A07, A08, B06 | None | Live model & search credits | Eval runner script, metric calculations | Benchmark report, latency traces, accuracy metrics |
-| **B08** | [Deploy Production & Fallbacks](PHASE-TRACKER.md#b08-deploy-production-and-verify-fallbacks) | B | 4 | B07, C07 | None | Production Vercel domain, HTTPS proxy for Bifrost | Production environment audit, SSH tunnel setup | Live production URL, provider fallback verification |
+| **B08** | [Deploy Production & Fallbacks](PHASE-TRACKER.md#b08-deploy-production-and-verify-fallbacks) | B | 4 | B07, C07 | None | Production Vercel domain, Railway Bifrost HTTPS domain | Production environment audit, domain DNS setup | Live production URL, provider fallback verification |
 | **C08** | [Final Walkthrough & Recording](PHASE-TRACKER.md#c08-run-the-final-product-walkthrough) | C | 4 | C07, B08, A09 | None | Screen recording software | Script authoring, slide deck, demo outline | `public/demo.mp4`, walkthrough runbook |
 | **C09** | [Package and Submit](PHASE-TRACKER.md#c09-package-and-submit) | C | 4 | C08 | None | Organizer submission portal access | Final README review, license verification | Submission receipt, final release commit tag |
 
@@ -478,7 +478,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 - **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI) *(Completed & Merged into main)*. B02 (Bifrost gateway) and B03 (Tavily adapter) proceed immediately. B04a (Neon database baseline schema & migration) incorporates A10 contracts.
 - **Lane C Work:** Deliver C01 (visual design tokens) and C02 (workspace UI skeleton rendering golden fixture and preparation review in `[REPLAY MODE]`).
 - **Shared Inputs:** [fixtures/golden-mixed-report.json](file:///C:/Users/Mayur/Desktop/Afterfact/fixtures/golden-mixed-report.json), `src/lib/contracts/*`.
-- **Exit Evidence:** Gate G0 passed: App builds, fixture validates, Bifrost container responds, database migration executes, C renders fixture mode and preparation review.
+- **Exit Evidence:** Gate G0 passed: App builds, fixture validates, Bifrost gateway responds (Railway / local script), Prisma database migration executes, C renders fixture mode and preparation review.
 
 > [!IMPORTANT]
 > **Lane B Available Workstreams vs. Developer Allocation:**
@@ -510,7 +510,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 
 ### Wave 4: Evaluation, Hardening & Submission (Days 6–7 · Gate G4)
 - **Lane A Work:** Execute A09 (run baseline and full pipeline evaluation, report accuracy and false reassurance metrics).
-- **Lane B Work:** Execute B08 (deploy production Vercel app, secure Bifrost behind HTTPS, test provider fallback failover).
+- **Lane B Work:** Execute B08 (deploy production Vercel app, connect Railway Bifrost over HTTPS, test provider fallback failover).
 - **Lane C Work:** Execute C08 (record 3-minute video walkthrough) and C09 (package submission assets, test judge links, submit).
 - **Shared Inputs:** Benchmark dataset, staging URL, production deployment URL.
 - **Exit Evidence:** Gate G4 passed: Production link accessible without login, false reassurance < 5%, video uploaded, submission confirmation recorded.
@@ -543,10 +543,10 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 
 ### Lane Alignment & Immediate Workstream Guidance:
 1. **What Lane B Can Continue Unchanged:**
-   - **B02 (Bifrost Gateway):** Docker container setup, model profile definitions, and client fetch wrapper proceed immediately without dependency on A10.
+   - **B02 (Bifrost Gateway):** Railway container setup with volume `/app/data`, local Docker-free `pnpm bifrost` script, model profile definitions, and client fetch wrapper proceed immediately without dependency on A10.
    - **B03 (Tavily Search Adapter):** Query generation templates and Tavily API REST client proceed immediately; depends only on completed schemas A01/A02.
 2. **What Has Been Unblocked by A10 Contracts (Now in Main):**
-   - **B04a (Database Baseline & Migration):** Unblocked by merged `A10` schemas (`preparations`, `clarifications`, `dag_nodes`, `dag_edges`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`) to finalize Drizzle ORM table models and run initial Neon DDL migrations.
+   - **B04a (Database Baseline & Migration):** Unblocked by merged `A10` schemas (`preparations`, `clarifications`, `dag_nodes`, `dag_edges`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`) to finalize Prisma schema models and run initial Neon DDL migrations.
    - **C02 (Input & Report Skeleton):** Unblocked by merged `A10` schemas to render the Preparation Review qualifier review fields.
    - **A03 (Extract & Locate Atomic Claims):** Unblocked to parse text into `ClaimTicket[]` carrying strongly typed `VerificationProperty[]` context properties.
 3. **What Lanes Can Develop in Parallel:**

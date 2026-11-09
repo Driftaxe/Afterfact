@@ -47,7 +47,7 @@ This document outlines the 3-minute hackathon demonstration script, sponsor inte
 | :--- | :--- | :--- |
 | **Bifrost Gateway** | Model gateway reverse-proxied over HTTPS; handles structured JSON output for extraction and assessment with automated profile failover. | Inspection of request traces in admin logs showing model routing, fallback readiness, and token usage. |
 | **Tavily API** | Direct REST integration using `/search` and `/extract` for targeted raw web passages. | Exact quoted passages on evidence cards linking directly to retrieved live URLs with publication metadata. |
-| **Neon PostgreSQL** | Serverless PostgreSQL storing runs, claims, evidence, and lease outbox using Drizzle ORM and connection pooling. | Durable runs that survive page reloads and browser disconnects; atomic database-clock lease fencing. |
+| **Neon PostgreSQL** | Serverless PostgreSQL storing runs, claims, evidence, and lease outbox using Prisma ORM and connection pooling. | Durable runs that survive page reloads and browser disconnects; atomic database-clock lease fencing. |
 | **Upstash QStash** | Signed webhook delivery with flow control capping concurrent claim verification jobs to 3. | Background job fan-out visible in network tab (`/api/internal/jobs` receiving signed deliveries). |
 
 ---
@@ -67,7 +67,7 @@ This document outlines the 3-minute hackathon demonstration script, sponsor inte
 ## 4. Submission Checklist
 
 - [ ] **Live Public URL:** Deployed on Vercel with HTTPS and public DNS.
-- [ ] **Bifrost Host:** Secured behind HTTPS proxy; admin console bound to localhost.
+- [ ] **Bifrost Gateway:** Deployed on Railway with persistent volume `/app/data` and HTTPS ingress; admin console secured.
 - [ ] **Demo Video:** 3-minute screen recording demonstrating the mixed-domain answer, context compare, and correction diff.
 - [ ] **GitHub Repository:** Clean repository with documentation, open-source license, and clean CI checks.
 - [ ] **Benchmark Disclosure:** Denominators for paired accuracy, false reassurance rate, and p50/p95 latency recorded honestly in [docs/TESTING-AND-EVALUATION.md](TESTING-AND-EVALUATION.md).

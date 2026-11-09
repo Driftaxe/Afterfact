@@ -76,9 +76,9 @@ Unlike black-box LLM checkers that hallucinate verdicts or cite nonexistent sour
 | **Framework** | Next.js 15+ (App Router, Node 22, pnpm) | Full-stack application and API route handlers |
 | **Language & Styling** | TypeScript, Tailwind CSS | Strict type safety and responsive UI tokens |
 | **Validation** | Zod | Shared runtime schema validation (contracts, APIs, DB) |
-| **Persistence** | Neon PostgreSQL + Drizzle ORM (`pg`) | Serverless relational storage for runs, claims, evidence, and jobs |
+| **Persistence** | Neon PostgreSQL + Prisma ORM | Serverless relational storage for runs, claims, evidence, and jobs |
 | **Job Queue** | Upstash QStash | Durable HTTP job delivery, retries, and concurrency limits |
-| **Model Gateway** | Bifrost (Docker host via HTTPS) | Authenticated LLM routing, structured outputs, and provider fallback |
+| **Model Gateway** | Bifrost (Railway hosted via HTTPS · Docker-free local `pnpm bifrost`) | Authenticated LLM routing, structured outputs, and provider fallback |
 | **Web Retrieval** | Tavily Search & Extract API | Authoritative, query-aware search and raw passage extraction |
 | **Testing & Eval** | Vitest, Playwright, TypeScript (`tsx`) | E1–E5 verification hierarchy, regression suites, and eval harness |
 
@@ -142,7 +142,7 @@ All project engineering standards, schemas, and workflows are canonically docume
 - [docs/VERIFICATION.md](docs/VERIFICATION.md): Claim extraction, passage assessment, date resolution, and scoring rubrics.
 - [docs/API.md](docs/API.md): Public and internal API route contracts, idempotency, and SSE event streaming.
 - [docs/DATA-AND-JOBS.md](docs/DATA-AND-JOBS.md): Database schema, transaction fences, QStash worker lifecycle, and retries.
-- [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md): Infrastructure provisioning, Docker Bifrost gateway, and environment inventory.
+- [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md): Infrastructure provisioning, Railway Bifrost gateway, Neon branching, and environment inventory.
 - [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md): E1–E5 evidence levels, benchmark design, and release gates.
 - [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md): 3-minute judge script, sponsor proof, and submission checklist.
 - [docs/DECISIONS.md](docs/DECISIONS.md): Architectural Decision Records (ADR-001 through ADR-021).

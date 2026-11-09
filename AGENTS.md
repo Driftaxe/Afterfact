@@ -22,7 +22,7 @@ This repository enforces disciplined, evidence-based engineering standards adapt
    Rely on authoritative, version-relevant documentation for external dependencies:
    - Next.js 15 App Router & Vercel serverless duration
    - Upstash QStash webhook signature verification & flow control
-   - Neon PostgreSQL connection pooling (`DATABASE_URL` vs. `DATABASE_MIGRATION_URL`)
+   - Neon PostgreSQL connection pooling (`DATABASE_URL` vs. `DIRECT_URL` for Prisma migrations)
    - Bifrost Model Gateway HTTP API and fallback routing
    - Tavily Search & Extract endpoints
 
@@ -36,7 +36,7 @@ Every pull request, task completion claim, and status transition must be support
 | :---: | :--- | :--- | :--- |
 | **E1** | Static Analysis | Code compiles, formats, types resolve, schema validates. | `pnpm lint`, `pnpm typecheck`, Zod schema checks. |
 | **E2** | Unit / Logic Test | Pure business logic, isolated deterministic routines. | `pnpm test` (vitest with pure fixtures or mock doubles). |
-| **E3** | Disposable Integration | Real relational database, migrations, transactions. | Test execution against live Neon test branch / container. |
+| **E3** | Disposable Integration | Real relational database, migrations, transactions. | Test execution against live Neon test branch (`afterfact-test`). |
 | **E4** | Staging / Sandbox | Real cloud providers, signed webhooks, gateway fallback. | Live runs on staging environment with valid test keys. |
 | **E5** | Production Operations | Full end-to-end user workflows on live domains. | Real web retrieval, live judge walkthrough, latency traces. |
 
