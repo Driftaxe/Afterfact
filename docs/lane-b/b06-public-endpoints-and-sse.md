@@ -140,14 +140,30 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 ```
 
 ### Step 4: Implement Programmatic REST Adapter (`src/app/api/v1/verify/route.ts`)
-Thin adapter wrapping `VerificationService`:
+Headless verification adapter wrapping `VerificationService` with Zod input schema validation:
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
+import { VerificationRequestSchema } from '@/lib/contracts/request';
 import { VerificationService } from '@/server/services/verify-service';
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const result = await VerificationService.runVerification(body);
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+  }
+
+  // Validate request against canonical contract schema
+  const parsed = VerificationRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.issues },
+      { status: 400 }
+    );
+  }
+
+  const result = await VerificationService.runVerification(parsed.data);
   return NextResponse.json(result);
 }
 ```

@@ -128,17 +128,114 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
 }
 ```
 
-### Step 5: Author Smoke Test Script (`infra/smoke-bifrost.ts`)
-Create a verification script that calls `bifrostChat` with a simple prompt and verifies the response:
+### Step 5: Implement Model Profiles Registry (`src/server/bifrost/profiles.ts`)
+Create the centralized, type-safe profile registry mapping pipeline roles to environment variables with fallback defaults:
+```typescript
+// src/server/bifrost/profiles.ts
+/**
+ * Centralized Model Profile Registry for Afterfact.
+ * Maps pipeline roles to gateway model configurations with safe defaults.
+ */
+
+export type ModelProfileRole = 'extract' | 'assess' | 'draft' | 'fallback';
+
+export interface ModelProfileConfig {
+  extract: string;
+  assess: string;
+  draft: string;
+  fallback: string;
+}
+
+export const DEFAULT_PROFILES = {
+  extract: 'openai/gpt-4o-mini',
+  assess: 'anthropic/claude-3-5-sonnet-20241022',
+  draft: 'openai/gpt-4o',
+  fallback: 'groq/llama-3.3-70b-versatile',
+} as const;
+
+/**
+ * Returns the configured Bifrost model identifier for a given pipeline role.
+ */
+export function getModelProfile(role: ModelProfileRole): string {
+  switch (role) {
+    case 'extract':
+      return process.env.BIFROST_EXTRACT_MODEL || DEFAULT_PROFILES.extract;
+    case 'assess':
+      return process.env.BIFROST_ASSESS_MODEL || DEFAULT_PROFILES.assess;
+    case 'draft':
+      return process.env.BIFROST_DRAFT_MODEL || DEFAULT_PROFILES.draft;
+    case 'fallback':
+      return process.env.BIFROST_ASSESS_FALLBACK || DEFAULT_PROFILES.fallback;
+    default: {
+      const _exhaustive: never = role;
+      throw new Error(`Unknown model profile role: ${_exhaustive}`);
+    }
+  }
+}
+
+/**
+ * Returns a snapshot of all active model profile assignments.
+ */
+export function getAllModelProfiles(): ModelProfileConfig {
+  return {
+    extract: getModelProfile('extract'),
+    assess: getModelProfile('assess'),
+    draft: getModelProfile('draft'),
+    fallback: getModelProfile('fallback'),
+  };
+}
+```
+
+### Step 6: Author Smoke Test Script (`infra/smoke-bifrost.ts`)
+Create a verification script that validates profile resolution and executes a gateway inference call:
+```typescript
+// infra/smoke-bifrost.ts
+import { bifrostChat } from '../src/server/bifrost/client';
+import { getModelProfile, getAllModelProfiles } from '../src/server/bifrost/profiles';
+
+async function main() {
+  console.log('Testing Bifrost Gateway connection and profile resolution...');
+  
+  const profiles = getAllModelProfiles();
+  console.log('Resolved profiles:', JSON.stringify(profiles, null, 2));
+
+  const extractModel = getModelProfile('extract');
+  console.log(`Sending ping using extraction profile (${extractModel})...`);
+
+  const response = await bifrostChat({
+    model: extractModel,
+    messages: [
+      { role: 'user', content: 'Respond with exactly: "Bifrost connection healthy."' }
+    ],
+    temperature: 0,
+    timeoutMs: 15000,
+  });
+
+  console.log('Gateway response:', response.trim());
+  if (!response.toLowerCase().includes('healthy')) {
+    throw new Error(`Unexpected gateway response: "${response}"`);
+  }
+
+  console.log('Bifrost smoke test PASSED successfully.');
+}
+
+main().catch((err) => {
+  console.error('Bifrost smoke test FAILED:', err);
+  process.exit(1);
+});
+```
+
+### Step 7: Run the Smoke Test
+Execute the smoke test in PowerShell:
 ```powershell
 pnpm tsx infra/smoke-bifrost.ts
 ```
-- **Expected Result:** Prints model response and confirmation that gateway responded over HTTP.
+- **Expected Result:** Prints the 4 resolved profiles and confirms gateway connection over HTTP with `Bifrost smoke test PASSED successfully.`
 
 ---
 
 ## 6. Verification and Handoff
 
-Collect the execution output from Step 5.
+Collect the execution output from Step 7.
 - Update `B02` in [docs/PHASE-TRACKER.md](../PHASE-TRACKER.md) with the command and observed evidence.
-- **Handoff:** Downstream tickets **A03** (Claim Extraction) and **B04b** (Minimal DAG Slice) can now call `bifrostChat` safely.
+- **Handoff:** Downstream tickets **A03** (Claim Extraction) and **B04b** (Minimal DAG Slice) can now call `bifrostChat` and `getModelProfile` safely.
