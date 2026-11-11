@@ -11,9 +11,6 @@ importers:
       '@upstash/qstash':
         specifier: ^2.12.1
         version: 2.12.1
-      dotenv:
-        specifier: ^18.0.10
-        version: 18.0.10
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
@@ -39,9 +36,6 @@ importers:
       '@playwright/test':
         specifier: ^1.51.1
         version: 1.65.0
-      '@types/dotenv':
-        specifier: ^8.2.3
-        version: 8.2.3
       '@types/node':
         specifier: ^22.13.1
         version: 22.20.5
@@ -1022,10 +1016,6 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
-  '@types/dotenv@8.2.3':
-    resolution: {integrity: sha512-g2FXjlDX/cYuc5CiQvyU/6kkbP1JtmGzh0obW50zD7OKeILVL0NSpPWLXVfqoAGQjom2/SLLx9zHq0KXvD6mbw==}
-    deprecated: This is a stub types definition. dotenv provides its own type definitions, so you do not need this installed.
-
   '@types/estree@1.0.10':
     resolution: {integrity: sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g==}
 
@@ -1534,11 +1524,6 @@ packages:
   dotenv@17.4.2:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
-
-  dotenv@18.0.10:
-    resolution: {integrity: sha512-89FAA1xchzK2mxVWdr5F/0rldwiueXs6zJM86rO66EzekR1iBdiXRthyG+m5GvkJaFH3C2LESzamTkgndmLT2A==}
-    engines: {node: '>=12'}
-    hasBin: true
 
   drizzle-kit@0.31.11:
     resolution: {integrity: sha512-YCYqxTLIB2OCqf6w9/Vef13baBVbwQIPcbT4Y56AfO6B9ajZhDhD8Jkveg/hJvT/iuMloKD/IYYkyMMNhr7Kqg==}
@@ -3508,10 +3493,6 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
-  '@types/dotenv@8.2.3':
-    dependencies:
-      dotenv: 18.0.10
-
   '@types/estree@1.0.10': {}
 
   '@types/json-schema@7.0.15': {}
@@ -4032,8 +4013,6 @@ snapshots:
   dotenv@16.6.1: {}
 
   dotenv@17.4.2: {}
-
-  dotenv@18.0.10: {}
 
   drizzle-kit@0.31.11:
     dependencies:
