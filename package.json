@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost"
+    "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost",
+    "smoke:bifrost": "node --import tsx/esm infra/smoke-bifrost.ts"
   },
   "dependencies": {
     "@upstash/qstash": "^2.12.1",
@@ -35,6 +36,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^18.0.10",
     "dotenv-cli": "^11.1.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.20.0",
