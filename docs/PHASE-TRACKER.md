@@ -293,12 +293,12 @@ The following mapping documents the evolution from the initial planning baseline
 - **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/SETUP-AND-DEPLOYMENT.md §4](docs/SETUP-AND-DEPLOYMENT.md), [docs/DECISIONS.md#adr-023](docs/DECISIONS.md).
 - **Allowed Scope & Expected Files:** `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed), `infra/smoke-bifrost.ts` (proposed).
 - **Atomic Implementation Checklist:**
-  - [ ] Deploy official container `maximhq/bifrost` on Railway with persistent volume mounted at `/app/data` and port 8080 HTTPS ingress.
-  - [ ] Verify local Bifrost startup via `pnpm bifrost` without requiring local Docker.
-  - [ ] Configure model profiles: `BIFROST_EXTRACT_MODEL`, `BIFROST_ASSESS_MODEL`, `BIFROST_DRAFT_MODEL`, and `BIFROST_ASSESS_FALLBACK`.
-  - [ ] Generate application virtual key `BIFROST_GATEWAY_TOKEN` and initialize admin credentials with `BIFROST_SETUP_TOKEN`.
-  - [ ] Implement server client in `src/server/bifrost/client.ts` using `fetch` with AbortSignal, auth headers, and typed error handling.
-  - [ ] Execute smoke test verifying inference call on each profile.
+  - [x] Deploy official container `maximhq/bifrost` on Railway with persistent volume mounted at `/app/data` and port 8080 HTTPS ingress.
+  - [x] Verify local Bifrost startup via `pnpm bifrost` without requiring local Docker.
+  - [x] Configure model profiles: `BIFROST_EXTRACT_MODEL`, `BIFROST_ASSESS_MODEL`, `BIFROST_DRAFT_MODEL`, and `BIFROST_ASSESS_FALLBACK`.
+  - [x] Generate application virtual key `BIFROST_GATEWAY_TOKEN` and initialize admin credentials with `BIFROST_SETUP_TOKEN`.
+  - [x] Implement server client in `src/server/bifrost/client.ts` using `fetch` with AbortSignal, auth headers, and typed error handling.
+  - [x] Execute smoke test verifying inference call on each profile.
 - **Prerequisites:**
   - **Start Prerequisites:** B01.
   - **Integration / Completion Prerequisites:** None.
