@@ -140,7 +140,7 @@ flowchart TD
     A10["A10: Prep, Clarification & DAG Schemas"]:::verified
 
     BifrostExt(["Ext: Railway Account / Local Node"]):::external
-    B02["B02: Provision Bifrost & Profiles"]:::unblocked
+    B02["B02: Provision Bifrost & Profiles"]:::verified
 
     NeonAcct(["Ext: Neon PostgreSQL Account"]):::external
     B04a["B04 (Part 1): DB Schema & Initial Migration"]:::unblocked
@@ -421,7 +421,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **A02** | [Report/Event Schemas & Fixture](PHASE-TRACKER.md#a02-report-and-event-schemas) | A | 0 | A01 | None | None | Completed | `evidence.ts`, `report.ts`, `events.ts`, `golden-mixed-report.json` |
 | **A10** | [Prep, Clarification & DAG Schemas](PHASE-TRACKER.md#a10-define-preparation-clarification-and-dynamic-dag-schemas) | A | 0 | B01, A01, A02 | None | None | Completed | `claim-ticket.ts`, `evidence-objects.ts`, `preparation.ts`, `clarification.ts`, `research.ts`, `decision.ts`, `dag.ts`, `actions.ts` |
 | **B01** | [Scaffold & Pin Toolchain](PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) | B | 0 | DOC01 (repo baseline) | None | None | Completed | Next.js 15, pnpm 11, Node 22, ESLint, Tailwind, Vitest, Playwright, CI |
-| **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Railway account / Local Node, Model provider keys | Client fetch wrapper & profile types | `src/server/bifrost/client.ts`, `src/server/bifrost/profiles.ts` |
+| **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Railway account / Local Node, Model provider keys | Completed | `src/server/bifrost/client.ts`, `src/server/bifrost/profiles.ts` |
 | **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Completed | Design tokens in `globals.css`, button/card states, reduced motion |
 | **C02** | [Input, Prep & Report Skeleton](PHASE-TRACKER.md#c02-input-and-report-skeleton) | C | 0 | C01, A02, A10 | B04a (for persistent preparation) | None | Layout & fixture playback | `InputComposer.tsx`, `PreparationReview.tsx`, `ReportSkeleton.tsx` |
 | **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DIRECT_URL`) | Prisma schema files & client | Prisma models (`runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) |
@@ -475,7 +475,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 
 ### Wave 0: Foundation (Day 1 · Gate G0)
 - **Lane A Work:** Deliver A01 (request/claim schemas) and A02 (report/event schemas, golden fixture) *(Completed & Merged into main)*. Deliver **A10** (preparation, clarification, DAG, and Server Action schemas) *(Completed & Merged into main)*.
-- **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI) *(Completed & Merged into main)*. B02 (Bifrost gateway) and B03 (Tavily adapter) proceed immediately. B04a (Neon database baseline schema & migration) incorporates A10 contracts.
+- **Lane B Work:** Deliver B01 (toolchain scaffold, test runners, CI) *(Completed & Merged into main)*. Deliver **B02** (Bifrost gateway and model profiles) *(Completed & Merged into main)*. B03 (Tavily adapter) proceeds immediately. B04a (Neon database baseline schema & migration) incorporates A10 contracts.
 - **Lane C Work:** Deliver C01 (visual design tokens) and C02 (workspace UI skeleton rendering golden fixture and preparation review in `[REPLAY MODE]`).
 - **Shared Inputs:** [fixtures/golden-mixed-report.json](file:///C:/Users/Mayur/Desktop/Afterfact/fixtures/golden-mixed-report.json), `src/lib/contracts/*`.
 - **Exit Evidence:** Gate G0 passed: App builds, fixture validates, Bifrost gateway responds (Railway / local script), Prisma database migration executes, C renders fixture mode and preparation review.
@@ -527,7 +527,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
  │                         IMMEDIATE READINESS STATUS                          │
  ├──────────────────────────────────────────┬──────────────────────────────────┤
  │ Ready to Start Immediately (Unblocked):  │ Awaiting Prerequisites:          │
- │ • Lane B: B02 (Bifrost Gateway & Client) │ • A04, A05, A06, A07, A08, A09,  │
+ │                                          │ • A04, A05, A06, A07, A08, A09,  │
  │ • Lane B: B03 (Tavily Search Adapter)    │   A11 (Lane A)                   │
  │ • Lane B: B04a (DB Baseline Migration)   │ • B04b, B05, B06, B07, B08       │
  │ • Lane A: A03 (Extraction Prompts/Logic) │   (Lane B)                       │
@@ -538,6 +538,7 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
  │ • Lane A: A01 (Request & Claim), A02 (Report & Events), A10 (Contracts)     │
  │ • Lane B: B01 (Scaffold & Pin Toolchain, Vitest, Playwright, CI)            │
  │ • Lane C: C01 (Visual Design Tokens & Themes), C02 (Composer & Report View) │
+ | • Lane B: B02 (Bifrost Gateway & Client)                                    |
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
