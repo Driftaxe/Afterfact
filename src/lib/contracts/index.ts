@@ -12,3 +12,4 @@ export * from './evidence-objects';
 export * from './decision';
 export * from './dag';
 export * from './actions';
+export * from './extraction';

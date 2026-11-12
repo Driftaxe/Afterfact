@@ -23,7 +23,7 @@ export class BifrostError extends Error {
 }
 
 export async function bifrostChat(options: BifrostChatOptions): Promise<string> {
-  const baseUrl = process.env.BIFROST_BASE_URL || 'http://127.0.0.1:8080';
+  const baseUrl = (process.env.BIFROST_BASE_URL || 'http://127.0.0.1:8080').replace(/\/+$/, '');
   
   const adminUser = process.env.BIFROST_ADMIN_USER || '';
   const adminPassword = process.env.BIFROST_ADMIN_PASSWORD || '';

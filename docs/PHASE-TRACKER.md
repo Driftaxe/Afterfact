@@ -414,16 +414,16 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Author extraction prompts and logic to parse input text into atomic ClaimTicket records carrying variable typed VerificationProperty collections with exact UTF-16 spans.
 - **Planned Date:** Nov 9, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Core Phase 1 verifier component; mandatory prerequisite for Gate G1 and B04b.
 - **Canonical Design References:** [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-018](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/extract-claims.ts` (proposed), `src/server/prompts/extract.ts` (proposed), `tests/unit/verify/extract-claims.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/verify/extract-claims.ts`, `src/server/prompts/extract.ts`, `src/lib/contracts/extraction.ts`, `tests/unit/verify/extract-claims.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Author claim extraction system prompt requesting atomic claims, entities, attributes, asserted values, and explicit scopes.
-  - [ ] Implement Bifrost structured extraction call parsing output into `ClaimTicket[]` with variable typed `VerificationProperty[]` context properties.
-  - [ ] Implement exact UTF-16 substring matching against input text, preserving character offsets.
-  - [ ] Enforce scope precedence invariant: explicit claim qualifiers permanently anchor to the claim and cannot be overwritten by user target context.
-  - [ ] Handle duplicate text occurrences using sentence offset disambiguation.
+  - [x] Author claim extraction system prompt requesting atomic claims, entities, attributes, asserted values, and explicit scopes.
+  - [x] Implement Bifrost structured extraction call parsing output into `ClaimTicket[]` with variable typed `VerificationProperty[]` context properties.
+  - [x] Implement exact UTF-16 substring matching against input text, preserving character offsets.
+  - [x] Enforce scope precedence invariant: explicit claim qualifiers permanently anchor to the claim and cannot be overwritten by user target context.
+  - [x] Handle duplicate text occurrences using sentence offset disambiguation.
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, A10.
   - **Integration / Completion Prerequisites:** B02 (Bifrost model gateway).
@@ -431,12 +431,12 @@ The following mapping documents the evolution from the initial planning baseline
   - **What Can Start Early:** Sentence splitting, span math, extraction prompt authoring, unit test fixtures with frozen mock model outputs.
 - **Deliverable & Interface Handoff:** Handed downstream to A04 (research planning & evidence extraction) and B04b (vertical slice).
 - **Positive Acceptance Examples:** Compound statements split cleanly into distinct atomic claims; extracted properties carry explicit provenance tags (`explicit_claim_text` vs `model_inferred`).
-- **Relevant Negative / Failure Cases:** Ambiguous spans that cannot be uniquely grounded fail highlight creation but keep the claim text; text with zero verifiable assertions returns empty array.
+- **Relevant Negative / Failure Cases:** Ambiguous spans that cannot be uniquely grounded fail highlight creation but keep the claim text; text with zero verifiable assertions returns empty array (`status: 'no_claims'`).
 - **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/extract-claims.test.ts`.
 - **Evidence Level & Required Proof:** E2 (Vitest unit suite with frozen model fixtures).
-- **Observed Evidence:** *Pending execution*
+- **Observed Evidence:** Implemented `src/lib/contracts/extraction.ts` (`ExtractClaimsInputSchema`, `ExtractClaimsOutcomeSchema`), `src/server/prompts/extract.ts` (`EXTRACTION_SYSTEM_PROMPT`, `SYNTHETIC_EXTRACTION_EXAMPLES`), and `src/server/verify/extract-claims.ts` (`extractClaimsFromText`). Executed 30 focused unit tests in `tests/unit/verify/extract-claims.test.ts` covering acceptance matrix A03-01 through A03-17: compound decomposition, span math with surrogate emojis, duplicate text disambiguation, explicit qualifier grounding, scope precedence invariant (ADR-018), missing material context reconciliation, novel domains, zero-claim inputs, malformed JSON, provider failures, timeout aborts, model refusal, and secret-safe error sanitization. All checks passed cleanly: `pnpm vitest run tests/unit/verify/extract-claims.test.ts` (30/30 passed in 65ms), `pnpm test` (177/177 passed across 8 suites), `pnpm typecheck` (0 errors), `pnpm lint` (0 errors, 0 warnings), `pnpm build` (5 static + 1 dynamic route compiled cleanly in 7.2s), `git diff --check` (clean). Status updated to REVIEW.
 - **Explicit Exclusions:** Web retrieval and evidence synthesis.
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** None. Ready for scoped review.
 
 #### A04: Research planning, context-preserving extraction and semantic assessment {#a04-assess-passages-against-a-claim}
 - **Owner:** A / Verification
@@ -989,7 +989,7 @@ The following mapping documents the evolution from the initial planning baseline
 | 2026-11-09 | C01 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 131/131 unit tests passed; 0 type/lint errors; production build 5/5 static pages; 11/11 Playwright E2E tests passed; dark/light theme toggle, local validation demo, and responsive screenshots verified. | [C01](#c01-visual-tokens-and-component-states) |
 | 2026-11-09 | C02 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 147/147 unit tests passed; 0 type/lint errors; 23/23 Playwright tests passed; input composer validation, span segmentation, honest replay labeling, and sample report experience verified. Accepted by user for documented scope. | [C02](#c02-input-and-report-skeleton) |
 | 2026-11-12 | Gate G0 | Full build, migration, and fixture test suite | Local Dev & Cloud | Gate G0 passed: All contract schemas, Prisma DB baseline, Bifrost gateway, and UI fixture replay mode verified. | [Gate G0](#project-release-milestones) |
-| *Pending* | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | *Pending execution* | [A03](#a03-extract-and-locate-atomic-claims) |
+| 2026-11-12 | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | 30/30 unit tests passed; compound sentence splitting, UTF-16 span math, scope precedence invariant (ADR-018), missing context reconciliation, novel domains, zero-claim handling, malformed JSON and error mapping verified. (REVIEW). | [A03](#a03-extract-and-locate-atomic-claims) |
 | *Pending* | A04 | `pnpm vitest run tests/unit/verify/assess-evidence.test.ts` | Local Dev | *Pending execution* | [A04](#a04-assess-passages-against-a-claim) |
 | *Pending* | A05 | `pnpm vitest run tests/unit/verify/decide.test.ts` | Local Dev | *Pending execution* | [A05](#a05-apply-deterministic-policy-and-score) |
 | *Pending* | B03 | `pnpm vitest run tests/integration/tavily-live.test.ts` | Staging / External | *Pending execution* | [B03](#b03-search-extract-and-evidence-capture) |
