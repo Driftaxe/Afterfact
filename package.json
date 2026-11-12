@@ -17,9 +17,12 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost",
-    "smoke:bifrost": "node --import tsx/esm infra/smoke-bifrost.ts"
+    "smoke:bifrost": "node --import tsx/esm infra/smoke-bifrost.ts",
+    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "db:generate": "dotenv -e .env.local -- prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "@upstash/qstash": "^2.12.1",
     "drizzle-orm": "^0.45.4",
     "next": "15.5.29",
@@ -42,6 +45,7 @@
     "eslint": "^9.20.0",
     "eslint-config-next": "15.5.29",
     "postcss": "^8.4.49",
+    "prisma": "^6.19.3",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
