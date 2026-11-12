@@ -88,3 +88,59 @@ export const CalendarDateOrTimestampSchema = z.string().refine(
     message: 'Must be a complete calendar date (YYYY-MM-DD) or a valid ISO 8601 timestamp with explicit timezone',
   }
 );
+
+/**
+ * Calendar date precision level.
+ */
+export type DatePrecision = 'year' | 'month' | 'day';
+
+/**
+ * Validates whether a string is a valid partial or complete calendar date:
+ * - 'YYYY': 4 digits, year between 1000 and 9999.
+ * - 'YYYY-MM': 4 digits, dash, 2 digits (month 01-12).
+ * - 'YYYY-MM-DD': 4 digits, dash, 2 digits, dash, 2 digits with strict calendar validity (leap years, month bounds, days in month).
+ * Rejects trailing text, malformed patterns, impossible months (00, 13), and impossible days.
+ * Does NOT weaken exact calendar date validation used elsewhere.
+ */
+export function isValidCalendarDateOrPartial(dateStr: string): boolean {
+  if (typeof dateStr !== 'string') return false;
+  const trimmed = dateStr.trim();
+  if (trimmed !== dateStr) return false;
+
+  // 1. Year-only: exactly 4 digits
+  if (/^\d{4}$/.test(dateStr)) {
+    const year = parseInt(dateStr, 10);
+    return year >= 1000 && year <= 9999;
+  }
+
+  // 2. Year-Month: YYYY-MM
+  const ymMatch = dateStr.match(/^(\d{4})-(\d{2})$/);
+  if (ymMatch) {
+    const year = parseInt(ymMatch[1], 10);
+    const month = parseInt(ymMatch[2], 10);
+    if (year < 1000 || year > 9999) return false;
+    return month >= 1 && month <= 12;
+  }
+
+  // 3. Complete Date: YYYY-MM-DD
+  return isValidCalendarDate(dateStr);
+}
+
+/**
+ * Detects the precision of a valid partial or complete calendar date string.
+ * Returns null if the string is not a valid calendar date or partial date.
+ */
+export function getDatePrecision(dateStr: string): DatePrecision | null {
+  if (!isValidCalendarDateOrPartial(dateStr)) return null;
+  if (/^\d{4}$/.test(dateStr)) return 'year';
+  if (/^\d{4}-\d{2}$/.test(dateStr)) return 'month';
+  return 'day';
+}
+
+/**
+ * Schema accepting a complete calendar date (YYYY-MM-DD) or a partial calendar date (YYYY-MM, YYYY).
+ */
+export const CalendarDateOrPartialDateSchema = z.string().refine(isValidCalendarDateOrPartial, {
+  message: 'Must be a valid complete calendar date (YYYY-MM-DD) or partial date (YYYY-MM or YYYY)',
+});
+

@@ -15,9 +15,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:live": "vitest run --config vitest.live.config.ts",
     "test:e2e": "playwright test",
     "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost",
     "smoke:bifrost": "node --import tsx/esm infra/smoke-bifrost.ts",
+    "smoke:extract": "node --import tsx/esm infra/test-live-extraction.ts",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:generate": "dotenv -e .env.local -- prisma generate"
   },
