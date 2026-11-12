@@ -1,7 +1,7 @@
 # docs/lane-b/b01-toolchain-and-dependencies.md — Toolchain & Dependency Setup
 
 - **Ticket Reference:** [B01 in docs/PHASE-TRACKER.md](../PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain)
-- **Status in Tracker:** `REVIEW` (Follow-up migration tasks queued)
+- **Status in Tracker:** `DONE`
 - **Assigned Lane:** Lane B (Platform)
 - **Verification Tier:** E1 (Static analysis & build) + E2 (Unit suite)
 

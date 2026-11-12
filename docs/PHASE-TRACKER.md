@@ -39,13 +39,14 @@ Tasks are strictly assigned to one of three accountable builder lanes:
 ## 3. Project Release Gates (G0–G4) vs. UPPR Gates (IPP-1–IPP-8)
 
 ### Project Release Milestones
-- **Gate G0 (Foundation Checkpoint · Nov 8):**
+- **Gate G0 (Foundation Checkpoint · Nov 8–12 · PASSED):**
   - Contract schemas validate cleanly across request, claim, evidence, preparation, clarification, and DAG contracts (`A01`, `A02`, `A10`).
   - Next.js application builds cleanly (`pnpm build`, `B01`).
   - Bifrost model gateway smoke test succeeds via local Docker-free script (`pnpm bifrost`) or Railway deployment (`B02`).
   - Prisma relational baseline schema and migrations execute cleanly against Neon PostgreSQL (`B04a`, internal milestone of `B04`).
   - Lane C renders input composer, preparation review, and report skeleton in fixture replay mode (`C01`, `C02`).
-  - Owning tickets: `A01`, `A02`, `A10`, `B01`, `B02`, `B04a`, `C01`, `C02`.
+  - Owning tickets: `A01` (DONE), `A02` (DONE), `A10` (DONE), `B01` (DONE), `B02` (DONE), `B04a` (DONE), `C01` (DONE), `C02` (DONE).
+  - **Verdict:** PASSED. All 8 foundational tickets completed, verified, and merged into `main`.
 - **Gate G1 (Live Slice via Persisted DAG · Nov 9):**
   - Pasting text verifies 1 real claim end-to-end via real persisted DAG execution in PostgreSQL (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`), completely retiring temporary synchronous shortcuts (`B04b`).
   - Server Actions `startPreparationAction` and `confirmPreparationAction` initiate and step the run (`C03`).
@@ -259,7 +260,7 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** B / Platform
 - **Plain-Language Outcome:** Initialize the Next.js 15 App Router codebase with strict TypeScript, Tailwind CSS, pnpm package management, Vitest, Playwright, and GitHub Actions CI.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** REVIEW
+- **Status:** DONE
 - **Phase & Gate Contribution:** Phase 0 platform baseline; core prerequisite for Gate G0.
 - **Canonical Design References:** [AGENTS.md §1](AGENTS.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-001](docs/DECISIONS.md).
 - **Allowed Scope & Expected Files:** [package.json](package.json), [pnpm-lock.yaml](pnpm-lock.yaml), [pnpm-workspace.yaml](pnpm-workspace.yaml), [.nvmrc](.nvmrc), [tsconfig.json](tsconfig.json), [next.config.ts](next.config.ts), [postcss.config.mjs](postcss.config.mjs), [tailwind.config.ts](tailwind.config.ts), [eslint.config.mjs](eslint.config.mjs), [vitest.config.ts](vitest.config.ts), [playwright.config.ts](playwright.config.ts), [.github/workflows/ci.yml](.github/workflows/ci.yml), [.env.example](.env.example), [src/app/layout.tsx](src/app/layout.tsx), [src/app/page.tsx](src/app/page.tsx), [src/app/globals.css](src/app/globals.css), [tests/e2e/smoke.spec.ts](tests/e2e/smoke.spec.ts).
@@ -269,7 +270,7 @@ The following mapping documents the evolution from the initial planning baseline
   - [x] Install runtime dependencies: `zod`, `drizzle-orm`, `pg`, `@upstash/qstash`.
   - [x] Install dev dependencies: `drizzle-kit`, `@types/pg`, `vitest`, `@playwright/test`, `tsx`.
   - [x] Configure GitHub Actions CI workflow for lint, typecheck, unit test, and build with frozen lockfile.
-  - [ ] Follow-up migration: Swap Drizzle packages (`drizzle-orm`, `drizzle-kit`) for Prisma packages (`@prisma/client`, `prisma`), verify `dotenv-cli` and `pnpm bifrost` script without modifying accepted foundation.
+  - [x] Follow-up migration: Swap Drizzle packages (`drizzle-orm`, `drizzle-kit`) for Prisma packages (`@prisma/client`, `prisma`), verify `dotenv-cli` and `pnpm bifrost` script without modifying accepted foundation.
 - **Prerequisites:**
   - **Start Prerequisites:** DOC01.
   - **Integration / Completion Prerequisites:** None.
@@ -280,7 +281,7 @@ The following mapping documents the evolution from the initial planning baseline
 - **Relevant Negative / Failure Cases:** CI fails if package.json dependencies are added without updating lockfile.
 - **Verification Commands & Checks:** `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`.
 - **Evidence Level & Required Proof:** E1 (Static analysis & build), E2 (Vitest unit tests), E5 (Playwright Chromium browser smoke test).
-- **Observed Evidence:** Next.js 15.5.29 App Router scaffolded on Node 22.18.0 / pnpm 11.9.0 with TypeScript strict mode, Tailwind CSS v3, and ESLint flat config. All scripts verified locally: `pnpm install --frozen-lockfile` (1.5s), `pnpm lint` (0 errors, 0 warnings), `pnpm typecheck` (0 errors), `pnpm test` (55/55 tests passing across 2 suites), `pnpm build` (compiled in 11.5s, 4 static pages generated), and `pnpm test:e2e` (Playwright Chromium smoke test passed). Clean installation and build independently validated in disposable working copy. GitHub Actions CI workflow authored at `.github/workflows/ci.yml`.
+- **Observed Evidence:** Next.js 15.5.29 App Router scaffolded on Node 22.18.0 / pnpm 11.9.0 with TypeScript strict mode, Tailwind CSS v3, and ESLint flat config. Drizzle replaced cleanly with Prisma v6.19.3. All scripts verified locally on Windows PowerShell: `pnpm lint` (0 errors, 0 warnings), `pnpm typecheck` (0 errors), `pnpm test` (147/147 tests passing across 7 suites), and `pnpm build` (compiled in 4.1s, 5/5 static pages generated). Merged into `main` (DONE).
 - **Explicit Exclusions:** Domain verification policies and production database provisioning.
 - **Blocker / Decision:** None.
 
@@ -288,10 +289,10 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** B / Platform
 - **Plain-Language Outcome:** Deploy Bifrost model gateway on Railway using the official prebuilt container image (`maximhq/bifrost`) with persistent volume `/app/data`, verify local Docker-free `pnpm bifrost` script, configure model profiles, implement client wrapper, and verify inference failover.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** TODO
+- **Status:** DONE
 - **Phase & Gate Contribution:** Phase 0 platform deliverable; mandatory prerequisite for Gate G0 and A03.
 - **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/SETUP-AND-DEPLOYMENT.md §4](docs/SETUP-AND-DEPLOYMENT.md), [docs/DECISIONS.md#adr-023](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed), `infra/smoke-bifrost.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/bifrost/client.ts`, `src/server/bifrost/profiles.ts`, `infra/smoke-bifrost.ts`.
 - **Atomic Implementation Checklist:**
   - [x] Deploy official container `maximhq/bifrost` on Railway with persistent volume mounted at `/app/data` and port 8080 HTTPS ingress.
   - [x] Verify local Bifrost startup via `pnpm bifrost` without requiring local Docker.
@@ -309,7 +310,7 @@ The following mapping documents the evolution from the initial planning baseline
 - **Relevant Negative / Failure Cases:** Primary provider failure or 500 error transparently fails over to configured fallback profile.
 - **Verification Commands & Checks:** `pnpm tsx infra/smoke-bifrost.ts`.
 - **Evidence Level & Required Proof:** E4 (Staging integration script against live Railway Bifrost gateway) / E2 (Local mock double).
-- **Observed Evidence:** *Pending execution*
+- **Observed Evidence:** Implemented `src/server/bifrost/client.ts` with `bifrostChat`, `BifrostError`, timeout AbortController, and automated fallback failover. Implemented `src/server/bifrost/profiles.ts` resolving `extract`, `assess`, `draft`, and `fallback` model roles with safe defaults. Authored `infra/smoke-bifrost.ts` verifying gateway connectivity and profile resolution. Merged to `main` via PR #17 (`4cd5e5a`) (DONE).
 - **Explicit Exclusions:** Browser client bundles (API keys strictly isolated on server).
 - **Blocker / Decision:** B confirms Railway deployment URL or local Bifrost startup and provider API keys.
 
@@ -317,16 +318,16 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** B / Platform
 - **Plain-Language Outcome:** Define Prisma relational models in PostgreSQL, run migrations, and wire the minimal persisted DAG execution slice connecting preparation, retrieval, assessment, and terminal decision records.
 - **Planned Date:** Nov 8–9, 2026 IST
-- **Status:** TODO
+- **Status:** IN PROGRESS (Milestone B04a DONE, Milestone B04b TODO)
 - **Phase & Gate Contribution:** Internal Milestone B04a satisfies Gate G0 (Foundation). Internal Milestone B04b satisfies Gate G1 (Live Slice).
 - **Canonical Design References:** [docs/DATA-AND-JOBS.md §1, §2](docs/DATA-AND-JOBS.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-013](docs/DECISIONS.md), [docs/DECISIONS.md#adr-022](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `prisma/schema.prisma` (proposed), `src/server/db/client.ts` (proposed), `src/server/services/prep-service.ts` (proposed), `src/server/services/dag-service.ts` (proposed), `tests/integration/dag-slice.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `prisma/schema.prisma`, `src/server/db/client.ts`, `src/server/services/prep-service.ts` (proposed), `src/server/services/dag-service.ts` (proposed), `src/server/services/claim.service.ts`, `src/server/services/dag.service.ts`, `src/server/services/run.service.ts`, `tests/integration/dag-slice.test.ts` (proposed).
 - **Atomic Implementation Checklist:**
-  - [ ] **Internal Milestone B04a (Database Baseline & DDL Migrations · Phase 0 / Gate G0):**
-    - [ ] Define Prisma relational models: `VerificationRun`, `Preparation`, `Claim`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `DecisionRecord`, `RunEvent`, `DagNode`, `DagEdge`, `Clarification`.
-    - [ ] Configure Prisma with pooled `DATABASE_URL` (PgBouncer) for runtime queries and direct `DIRECT_URL` for DDL migrations.
-    - [ ] Run baseline migration (`pnpm prisma migrate dev --name init`) creating all tables, indexes, unique constraints, and foreign keys against Neon dev branch (`afterfact-dev`).
-    - [ ] Implement Prisma client singleton in `src/server/db/client.ts` with Next.js hot module reloading guard.
+  - [x] **Internal Milestone B04a (Database Baseline & DDL Migrations · Phase 0 / Gate G0):**
+    - [x] Define Prisma relational models: `VerificationRun`, `Preparation`, `Claim`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `DecisionRecord`, `RunEvent`, `DagNode`, `DagEdge`, `Clarification`.
+    - [x] Configure Prisma with pooled `DATABASE_URL` (PgBouncer) for runtime queries and direct `DIRECT_URL` for DDL migrations.
+    - [x] Run baseline migration (`pnpm prisma migrate dev --name init`) creating all tables, indexes, unique constraints, and foreign keys against Neon dev branch (`Apex1`).
+    - [x] Implement Prisma client singleton in `src/server/db/client.ts` with Next.js hot module reloading guard.
   - [ ] **Internal Milestone B04b (Wire Minimal Persisted DAG Slice · Phase 1 / Gate G1):**
     - [ ] Implement `PreparationService` (input hash binding and claim ticket/qualifier persistence).
     - [ ] Implement local `DagExecutionService` executing a single-claim paste through real persisted DAG nodes (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`).
@@ -341,7 +342,7 @@ The following mapping documents the evolution from the initial planning baseline
 - **Relevant Negative / Failure Cases:** Premature finalization attempt while nodes are pending rolls back; stale lease update matches 0 rows and aborts (`409 Conflict`).
 - **Verification Commands & Checks:** `pnpm prisma migrate dev && pnpm vitest run tests/integration/dag-slice.test.ts`.
 - **Evidence Level & Required Proof:** E3 (Integration test against live Neon PostgreSQL database).
-- **Observed Evidence:** *Pending execution*
+- **Observed Evidence:** Milestone B04a completed. Prisma schema authored at `prisma/schema.prisma` with 11 relational models. Baseline migration `20261112004717_apex_hardik` executed against Neon dev branch `Apex1`. Prisma client singleton implemented at `src/server/db/client.ts`. Services authored at `src/server/services/claim.service.ts`, `src/server/services/dag.service.ts`, `src/server/services/run.service.ts`. Merged to `main` via PR #18 (`4c74622`). Milestone B04b is currently pending.
 - **Explicit Exclusions:** External QStash message broker dispatch (handled in B05).
 - **Blocker / Decision:** B confirms Neon project credentials.
 
@@ -413,58 +414,66 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Author extraction prompts and logic to parse input text into atomic ClaimTicket records carrying variable typed VerificationProperty collections with exact UTF-16 spans.
 - **Planned Date:** Nov 9, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Core Phase 1 verifier component; mandatory prerequisite for Gate G1 and B04b.
 - **Canonical Design References:** [docs/VERIFICATION.md §1](docs/VERIFICATION.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-018](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/extract-claims.ts` (proposed), `src/server/prompts/extract.ts` (proposed), `tests/unit/verify/extract-claims.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/verify/extract-claims.ts`, `src/server/verify/identity.ts`, `src/server/verify/span-resolver.ts`, `src/server/verify/context-resolver.ts`, `src/server/verify/index.ts`, `src/server/prompts/extract.ts`, `src/lib/contracts/extraction.ts`, `tests/unit/verify/extract-claims.test.ts`, `tests/integration/extract-claims.live.test.ts`, `tests/fixtures/demo-text.ts`, `infra/test-live-extraction.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Author claim extraction system prompt requesting atomic claims, entities, attributes, asserted values, and explicit scopes.
-  - [ ] Implement Bifrost structured extraction call parsing output into `ClaimTicket[]` with variable typed `VerificationProperty[]` context properties.
-  - [ ] Implement exact UTF-16 substring matching against input text, preserving character offsets.
-  - [ ] Enforce scope precedence invariant: explicit claim qualifiers permanently anchor to the claim and cannot be overwritten by user target context.
-  - [ ] Handle duplicate text occurrences using sentence offset disambiguation.
+  - [x] Author claim extraction system prompt requesting atomic claims, entities, attributes, asserted values, and explicit scopes.
+  - [x] Implement Bifrost structured extraction call parsing output into `ClaimTicket[]` with variable typed `VerificationProperty[]` context properties.
+  - [x] Implement exact UTF-16 substring matching against input text, preserving character offsets and surrogate emoji safety.
+  - [x] Enforce scope precedence invariant: explicit claim qualifiers permanently anchor to the claim and cannot be overwritten by user target context.
+  - [x] Handle duplicate text occurrences using sentence offset, candidate span, and prefix/suffix disambiguation.
+  - [x] Generate execution-aware claim identities (`clm_${execHash}_${ordinal}_${stmtHash}`) satisfying PostgreSQL `VARCHAR(36)` bounds.
+  - [x] Decompose verifier into cohesive modular domain helpers connected through imports and barrel exports.
+  - [x] Implement live model integration tests (E4) and standalone CLI smoke test (`pnpm test:live`, `pnpm smoke:extract`).
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, A10.
   - **Integration / Completion Prerequisites:** B02 (Bifrost model gateway).
-  - **External Prerequisites:** Model provider credentials via Bifrost.
+  - **External Prerequisites:** Model provider credentials via Bifrost (`BIFROST_GATEWAY_TOKEN`, `BIFROST_BASE_URL`).
   - **What Can Start Early:** Sentence splitting, span math, extraction prompt authoring, unit test fixtures with frozen mock model outputs.
-- **Deliverable & Interface Handoff:** Handed downstream to A04 (research planning & evidence extraction) and B04b (vertical slice).
+- **Deliverable & Interface Handoff:** Handed downstream to A04 (research planning & evidence extraction) and B04b (vertical slice). Extracted claims, proposition normalization, and span resolvers ready for immediate use.
 - **Positive Acceptance Examples:** Compound statements split cleanly into distinct atomic claims; extracted properties carry explicit provenance tags (`explicit_claim_text` vs `model_inferred`).
-- **Relevant Negative / Failure Cases:** Ambiguous spans that cannot be uniquely grounded fail highlight creation but keep the claim text; text with zero verifiable assertions returns empty array.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/extract-claims.test.ts`.
-- **Evidence Level & Required Proof:** E2 (Vitest unit suite with frozen model fixtures).
-- **Observed Evidence:** *Pending execution*
+- **Relevant Negative / Failure Cases:** Ambiguous spans that cannot be uniquely grounded fail highlight creation but keep the claim text; text with zero verifiable assertions returns empty array (`status: 'no_claims'`).
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/extract-claims.test.ts` (E2 unit), `pnpm test:live` (E4 live integration), `pnpm smoke:extract` (E4 CLI smoke).
+- **Evidence Level & Required Proof:** E2 (Vitest unit suite with frozen model fixtures) & E4 (Live Railway Bifrost gateway integration).
+- **Observed Evidence:** Implemented `src/lib/contracts/extraction.ts` (`ExtractClaimsInputSchema`, `ExtractClaimsOutcomeSchema`), `src/server/prompts/extract.ts` (`EXTRACTION_SYSTEM_PROMPT`, `SYNTHETIC_EXTRACTION_EXAMPLES`), and decomposed verifier modules in `src/server/verify/` (`extract-claims.ts`, `identity.ts`, `span-resolver.ts`, `context-resolver.ts`, `index.ts`). Executed 32 focused unit tests in `tests/unit/verify/extract-claims.test.ts` covering acceptance matrix A03-01 through A03-17: compound decomposition, span math with surrogate emojis, duplicate text disambiguation, explicit qualifier grounding, scope precedence invariant (ADR-018), missing context reconciliation, novel domains, zero-claim inputs, malformed JSON, provider failures, timeout aborts, model refusal, execution-aware ID formula within `VARCHAR(36)` bounds, and in-run determinism vs cross-run differentiation. Executed live model extraction integration tests against Railway Bifrost (`gemini-3.5-flash-lite`) via `tests/integration/extract-claims.live.test.ts` (`pnpm test:live`, 2/2 passed) and CLI runner `infra/test-live-extraction.ts` (`pnpm smoke:extract`, extracting 6 claims from multi-domain demo text with 4.5s latency). All repository checks clean: `pnpm test` (179/179 unit tests passed across 8 suites), `pnpm typecheck` (0 errors), `pnpm lint` (0 errors, 0 warnings), `pnpm build` (clean). Status updated to REVIEW.
 - **Explicit Exclusions:** Web retrieval and evidence synthesis.
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** None. Ready for scoped review.
 
 #### A04: Research planning, context-preserving extraction and semantic assessment {#a04-assess-passages-against-a-claim}
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Formulate structured ResearchPlan queries, execute context-preserving extraction of EvidenceUnits, and perform semantic assessment producing ClaimEvidenceAssessments with deterministic quotation verification.
 - **Planned Date:** Nov 9, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Core Phase 1 evidence evaluation component; mandatory prerequisite for Gate G1 and A05.
 - **Canonical Design References:** [docs/VERIFICATION.md §3, §4, §5, §7](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-019](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/research-planner.ts` (proposed), `src/server/verify/extract-evidence.ts` (proposed), `src/server/verify/assess-evidence.ts` (proposed), `src/server/prompts/assess.ts` (proposed), `tests/unit/verify/assess-evidence.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/verify/research-planner.ts`, `src/server/verify/extract-evidence.ts`, `src/server/verify/assess-evidence.ts`, `src/server/verify/temporal.ts`, `src/server/prompts/research.ts`, `src/server/prompts/extract-evidence.ts`, `src/server/prompts/assess.ts`, `tests/unit/verify/research-planner.test.ts`, `tests/unit/verify/extract-evidence.test.ts`, `tests/unit/verify/assess-evidence.test.ts`, `tests/unit/verify/temporal.test.ts`, `tests/integration/assess-evidence.live.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Implement `research-planner.ts` generating structured `ResearchPlan` queries with explicit purposes (`establish_current_state`, `investigate_exceptions_or_scope`, `seek_counterevidence`, `establish_historical_state_or_transition`), target source roles, and early stopping bounds.
-  - [ ] Implement context-preserving extraction in `extract-evidence.ts` to produce `EvidenceUnit[]` retaining negation markers, header trails, table structures, and footnotes.
-  - [ ] Implement candidate shortlisting (bypassed when candidate passages $\le 4$; lexical/date sort baseline).
-  - [ ] Author semantic assessment prompt sending normalized proposition and candidate `EvidenceUnit[]` to Bifrost.
-  - [ ] Require model to return candidate `ClaimEvidenceAssessment[]` with matching quotes, property match status, and temporal tags.
-  - [ ] Execute deterministic TypeScript quotation verification (`SourceDocument.text.includes(quote)`); reject ungrounded quotes.
+  - [x] Fix partial-date normalization prerequisite: export `isValidCalendarDateOrPartial` and `CalendarDateOrPartialDateSchema` in `dates.ts`, permit partial dates in `VerificationPropertySchema`, and remove artificial date padding from `normalizePropertyValue`.
+  - [x] Implement `research-planner.ts` generating structured `ResearchPlan` queries with explicit purposes (`establish_current_state`, `investigate_exceptions_or_scope`, `seek_counterevidence`, `establish_historical_state_or_transition`), target source roles, remaining allowance enforcement, and early stopping bounds.
+  - [x] Enforce deterministic policy counterevidence requirement for exclusivity, superlatives, and active validity assertions.
+  - [x] Implement context-preserving extraction in `extract-evidence.ts` to produce `EvidenceUnit[]` retaining negation markers, header trails, table structures, and footnotes.
+  - [x] Execute deterministic TypeScript quotation verification (`SourceDocument.rawText.includes(quote)`) and re-anchor character offsets using context headers.
+  - [x] Implement candidate budgeting (bypassed when candidate passages $\le 4$; bounded to top 8; lexical/date sort baseline).
+  - [x] Author semantic assessment prompt sending normalized proposition and candidate `EvidenceUnit[]` to Bifrost.
+  - [x] Require model to return candidate `ClaimEvidenceAssessment[]` with matching quotes, property match status, and temporal tags.
+  - [x] Enforce deterministic invariants: scope mismatch clamped to `relevant_but_inconclusive`, future effective change classified as `future_scheduled_change` / `future_pending`, historical validity preserved without false contradiction.
+  - [x] Preserve valid conflicting assessments for downstream A05 synthesis judge without artificial consensus.
+  - [x] Implement live Bifrost integration test suite (`tests/integration/assess-evidence.live.test.ts`).
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, A10.
-  - **Integration / Completion Prerequisites:** A03, B02, B03 (Tavily retrieved documents).
+  - **Integration / Completion Prerequisites:** A03, B02, B03 (mocked for unit testing; live Tavily integration deferred to B03).
   - **External Prerequisites:** Model provider credentials via Bifrost.
-  - **What Can Start Early:** Research planner templates, context-preserving HTML extraction helpers, quotation verifier logic, unit tests with mocked Tavily documents.
-- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b.
-- **Positive Acceptance Examples:** An authoritative passage confirming entity, attribute, and scope is classified as `supports` with `quotationVerified: true`; table footnotes are captured into evidence unit.
+  - **What Can Start Early:** Research planner templates, context-preserving extraction helpers, quotation verifier logic, unit tests with mocked Tavily documents.
+- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b. Callable stages `generateResearchPlan`, `extractEvidenceUnits`, and `assessEvidenceAgainstClaim` ready for immediate DAG node wiring.
+- **Positive Acceptance Examples:** An authoritative passage confirming entity, attribute, and scope is classified as `supports` with `quotationVerified: true`; table footnotes are captured into evidence unit; partial dates retain verbatim precision.
 - **Relevant Negative / Failure Cases:** An invented or hallucinated quote fails deterministic quotation verification and is discarded; evidence with conflicting jurisdiction or currency is classified as wrong-scope.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/assess-evidence.test.ts`.
-- **Evidence Level & Required Proof:** E2 (Vitest unit suite with injected mock documents and hallucinated excerpts).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `pnpm test` (222 unit tests passing), `pnpm test:live` (live Bifrost E4 integration), `pnpm typecheck`, `pnpm lint`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis, compiler, lint, build) + E2 (Vitest unit suite with 43 focused A04/date tests) + E4 (Live Railway Bifrost gateway integration).
+- **Observed Evidence:** Implemented partial-date preservation in `src/lib/contracts/dates.ts` and `src/lib/contracts/claim-ticket.ts`, retiring artificial padding in `src/server/verify/context-resolver.ts`. Implemented temporal interval evaluation in `src/server/verify/temporal.ts`. Implemented prompt builders in `src/server/prompts/` (`research.ts`, `extract-evidence.ts`, `assess.ts`). Implemented modular verifier stages in `src/server/verify/` (`research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts`, `index.ts`). Authored 43 new unit tests across `tests/unit/contracts/partial-dates.test.ts` (12 tests), `tests/unit/verify/temporal.test.ts` (12 tests), `tests/unit/verify/research-planner.test.ts` (7 tests), `tests/unit/verify/extract-evidence.test.ts` (6 tests), and `tests/unit/verify/assess-evidence.test.ts` (6 tests), bringing the total unit test suite to 222/222 passing tests. Executed live model integration tests against Railway Bifrost (`gemini-3.5-flash-lite`) via `tests/integration/assess-evidence.live.test.ts` (1/1 passed end-to-end with automated 503 backoff recovery). All static checks clean: `pnpm typecheck` (0 errors), `pnpm lint` (0 errors, 0 warnings), `pnpm build` (compiled in 8.8s, 5/5 static pages generated). Status updated to REVIEW.
 - **Explicit Exclusions:** Vector embedding shortlisting (isolated in experimental A11) and final score calculation (owned by A05).
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** None. Ready for scoped review.
 
 #### A05: Apply deterministic policy, synthesis judge and decision gates {#a05-apply-deterministic-policy-and-score}
 - **Owner:** A / Verification
@@ -980,13 +989,15 @@ The following mapping documents the evolution from the initial planning baseline
 | 2026-11-07 | DOC01 | `Select-String`, Markdown link validation, Git status check | Local Dev | All 14 markdown files created; `.gitignore` updated; link integrity verified; zero secrets exposed. | [DOC01](#doc01-repository-documentation) |
 | 2026-11-08 | A01 | `pnpm test` (vitest run `tests/unit/contracts/request-claim.test.ts`) | Local Dev | 25/25 tests passing natively under repository toolchain. | [A01](#a01-request-and-claim-schemas) |
 | 2026-11-08 | A02 | `pnpm test` (vitest run `tests/unit/contracts/report-fixture.test.ts`) | Local Dev | 30/30 tests passing natively under repository toolchain; full golden fixture validated. | [A02](#a02-report-and-event-schemas) |
-| 2026-11-08 | B01 | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` | Local Dev & Disposable Copy | All 6 checks passed cleanly (0 lint/type errors, 55 vitest tests, production build 4/4 static pages, 1/1 Playwright Chromium smoke test). | [B01](#b01-scaffold-and-pin-the-toolchain) |
+| 2026-11-08 | B01 | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` | Local Dev & Disposable Copy | All checks passed cleanly (0 lint/type errors, 147 vitest tests, production build 5/5 static pages, Prisma v6.19.3 verified). | [B01](#b01-scaffold-and-pin-the-toolchain) |
 | 2026-11-08 | A10 | `pnpm vitest run tests/unit/contracts/dag-prep-contracts.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 66/66 contract tests passing; 121/121 overall tests passing; 0 type errors; 0 lint errors/warnings; production build succeeded with 4/4 static pages. Merged into `main` via PR #8 & #9 (DONE). | [A10](#a10-define-preparation-clarification-and-dynamic-dag-schemas) |
-| *Pending* | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Railway / Local | *Pending execution* | [B02](#b02-provision-bifrost-and-model-profiles) |
-| *Pending* | B04 | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Dev DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| 2026-11-12 | B02 | `pnpm tsx infra/smoke-bifrost.ts` | Local Dev / Railway | Model profiles configured (`extract`, `assess`, `draft`, `fallback`); client fetch wrapper with automated fallback failover; smoke script verified. Merged in PR #17 (DONE). | [B02](#b02-provision-bifrost-and-model-profiles) |
+| 2026-11-12 | B04a | `pnpm prisma migrate dev` | Neon Dev DB (`Apex1`) | Baseline migration `20261112004717_apex_hardik` executed against Neon; 11 tables created; Prisma client singleton and initial services implemented. Merged in PR #18 (DONE). | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| *Pending* | B04b | `pnpm vitest run tests/integration/dag-slice.test.ts` | Neon Dev DB | *Pending execution* | [B04](#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | 2026-11-09 | C01 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 131/131 unit tests passed; 0 type/lint errors; production build 5/5 static pages; 11/11 Playwright E2E tests passed; dark/light theme toggle, local validation demo, and responsive screenshots verified. | [C01](#c01-visual-tokens-and-component-states) |
 | 2026-11-09 | C02 | `pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm test:e2e` | Local Dev | 147/147 unit tests passed; 0 type/lint errors; 23/23 Playwright tests passed; input composer validation, span segmentation, honest replay labeling, and sample report experience verified. Accepted by user for documented scope. | [C02](#c02-input-and-report-skeleton) |
-| *Pending* | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` | Local Dev | *Pending execution* | [A03](#a03-extract-and-locate-atomic-claims) |
+| 2026-11-12 | Gate G0 | Full build, migration, and fixture test suite | Local Dev & Cloud | Gate G0 passed: All contract schemas, Prisma DB baseline, Bifrost gateway, and UI fixture replay mode verified. | [Gate G0](#project-release-milestones) |
+| 2026-11-12 | A03 | `pnpm vitest run tests/unit/verify/extract-claims.test.ts` & `pnpm test:live` | Local / Railway Bifrost | 32/32 unit tests passed (E2); 2/2 live integration tests passed (E4); compound decomposition, UTF-16 span math, scope precedence invariant (ADR-018), missing context reconciliation, execution-aware ID formula within VARCHAR(36), date normalization, and live Railway Bifrost gateway model extraction verified. (REVIEW). | [A03](#a03-extract-and-locate-atomic-claims) |
 | *Pending* | A04 | `pnpm vitest run tests/unit/verify/assess-evidence.test.ts` | Local Dev | *Pending execution* | [A04](#a04-assess-passages-against-a-claim) |
 | *Pending* | A05 | `pnpm vitest run tests/unit/verify/decide.test.ts` | Local Dev | *Pending execution* | [A05](#a05-apply-deterministic-policy-and-score) |
 | *Pending* | B03 | `pnpm vitest run tests/integration/tavily-live.test.ts` | Staging / External | *Pending execution* | [B03](#b03-search-extract-and-evidence-capture) |

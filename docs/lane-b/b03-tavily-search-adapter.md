@@ -1,7 +1,7 @@
 # docs/lane-b/b03-tavily-search-adapter.md — Tavily Web Intelligence Adapter
 
 - **Ticket Reference:** [B03 in docs/PHASE-TRACKER.md](../PHASE-TRACKER.md#b03-search-extract-and-evidence-capture)
-- **Status in Tracker:** `TODO`
+- **Status in Tracker:** `IN PROGRESS` (`@tavily/core` installed)
 - **Assigned Lane:** Lane B (Platform)
 - **Verification Tier:** E4 (Staging live Tavily integration) / E2 (Mock double)
 

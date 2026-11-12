@@ -24,7 +24,11 @@ export function getModelProfile(role: ModelProfileRole): string {
     case 'draft':
       return process.env.BIFROST_DRAFT_MODEL || DEFAULT_PROFILES.draft;
     case 'fallback':
-      return process.env.BIFROST_ASSESS_FALLFALLBACK || DEFAULT_PROFILES.fallback;
+      return (
+        process.env.BIFROST_ASSESS_FALLBACK ||
+        process.env.BIFROST_ASSESS_FALLFALLBACK ||
+        DEFAULT_PROFILES.fallback
+      );
     default: {
       const _exhaustive: never = role;
       throw new Error(`Unknown model profile role: ${_exhaustive}`);
