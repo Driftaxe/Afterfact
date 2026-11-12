@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AtomicClaimSpec, ClaimSpanSchema, TimeSensitivity } from './claim';
-import { isValidCalendarDate, isValidIsoTimestamp } from './dates';
+import { isValidCalendarDate, isValidCalendarDateOrPartial, isValidIsoTimestamp } from './dates';
 
 /**
  * Permitted primitive property types for verification context.
@@ -126,12 +126,12 @@ export const VerificationPropertySchema = z
         case 'date':
           if (
             typeof prop.value !== 'string' ||
-            (!isValidCalendarDate(prop.value) && !isValidIsoTimestamp(prop.value))
+            (!isValidCalendarDateOrPartial(prop.value) && !isValidIsoTimestamp(prop.value))
           ) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               path: ['value'],
-              message: `Property declared as 'date' requires valid calendar date (YYYY-MM-DD) or ISO timestamp`,
+              message: `Property declared as 'date' requires valid calendar date (YYYY, YYYY-MM, YYYY-MM-DD) or ISO timestamp`,
             });
           }
           break;
