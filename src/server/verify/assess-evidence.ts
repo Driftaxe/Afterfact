@@ -179,6 +179,7 @@ export async function assessEvidenceAgainstClaim(
   const rawAssessments = Array.isArray(parsedPayload.assessments) ? parsedPayload.assessments : [];
   const unitMap = new Map(evaluatedUnits.map((u) => [u.evidenceId, u]));
   const assessments: ClaimEvidenceAssessment[] = [];
+  const seenEvidenceIds = new Set<string>();
 
   // Extract explicit claim temporal qualifier if present
   const claimTimeProp = ticket.verificationContext.find(
@@ -193,6 +194,15 @@ export async function assessEvidenceAgainstClaim(
       discardedAssessments.push({
         evidenceId,
         reason: 'Assessment references unknown or unbounded EvidenceUnit ID',
+      });
+      continue;
+    }
+
+    // INVARIANT 3: Prevent duplicate assessments for the same EvidenceUnit
+    if (seenEvidenceIds.has(evidenceId)) {
+      discardedAssessments.push({
+        evidenceId,
+        reason: `Duplicate assessment for EvidenceUnit '${evidenceId}' discarded; deterministic 1:1 assessment mapping enforced`,
       });
       continue;
     }
@@ -223,9 +233,32 @@ export async function assessEvidenceAgainstClaim(
       announcementDate: unit.announcementDate ?? null,
     });
 
-    const temporalApplicability = temporalResult.temporalApplicability;
-    if (temporalApplicability === 'future_pending') {
+    const rawTemporal = typeof rawAsm.temporalApplicability === 'string' ? rawAsm.temporalApplicability : null;
+    const isValidModelTemporal =
+      rawTemporal === 'active_at_target_time' ||
+      rawTemporal === 'historical_prior' ||
+      rawTemporal === 'future_pending' ||
+      rawTemporal === 'undetermined';
+
+    let temporalApplicability: 'active_at_target_time' | 'historical_prior' | 'future_pending' | 'undetermined';
+
+    if (temporalResult.temporalApplicability === 'future_pending') {
       relationship = 'future_scheduled_change';
+      temporalApplicability = 'future_pending';
+    } else if (temporalResult.temporalApplicability === 'historical_prior') {
+      temporalApplicability = 'historical_prior';
+    } else if (relationship === 'historical_state') {
+      temporalApplicability = 'historical_prior';
+    } else if (temporalResult.temporalApplicability === 'undetermined') {
+      // Publication date alone or missing markers cannot establish active validity
+      temporalApplicability = (isValidModelTemporal && rawTemporal === 'historical_prior')
+        ? 'historical_prior'
+        : 'undetermined';
+    } else if (isValidModelTemporal && rawTemporal !== 'active_at_target_time') {
+      // Prevent unjustified deterministic override: preserve model's historical or undetermined assessment
+      temporalApplicability = rawTemporal;
+    } else {
+      temporalApplicability = temporalResult.temporalApplicability;
     }
 
     // Parse property match status
@@ -298,6 +331,7 @@ export async function assessEvidenceAgainstClaim(
       continue;
     }
 
+    seenEvidenceIds.add(evidenceId);
     assessments.push(schemaValidation.data);
   }
 

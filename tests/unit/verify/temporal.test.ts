@@ -130,6 +130,26 @@ describe('Temporal Interval and Validity Evaluation', () => {
       expect(res.temporalApplicability).toBe('active_at_target_time');
     });
 
+    it('Publication date alone never establishes active validity at target time', () => {
+      const res = evaluateTemporalApplicability({
+        targetTime: '2026-11-08',
+        publicationDate: '2020-05-15',
+      });
+      expect(res.temporalApplicability).toBe('undetermined');
+      expect(res.reasoning).toContain('publication date alone does not establish active validity');
+    });
+
+    it('Subsequent evidence effective date does not match historical claim interval', () => {
+      // Historical claim for 2021, evidence is from 2023
+      const res = evaluateTemporalApplicability({
+        targetTime: '2026-11-08',
+        claimTime: '2021',
+        effectiveDate: '2023-01-01',
+      });
+      expect(res.temporalApplicability).toBe('undetermined');
+      expect(res.reasoning).toContain('subsequent to historical claim interval');
+    });
+
     it('returns undetermined when insufficient temporal markers are available', () => {
       const res = evaluateTemporalApplicability({
         targetTime: '2026-11-08',

@@ -177,6 +177,16 @@ export function evaluateTemporalApplicability(params: {
           reasoning: `Evidence publication date ${params.publicationDate} matches the claim's explicit historical interval [${claimInterval.start}, ${claimInterval.end}]`,
         };
       }
+      // If evidence has an effective date strictly after the claim interval, it does not confirm the historical claim
+      if (params.effectiveDate) {
+        const eff = parseDateToInterval(params.effectiveDate);
+        if (eff && eff.start > claimInterval.end && eff.start <= targetPoint) {
+          return {
+            temporalApplicability: 'undetermined',
+            reasoning: `Evidence effective date ${params.effectiveDate} is subsequent to historical claim interval ${params.claimTime}`,
+          };
+        }
+      }
       return {
         temporalApplicability: 'historical_prior',
         reasoning: `Claim asserted historical interval ${params.claimTime} prior to target time ${params.targetTime}`,
@@ -200,8 +210,8 @@ export function evaluateTemporalApplicability(params: {
     const pubInterval = parseDateToInterval(params.publicationDate);
     if (pubInterval && pubInterval.start <= targetPoint) {
       return {
-        temporalApplicability: 'active_at_target_time',
-        reasoning: `Published ${params.publicationDate} prior to target time ${params.targetTime}`,
+        temporalApplicability: 'undetermined',
+        reasoning: `Published ${params.publicationDate} prior to target time ${params.targetTime}, but publication date alone does not establish active validity at target time`,
       };
     }
   }
