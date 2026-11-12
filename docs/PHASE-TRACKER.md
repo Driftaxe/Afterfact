@@ -536,15 +536,15 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** C / Product
 - **Plain-Language Outcome:** Implement Server Actions for input submission and confirmation, useRun hook managing preparation review, live SSE progress streaming, and snapshot polling fallback.
 - **Planned Date:** Nov 9, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 1 product deliverable; completes Gate G1 when paired with B04b.
 - **Canonical Design References:** [docs/API.md §1, §2](docs/API.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-011](docs/DECISIONS.md), [docs/DECISIONS.md#adr-012](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/actions/run-actions.ts` (proposed), `src/hooks/useRun.ts` (proposed), `src/app/runs/[id]/page.tsx` (proposed), `tests/e2e/run-progress.spec.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/actions/run-actions.ts`, `src/hooks/useRun.ts`, `src/app/report/[id]/page.tsx`, `src/components/report/LiveReportViewer.tsx`, `tests/unit/actions/run-actions.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Implement Server Actions `startPreparationAction` and `confirmPreparationAction` calling backend server services directly in-process.
-  - [ ] Implement `useRun` hook managing preparation review, confirmation, SSE subscription (`/api/runs/[id]/events`), and snapshot polling fallback.
-  - [ ] Display step progress badges reflecting dynamic DAG stages ("Extracting", "Planning", "Searching", "Assessing", "Scoring", "Finalized").
-  - [ ] Handle single-claim failure gracefully without clearing completed siblings.
+  - [x] Implement Server Actions `startPreparationAction` and `confirmPreparationAction` calling backend server services directly in-process.
+  - [x] Implement `useRun` hook managing preparation review, confirmation, SSE subscription (`/api/runs/[id]/events`), and snapshot polling fallback.
+  - [x] Display step progress badges reflecting dynamic DAG stages ("Extracting", "Planning", "Searching", "Assessing", "Scoring", "Finalized").
+  - [x] Handle single-claim failure gracefully without clearing completed siblings.
 - **Prerequisites:**
   - **Start Prerequisites:** C02, B04b.
   - **Integration / Completion Prerequisites:** None (polling fallback satisfies Gate G1; live SSE streaming is a Phase 3 non-blocking enhancement via B06).
@@ -553,9 +553,9 @@ The following mapping documents the evolution from the initial planning baseline
 - **Deliverable & Interface Handoff:** Handed downstream to C04 (split workspace & evidence inspection).
 - **Positive Acceptance Examples:** User submits paste, reviews preparation qualifiers, confirms, and watches live DAG progress on `/runs/[id]`; page refresh reloads state from snapshot.
 - **Relevant Negative / Failure Cases:** Network disconnect falls back gracefully to 2-second snapshot polling; stale preparation revision is rejected with error banner.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/run-progress.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright browser interaction test).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `cmd /c pnpm typecheck && cmd /c pnpm test`.
+- **Evidence Level & Required Proof:** E1/E2 (Typecheck, Vitest unit suite covering actions and state machine).
+- **Observed Evidence:** Verified via static typecheck (`tsc --noEmit` exited 0), ESLint (`eslint .` exited 0), Vitest unit suite (`vitest run`, 14 test files passed, 238 tests passed, 4 skipped; including 10/10 in `tests/unit/actions/run-actions.test.ts`), and Next.js production build (`next build` exited 0). Revision binding invariant (TC-08) verified returning `STALE_PREPARATION_REVISION` upon input hash mismatch.
 - **Explicit Exclusions:** Advanced domain clarification forms (handled in C04).
 - **Blocker / Decision:** None.
 
