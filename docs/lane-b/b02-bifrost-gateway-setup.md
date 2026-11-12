@@ -1,7 +1,7 @@
 # docs/lane-b/b02-bifrost-gateway-setup.md — Bifrost Gateway Setup & Model Profiles
 
 - **Ticket Reference:** [B02 in docs/PHASE-TRACKER.md](../PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles)
-- **Status in Tracker:** `TODO`
+- **Status in Tracker:** `DONE`
 - **Assigned Lane:** Lane B (Platform)
 - **Verification Tier:** E4 (Staging integration against Railway Bifrost) / E2 (Local mock)
 

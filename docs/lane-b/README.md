@@ -34,11 +34,11 @@ If you are a developer, apprentice, or autonomous agent assigned to Lane B, this
 
 | Ticket ID | Guide File | Responsibility | Can Start In Parallel? | Blocked On Another Lane? | Phase Tracker Link |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| **B01** | [b01-toolchain...](b01-toolchain-and-dependencies.md) | Pin toolchain & swap Drizzle for Prisma | Independent | None (Follow-up) | [B01 Tracker](../PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) |
-| **B02** | [b02-bifrost...](b02-bifrost-gateway-setup.md) | Railway Bifrost & local `pnpm bifrost` | Parallel with B03/B04a | None | [B02 Tracker](../PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) |
-| **B03** | [b03-tavily...](b03-tavily-search-adapter.md) | Tavily search & extract client | Parallel with B02/B04a | None (uses mock responses early) | [B03 Tracker](../PHASE-TRACKER.md#b03-search-extract-and-evidence-capture) |
-| **B04a** | [b04a-prisma...](b04a-prisma-and-neon-database.md) | Neon setup & Prisma baseline DDL | Parallel with B02/B03 | Requires A10 contract schemas | [B04a Tracker](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
-| **B04b** | [b04b-persisted...](b04b-persisted-dag-execution-slice.md) | Wire persisted minimal DAG slice | After B04a | Requires B02, B03, A03, A04, A05 | [B04b Tracker](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| **B01** | [b01-toolchain...](b01-toolchain-and-dependencies.md) | Pin toolchain & swap Drizzle for Prisma | Completed | None | [B01 Tracker](../PHASE-TRACKER.md#b01-scaffold-and-pin-the-toolchain) |
+| **B02** | [b02-bifrost...](b02-bifrost-gateway-setup.md) | Railway Bifrost & local `pnpm bifrost` | Completed | None | [B02 Tracker](../PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) |
+| **B03** | [b03-tavily...](b03-tavily-search-adapter.md) | Tavily search & extract client | In Progress | `@tavily/core` installed | [B03 Tracker](../PHASE-TRACKER.md#b03-search-extract-and-evidence-capture) |
+| **B04a** | [b04a-prisma...](b04a-prisma-and-neon-database.md) | Neon setup & Prisma baseline DDL | Completed | None | [B04a Tracker](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
+| **B04b** | [b04b-persisted...](b04b-persisted-dag-execution-slice.md) | Wire persisted minimal DAG slice | Unblocked | DB Baseline ready | [B04b Tracker](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) |
 | **B05** | [b05-qstash...](b05-qstash-delivery-and-recovery.md) | QStash signed delivery & recovery | After B04b | Requires A06 (domain policies) | [B05 Tracker](../PHASE-TRACKER.md#b05-implement-signed-delivery-leases-and-recovery) |
 | **B06** | [b06-public...](b06-public-endpoints-and-sse.md) | Public API, SSE stream & adapter | After B04b | None | [B06 Tracker](../PHASE-TRACKER.md#b06-implement-the-public-run-endpoints) |
 | **B07** | [b07-staging...](b07-staging-deployment.md) | Vercel staging deployment | After B05, B06 | None | [B07 Tracker](../PHASE-TRACKER.md#b07-provision-staging-with-real-integrations) |

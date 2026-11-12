@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/server/db/client';
 
 export interface CreateRunInput {
@@ -5,7 +6,7 @@ export interface CreateRunInput {
   inputHash: string;
   text: string;
   mode?: string;
-  context?: any;
+  context?: Prisma.InputJsonValue;
   expiresAt: Date;
 }
 

@@ -1,7 +1,7 @@
 # docs/lane-b/b04b-persisted-dag-execution-slice.md — Minimal Persisted DAG Execution Slice
 
 - **Ticket Reference:** [B04b in docs/PHASE-TRACKER.md](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice)
-- **Status in Tracker:** `TODO`
+- **Status in Tracker:** `UNBLOCKED` (DB Baseline & Services Ready)
 - **Assigned Lane:** Lane B (Platform)
 - **Verification Tier:** E3 (Integration test against Neon PostgreSQL)
 

@@ -1,7 +1,7 @@
 # docs/lane-b/b04a-prisma-and-neon-database.md — Neon Database Setup & Prisma Schema Baseline
 
 - **Ticket Reference:** [B04a in docs/PHASE-TRACKER.md](../PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice)
-- **Status in Tracker:** `TODO`
+- **Status in Tracker:** `DONE`
 - **Assigned Lane:** Lane B (Platform)
 - **Verification Tier:** E3 (Integration against live Neon test/dev branch)
 
