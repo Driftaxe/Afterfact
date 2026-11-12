@@ -292,4 +292,116 @@ describe('Stage 3: Claim–Evidence Semantic Assessment (assessEvidenceAgainstCl
     expect(result.status).toBe('no_evidence_assessed');
     expect(bifrostClient.bifrostChat).not.toHaveBeenCalled();
   });
+
+  it('enforces deterministic 1:1 mapping by discarding duplicate assessments for the same evidenceId', async () => {
+    const mockModelWithDuplicate = {
+      assessments: [
+        {
+          evidenceId: sampleUnit.evidenceId,
+          relationship: 'supports',
+          scopeMatching: 'match',
+          reasoning: 'Initial evaluation confirms $15 price.',
+        },
+        {
+          evidenceId: sampleUnit.evidenceId,
+          relationship: 'contradicts',
+          scopeMatching: 'match',
+          reasoning: 'Duplicate contradictory proposal for the exact same evidence unit.',
+        },
+      ],
+      requiresAdditionalResearch: false,
+    };
+
+    vi.mocked(bifrostClient.bifrostChat).mockResolvedValueOnce(JSON.stringify(mockModelWithDuplicate));
+
+    const result = await assessEvidenceAgainstClaim({
+      ticket: baseTicket,
+      evidenceUnits: [sampleUnit],
+      sourceDocuments: new Map([[sampleDoc.documentId, sampleDoc]]),
+    });
+
+    expect(result.status).toBe('success');
+    if (result.status === 'success') {
+      // Exactly 1 assessment retained for sampleUnit.evidenceId
+      expect(result.assessments.length).toBe(1);
+      expect(result.assessments[0].evidenceId).toBe(sampleUnit.evidenceId);
+      expect(result.assessments[0].relationship).toBe('supports');
+      // Duplicate was discarded with audit explanation
+      expect(result.discardedAssessments.length).toBe(1);
+      expect(result.discardedAssessments[0].evidenceId).toBe(sampleUnit.evidenceId);
+      expect(result.discardedAssessments[0].reason).toContain('Duplicate assessment');
+    }
+  });
+
+  it('preserves model-evaluated historical_prior or undetermined status without unjustified overrides', async () => {
+    const mockModelAssessment = {
+      assessments: [
+        {
+          evidenceId: sampleUnit.evidenceId,
+          relationship: 'historical_state',
+          scopeMatching: 'match',
+          temporalApplicability: 'historical_prior',
+          reasoning: 'Evidence describes a former pricing tier that has since expired.',
+        },
+      ],
+      requiresAdditionalResearch: false,
+    };
+
+    vi.mocked(bifrostClient.bifrostChat).mockResolvedValueOnce(JSON.stringify(mockModelAssessment));
+
+    const result = await assessEvidenceAgainstClaim({
+      ticket: baseTicket,
+      evidenceUnits: [sampleUnit],
+      sourceDocuments: new Map([[sampleDoc.documentId, sampleDoc]]),
+    });
+
+    expect(result.status).toBe('success');
+    if (result.status === 'success') {
+      expect(result.assessments[0].temporalApplicability).toBe('historical_prior');
+      expect(result.assessments[0].relationship).toBe('historical_state');
+    }
+  });
+
+  it('marks assessment temporalApplicability as undetermined when evidence has only publication date', async () => {
+    const pubOnlyDoc: SourceDocument = {
+      ...sampleDoc,
+      documentId: 'doc_pub_only',
+      publicationDate: '2023-05-01',
+      effectiveDate: null,
+    };
+    const pubOnlyUnit: EvidenceUnit = {
+      ...sampleUnit,
+      evidenceId: 'evi_pub_only',
+      documentId: pubOnlyDoc.documentId,
+      publicationDate: '2023-05-01',
+      effectiveDate: null,
+    };
+
+    const mockModelAssessment = {
+      assessments: [
+        {
+          evidenceId: pubOnlyUnit.evidenceId,
+          relationship: 'supports',
+          scopeMatching: 'match',
+          temporalApplicability: 'active_at_target_time', // Model claims active, but only publication date exists
+          reasoning: 'Published in 2023.',
+        },
+      ],
+      requiresAdditionalResearch: false,
+    };
+
+    vi.mocked(bifrostClient.bifrostChat).mockResolvedValueOnce(JSON.stringify(mockModelAssessment));
+
+    const result = await assessEvidenceAgainstClaim({
+      ticket: baseTicket,
+      evidenceUnits: [pubOnlyUnit],
+      sourceDocuments: new Map([[pubOnlyDoc.documentId, pubOnlyDoc]]),
+    });
+
+    expect(result.status).toBe('success');
+    if (result.status === 'success') {
+      // Publication date alone cannot establish active validity; falls back to undetermined
+      expect(result.assessments[0].temporalApplicability).toBe('undetermined');
+    }
+  });
 });

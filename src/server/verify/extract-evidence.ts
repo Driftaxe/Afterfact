@@ -137,9 +137,10 @@ export async function extractEvidenceUnits(
     };
   }
 
+  const rawDocText = source.rawText;
   const coverageLimitations: string[] = [];
   const MAX_RAW_TEXT_BUDGET = 12000;
-  if (source.rawText.length > MAX_RAW_TEXT_BUDGET) {
+  if (rawDocText.length > MAX_RAW_TEXT_BUDGET) {
     coverageLimitations.push(
       `Source text bounded to first ${MAX_RAW_TEXT_BUDGET} characters for passage extraction`
     );
@@ -209,7 +210,7 @@ export async function extractEvidenceUnits(
     }
 
     // Deterministic quotation check: substring presence in rawText
-    if (!source.rawText.includes(verbatimText)) {
+    if (!rawDocText.includes(verbatimText)) {
       rejectedCandidates.push({
         proposedText: verbatimText,
         reason: 'Quotation not found verbatim in source document rawText (ungrounded hallucination)',
@@ -217,11 +218,38 @@ export async function extractEvidenceUnits(
       continue;
     }
 
-    // Resolve exact character offsets
+    // Context preservation structures: validate headers against actual source text
+    const surroundingHeaders = Array.isArray(p.surroundingHeaders)
+      ? (p.surroundingHeaders as unknown[])
+          .filter(
+            (h): h is string =>
+              typeof h === 'string' &&
+              h.trim().length > 0 &&
+              rawDocText.includes(h.trim())
+          )
+          .map((h) => h.trim())
+      : [];
+
+    const rawTable = typeof p.tableContext === 'object' && p.tableContext !== null
+      ? (p.tableContext as Record<string, unknown>)
+      : null;
+    const tableTitle = typeof rawTable?.tableTitle === 'string' && rawDocText.includes(rawTable.tableTitle.trim())
+      ? rawTable.tableTitle.trim()
+      : undefined;
+
+    const tableContext = rawTable
+      ? {
+          tableTitle,
+          columnHeader: typeof rawTable.columnHeader === 'string' ? rawTable.columnHeader.trim() : undefined,
+          rowHeader: typeof rawTable.rowHeader === 'string' ? rawTable.rowHeader.trim() : undefined,
+        }
+      : undefined;
+
+    // Resolve exact character offsets using genuine surrounding headers
     const offsets = findBestOccurrenceOffset(
-      source.rawText,
+      rawDocText,
       verbatimText,
-      Array.isArray(p.surroundingHeaders) ? p.surroundingHeaders : []
+      surroundingHeaders
     );
     if (!offsets) {
       rejectedCandidates.push({
@@ -230,20 +258,6 @@ export async function extractEvidenceUnits(
       });
       continue;
     }
-
-    // Context preservation structures
-    const surroundingHeaders = Array.isArray(p.surroundingHeaders)
-      ? (p.surroundingHeaders as unknown[]).filter((h): h is string => typeof h === 'string' && h.trim().length > 0)
-      : [];
-
-    const tableContext =
-      typeof p.tableContext === 'object' && p.tableContext !== null
-        ? {
-            tableTitle: typeof (p.tableContext as Record<string, unknown>).tableTitle === 'string' ? (p.tableContext as Record<string, unknown>).tableTitle as string : undefined,
-            columnHeader: typeof (p.tableContext as Record<string, unknown>).columnHeader === 'string' ? (p.tableContext as Record<string, unknown>).columnHeader as string : undefined,
-            rowHeader: typeof (p.tableContext as Record<string, unknown>).rowHeader === 'string' ? (p.tableContext as Record<string, unknown>).rowHeader as string : undefined,
-          }
-        : undefined;
 
     const footnotes = Array.isArray(p.footnotes)
       ? (p.footnotes as unknown[]).filter((f): f is string => typeof f === 'string' && f.trim().length > 0)

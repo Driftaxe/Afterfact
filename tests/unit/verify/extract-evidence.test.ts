@@ -221,4 +221,43 @@ SolisDB is a distributed database engine.`;
     const userPrompt = JSON.parse(callArgs.messages[1].content);
     expect(userPrompt.sourceDocumentRawText.length).toBeLessThanOrEqual(12000);
   });
+
+  it('discards fabricated surrounding headers while preserving genuine headers and verified quote offsets', async () => {
+    const verbatimQuote = 'In the European Union, SolisDB v2 is priced at $15 per node per month for standard deployments.*';
+    const mockModelProposal = {
+      passages: [
+        {
+          verbatimText: verbatimQuote,
+          surroundingHeaders: ['Section 2: Pricing and Plans', 'Fabricated Enterprise Header'],
+          tableContext: {
+            tableTitle: 'Fabricated Table Name',
+            columnHeader: 'Monthly Rate',
+            rowHeader: 'EU',
+          },
+          effectiveDate: '2026-02-01',
+        },
+      ],
+    };
+
+    vi.mocked(bifrostClient.bifrostChat).mockResolvedValueOnce(JSON.stringify(mockModelProposal));
+
+    const result = await extractEvidenceUnits({
+      source: validSourceDoc,
+      ticket: baseTicket,
+    });
+
+    expect(result.status).toBe('success');
+    if (result.status === 'success') {
+      expect(result.evidenceUnits.length).toBe(1);
+      const unit = result.evidenceUnits[0];
+      expect(unit.verbatimText).toBe(verbatimQuote);
+      // Genuine header retained, fabricated header discarded
+      expect(unit.surroundingHeaders).toContain('Section 2: Pricing and Plans');
+      expect(unit.surroundingHeaders).not.toContain('Fabricated Enterprise Header');
+      // Fabricated tableTitle discarded because it does not exist in rawText
+      expect(unit.tableContext?.tableTitle).toBeUndefined();
+      // Offsets verified against source slice
+      expect(validSourceDoc.rawText!.slice(unit.locator.charOffsetStart!, unit.locator.charOffsetEnd!)).toBe(verbatimQuote);
+    }
+  });
 });
