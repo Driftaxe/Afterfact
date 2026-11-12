@@ -11,6 +11,7 @@ import {
 import {
   ClaimTicket,
   ClaimTicketSchema,
+  PropertyType,
   resolveEffectiveContext,
   VerificationProperty,
   VerificationPropertySchema,
@@ -266,6 +267,22 @@ function convertUserTargetContext(contextOverrides: SharedContext): Verification
 }
 
 /**
+ * Helper to normalize partial dates (e.g. "YYYY-MM" or "YYYY") into complete ISO calendar dates.
+ */
+function normalizePropertyValue(type: PropertyType, val: unknown): unknown {
+  if (type === 'date' && typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}$/.test(trimmed)) {
+      return `${trimmed}-01`;
+    }
+    if (/^\d{4}$/.test(trimmed)) {
+      return `${trimmed}-01-01`;
+    }
+  }
+  return val;
+}
+
+/**
  * Primary Extraction Service for Ticket A03.
  *
  * Decomposes input text into atomic ClaimTicket records with typed context properties,
@@ -500,7 +517,7 @@ export async function extractClaimsFromText(
         key: q.key,
         label: q.label,
         propertyType: q.propertyType,
-        value: q.value,
+        value: normalizePropertyValue(q.propertyType, q.value),
         units: q.units ?? null,
         origin: 'explicit_claim_text',
         sourceSpan: qSpan,
@@ -531,7 +548,7 @@ export async function extractClaimsFromText(
         key: inf.key,
         label: inf.label,
         propertyType: inf.propertyType,
-        value: inf.value,
+        value: normalizePropertyValue(inf.propertyType, inf.value),
         origin: 'model_inferred',
         sourceSpan: null,
         status: 'pending_review',
@@ -575,9 +592,12 @@ export async function extractClaimsFromText(
       return !matched || matched.origin === 'model_inferred' || matched.origin === 'unknown' || matched.value === null;
     });
 
-    // Generate unique, collision-free claim & ticket identities incorporating ordinal
+    // Incorporate trusted execution identity (runId/prepId), candidate ordinal, and statement hash.
+    // Length: "clm_" (4) + execHash (8) + "_" (1) + ordinal (1..3) + "_" (1) + stmtHash (8) <= 25 chars (fits VARCHAR(36)).
+    // Deterministic within the same execution and revision; differentiated across distinct executions.
+    const execHash = createHash('sha256').update(input.runId, 'utf8').digest('hex').slice(0, 8);
     const stmtHash = createHash('sha256').update(claim.statement, 'utf8').digest('hex').slice(0, 8);
-    const claimId = `clm_${computedHash.slice(0, 8)}_${i}_${stmtHash}`;
+    const claimId = `clm_${execHash}_${i}_${stmtHash}`;
     const ticketId = `tkt_${claimId}_r${input.revision}`;
 
     // Assemble and validate canonical ClaimTicket

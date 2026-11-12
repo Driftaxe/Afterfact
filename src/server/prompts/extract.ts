@@ -33,7 +33,7 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
    - explicitQualifiers: Qualifiers stated directly in the source text (e.g. geographic region, currency, SDK version, billing commitment, effective date).
      * exactExcerpt: The verbatim substring in the source text where this qualifier is asserted.
      * propertyType: One of 'string', 'number', 'boolean', 'date', 'selection', 'string_list'.
-     * value: Typed value matching propertyType.
+     * value: Typed value matching propertyType. If propertyType is 'date', value must be formatted as an ISO calendar date 'YYYY-MM-DD' (e.g. '2024-10-01' if only month/year is stated) or ISO timestamp.
    - inferredQualifiers: Qualifiers that are NOT explicitly stated in the text but are logically suggested by context, pending review.
      * rationale: Why this qualifier is inferred.
    - missingMaterialQualifiers: Keys of critical qualifiers that are completely unknown and whose absence makes the claim ambiguous (e.g., 'jurisdiction', 'billingTerm', 'sdkLanguage').

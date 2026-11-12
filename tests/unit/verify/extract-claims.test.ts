@@ -483,7 +483,7 @@ describe('Ticket A03 — Claim Extraction Service & Acceptance Matrix', () => {
 
   // A03-09: Identity
   describe('A03-09 — Claim and Ticket Identity Uniqueness', () => {
-    it('ensures repeated identical statements in the same text produce distinct collision-free IDs', async () => {
+    it('ensures repeated identical statements in the same text produce distinct IDs', async () => {
       const text = 'API rate limit is 100 req/min. Later: API rate limit is 100 req/min.';
       const statement = 'API rate limit is 100 req/min';
       mockedBifrostChat.mockResolvedValueOnce(
@@ -516,6 +516,78 @@ describe('Ticket A03 — Claim Extraction Service & Acceptance Matrix', () => {
         expect(ticketA.claimId).not.toBe(ticketB.claimId);
         expect(ticketA.revision).toBe(2);
         expect(ticketA.ticketId).toContain('_r2');
+        expect(ticketA.claimId.length).toBeLessThanOrEqual(36);
+        expect(ticketB.claimId.length).toBeLessThanOrEqual(36);
+      }
+    });
+
+    it('generates distinct IDs when same text and model response are extracted under different execution IDs', async () => {
+      const text = 'Cloudflare Workers enforce a 50ms execution limit.';
+      const modelPayload = JSON.stringify({
+        claims: [
+          {
+            statement: 'Cloudflare Workers enforce a 50ms execution limit',
+            normalizedProposition: 'Cloudflare Workers enforce a 50ms execution limit.',
+            domain: 'software_limits',
+          },
+        ],
+      });
+
+      mockedBifrostChat.mockResolvedValueOnce(modelPayload);
+      const outcomeA = await extractClaimsFromText({
+        text,
+        runId: 'prep_execution_alpha_01',
+        revision: 1,
+      });
+
+      mockedBifrostChat.mockResolvedValueOnce(modelPayload);
+      const outcomeB = await extractClaimsFromText({
+        text,
+        runId: 'prep_execution_beta_02',
+        revision: 1,
+      });
+
+      expect(outcomeA.status).toBe('success');
+      expect(outcomeB.status).toBe('success');
+      if (outcomeA.status === 'success' && outcomeB.status === 'success') {
+        expect(outcomeA.tickets[0].claimId).not.toBe(outcomeB.tickets[0].claimId);
+        expect(outcomeA.tickets[0].ticketId).not.toBe(outcomeB.tickets[0].ticketId);
+        expect(outcomeA.tickets[0].runId).toBe('prep_execution_alpha_01');
+        expect(outcomeB.tickets[0].runId).toBe('prep_execution_beta_02');
+      }
+    });
+
+    it('generates deterministically identical IDs when repeated under the exact same execution ID and revision', async () => {
+      const text = 'Cloudflare Workers enforce a 50ms execution limit.';
+      const modelPayload = JSON.stringify({
+        claims: [
+          {
+            statement: 'Cloudflare Workers enforce a 50ms execution limit',
+            normalizedProposition: 'Cloudflare Workers enforce a 50ms execution limit.',
+            domain: 'software_limits',
+          },
+        ],
+      });
+
+      mockedBifrostChat.mockResolvedValueOnce(modelPayload);
+      const outcome1 = await extractClaimsFromText({
+        text,
+        runId: 'prep_stable_exec_01',
+        revision: 1,
+      });
+
+      mockedBifrostChat.mockResolvedValueOnce(modelPayload);
+      const outcome2 = await extractClaimsFromText({
+        text,
+        runId: 'prep_stable_exec_01',
+        revision: 1,
+      });
+
+      expect(outcome1.status).toBe('success');
+      expect(outcome2.status).toBe('success');
+      if (outcome1.status === 'success' && outcome2.status === 'success') {
+        expect(outcome1.tickets[0].claimId).toBe(outcome2.tickets[0].claimId);
+        expect(outcome1.tickets[0].ticketId).toBe(outcome2.tickets[0].ticketId);
       }
     });
   });
