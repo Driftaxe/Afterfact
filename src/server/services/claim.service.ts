@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/server/db/client';
 
 export interface SaveClaimInput {
@@ -17,7 +18,13 @@ export async function createClaim(input: SaveClaimInput) {
   });
 }
 
-export async function createDecisionRecord(claimId: string, verdict: string, confidence: number, summary: string, reasoning: any) {
+export async function createDecisionRecord(
+  claimId: string,
+  verdict: string,
+  confidence: number,
+  summary: string,
+  reasoning: Prisma.InputJsonValue
+) {
   return await db.decisionRecord.create({
     data: {
       claimId,

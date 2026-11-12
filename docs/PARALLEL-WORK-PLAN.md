@@ -143,12 +143,12 @@ flowchart TD
     B02["B02: Provision Bifrost & Profiles"]:::verified
 
     NeonAcct(["Ext: Neon PostgreSQL Account"]):::external
-    B04a["B04 (Part 1): DB Schema & Initial Migration"]:::unblocked
+    B04a["B04 (Part 1): DB Schema & Initial Migration"]:::verified
 
     C01["C01: Visual Tokens & Colors"]:::verified
     C02["C02: Input, Prep Review & Report Skeleton"]:::verified
 
-    GateG0{{"Gate G0: Foundation Ready"}}:::gate
+    GateG0{{"Gate G0: Foundation Ready (Passed)"}}:::verified
 
     DOC01 --> B01
     B01 --> A01
@@ -424,13 +424,13 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **B02** | [Configure Bifrost & Model Profiles](PHASE-TRACKER.md#b02-provision-bifrost-and-model-profiles) | B | 0 | B01 | None | Railway account / Local Node, Model provider keys | Completed | `src/server/bifrost/client.ts`, `src/server/bifrost/profiles.ts` |
 | **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Completed | Design tokens in `globals.css`, button/card states, reduced motion |
 | **C02** | [Input, Prep & Report Skeleton](PHASE-TRACKER.md#c02-input-and-report-skeleton) | C | 0 | C01, A02, A10 | B04a (for persistent preparation) | None | Layout & fixture playback | `InputComposer.tsx`, `PreparationReview.tsx`, `ReportSkeleton.tsx` |
-| **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DIRECT_URL`) | Prisma schema files & client | Prisma models (`runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) |
+| **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DIRECT_URL`) | Completed | `prisma/schema.prisma`, `src/server/db/client.ts`, `src/server/services/*` |
 | **A03** | [Extract & Locate Atomic Claims](PHASE-TRACKER.md#a03-extract-and-locate-atomic-claims) | A | 1 | A01, A02, A10 | B02 (Bifrost model profiles) | Model provider credentials | Sentence splitting, span math, extraction prompt, unit fixture tests | `extract-claims.ts`, extraction prompt, span resolver, `ClaimTicket[]` |
 | **A04** | [Research Planning & Semantic Assessment](PHASE-TRACKER.md#a04-assess-passages-against-a-claim) | A | 1 | A01, A02, A10 | A03, B02, B03 (Tavily passages) | Model provider credentials | Research planning, context-preserving extraction, vector shortlisting, quote verification | `research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts` |
 | **A05** | [Apply Policy, Synthesis & Decisions](PHASE-TRACKER.md#a05-apply-deterministic-policy-and-score) | A | 1 | A04, A10 | None (pure deterministic TypeScript) | None | Precedence decision tree, date comparator, reason code registry, correction verifier | `decide.ts`, `correction.ts`, `DecisionRecord` generation |
-| **B03** | [Tavily Search & Extract Adapter](PHASE-TRACKER.md#b03-search-extract-and-evidence-capture) | B | 1 | A01, A02 | A10 (for ResearchPlan & SourceDocument schemas) | Tavily API Key (`TAVILY_API_KEY`) | REST client implementation, query generation from ResearchPlan | `src/server/tavily/client.ts`, `src/server/tavily/queries.ts` |
-| **B04b**| [Minimal Persisted DAG Slice](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 1 | B04a, A10 | B02, B03, A03, A04, A05 (for real verifier pipeline) | None | DAG execution engine with mock verifier | `src/server/services/prep-service.ts`, `src/server/services/dag-service.ts` |
-| **C03** | [Wire Server Actions & Progress](PHASE-TRACKER.md#c03-wire-real-runs-and-progress) | C | 1 | C02, B04b | None (SSE stream is Phase 3 B06 enhancement) | None | Server Actions (`startPreparationAction`, `confirmPreparationAction`), `useRun.ts` | `run-actions.ts`, `useRun.ts`, progress indicator components |
+| **B03** | [Tavily Search & Extract Adapter](PHASE-TRACKER.md#b03-search-extract-and-evidence-capture) | B | 1 | A01, A02 | A10 (for ResearchPlan & SourceDocument schemas) | Tavily API Key (`TAVILY_API_KEY`) | In Progress (`@tavily/core` installed) | `src/server/tavily/client.ts`, `src/server/tavily/queries.ts` |
+| **B04b**| [Minimal Persisted DAG Slice](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 1 | B04a, A10 | B02, B03, A03, A04, A05 (for real verifier pipeline) | None | Unblocked (DB Baseline ready) | `src/server/services/prep-service.ts`, `src/server/services/dag-service.ts` |
+| **C03** | [Wire Server Actions & Progress](PHASE-TRACKER.md#c03-wire-real-runs-and-progress) | C | 1 | C02, B04b | None (SSE stream is Phase 3 B06 enhancement) | None | Unblocked (Awaits B04b for live slice) | `run-actions.ts`, `useRun.ts`, progress indicator components |
 | **A06** | [Build 4 Domain Policies](PHASE-TRACKER.md#a06-build-pricing-api-regulation-and-leadership-policies) | A | 2 | A05, B03 | None | None | Policy interface, qualifier schemas, clarification planner | `pricing.ts`, `api.ts`, `regulation.ts`, `leadership.ts` |
 | **A11** | [Vector Shortlisting & Counter-Hypothesis](PHASE-TRACKER.md#a11-explore-optional-vector-shortlisting-and-counter-hypothesis-experiments) | A | 2 | A04, B02 | None | Embedding model profile | Cosine similarity & score fencing tests | `vector-ranker.ts`, isolated unit tests |
 | **B05** | [QStash Delivery, Dynamic DAG & Recovery](PHASE-TRACKER.md#b05-implement-signed-delivery-leases-and-recovery) | B | 2 | B04b | A06 (for multi-domain execution) | Upstash QStash token & signing keys | Job enqueue helper, dynamic graph expansion, sweeper | `src/server/jobs/worker.ts`, `src/server/services/clarification-service.ts`, `src/app/api/verify/worker/route.ts`, `src/app/api/internal/reconcile/route.ts` |
@@ -519,8 +519,8 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 
 ## 6. Current Ready-to-Start Snapshot
 
-**Snapshot Date:** November 9, 2026 IST
-**Reference Commit:** [`04a8081`](https://github.com/Driftaxe/Afterfact/commit/04a8081) on `origin/main` (PR #9 merged)
+**Snapshot Date:** November 12, 2026 IST
+**Reference Commit:** [`2c472e4`](https://github.com/Driftaxe/Afterfact/commit/2c472e4) on `origin/main`
 
 ```
  ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -528,17 +528,16 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
  ├──────────────────────────────────────────┬──────────────────────────────────┤
  │ Ready to Start Immediately (Unblocked):  │ Awaiting Prerequisites:          │
  │                                          │ • A04, A05, A06, A07, A08, A09,  │
- │ • Lane B: B03 (Tavily Search Adapter)    │   A11 (Lane A)                   │
- │ • Lane B: B04a (DB Baseline Migration)   │ • B04b, B05, B06, B07, B08       │
- │ • Lane A: A03 (Extraction Prompts/Logic) │   (Lane B)                       │
- │                                          │ • C03 (Awaits B04b), C04, C05,   │
- │                                          │   C06, C07, C08, C09 (Lane C)    │
+ │ • Lane B: B03 (Tavily Adapter / Core In) │   A11 (Lane A)                   │
+ │ • Lane B: B04b (Minimal Persisted Slice) │ • B05, B06, B07, B08 (Lane B)    │
+ │ • Lane A: A03 (Extraction Prompts/Logic) │ • C04, C05, C06, C07, C08, C09   │
+ │ • Lane C: C03 (Wire Runs & Progress)     │   (Lane C)                       │
  ├──────────────────────────────────────────┴──────────────────────────────────┤
- │ Completed & Verified:                                                       │
+ │ Completed & Verified (Gate G0 Passed):                                      │
  │ • Lane A: A01 (Request & Claim), A02 (Report & Events), A10 (Contracts)     │
- │ • Lane B: B01 (Scaffold & Pin Toolchain, Vitest, Playwright, CI)            │
+ │ • Lane B: B01 (Scaffold & Toolchain), B02 (Bifrost Gateway), B04a (DB DDL)   │
  │ • Lane C: C01 (Visual Design Tokens & Themes), C02 (Composer & Report View) │
- | • Lane B: B02 (Bifrost Gateway & Client)                                    |
+ │ • Gate G0: Foundation Checkpoint Passed                                     │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
