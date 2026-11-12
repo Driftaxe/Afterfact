@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getReportById } from '@/lib/fixtures/golden-report';
 import { ReportView } from '@/components/report/ReportView';
 import { ReportErrorState } from '@/components/report/ReportStates';
+import { LiveReportViewer } from '@/components/report/LiveReportViewer';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,24 +20,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  await searchParams; // Await searchParams in Next 15
+  const { mode } = await searchParams;
 
-  const result = getReportById(id);
+  // Use fixture playback when requesting demo mode or explicit fixture mode
+  if (id === 'demo' || mode === 'fixture') {
+    const result = getReportById(id);
 
-  if (!result.success) {
+    if (!result.success) {
+      return (
+        <main className="min-h-[calc(100vh-8.5rem)] flex items-center justify-center px-4 sm:px-6 py-12">
+          <ReportErrorState
+            title={result.notFound ? 'Report Not Found' : 'Report Error'}
+            message={result.error}
+          />
+        </main>
+      );
+    }
+
     return (
-      <main className="min-h-[calc(100vh-8.5rem)] flex items-center justify-center px-4 sm:px-6 py-12">
-        <ReportErrorState
-          title={result.notFound ? 'Report Not Found' : 'Report Error'}
-          message={result.error}
-        />
+      <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <ReportView report={result.report} />
       </main>
     );
   }
 
+  // Live dynamic run stream with SSE and snapshot polling fallback
   return (
     <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <ReportView report={result.report} />
+      <LiveReportViewer runId={id} />
     </main>
   );
 }
