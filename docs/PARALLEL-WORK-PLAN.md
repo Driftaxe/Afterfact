@@ -207,8 +207,8 @@ flowchart TD
     TavilyKey(["Ext: Tavily API Key"]):::external
     B03["B03: Tavily Search & Extract Adapter"]:::unblocked
 
-    A03["A03: Extract & Locate Claims"]:::partial
-    A04["A04: Assess Evidence Passages"]:::partial
+    A03["A03: Extract & Locate Claims (Done)"]:::upstream
+    A04["A04: Assess Evidence Passages"]:::unblocked
     A05["A05: Deterministic Policy & Scoring"]:::unblocked
 
     B04b["B04b: Wire Minimal Persisted DAG Slice"]:::unblocked
@@ -425,8 +425,8 @@ Every implementation ticket is accounted for with strict prerequisite categoriza
 | **C01** | [Set Visual Tokens & States](PHASE-TRACKER.md#c01-visual-tokens-and-component-states) | C | 0 | B01, A02 | None | None | Completed | Design tokens in `globals.css`, button/card states, reduced motion |
 | **C02** | [Input, Prep & Report Skeleton](PHASE-TRACKER.md#c02-input-and-report-skeleton) | C | 0 | C01, A02, A10 | B04a (for persistent preparation) | None | Layout & fixture playback | `InputComposer.tsx`, `PreparationReview.tsx`, `ReportSkeleton.tsx` |
 | **B04a**| [DB Baseline & Migrations](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 0 | B01, A01, A02, A10 | None | Neon PostgreSQL account (`DATABASE_URL`, `DIRECT_URL`) | Completed | `prisma/schema.prisma`, `src/server/db/client.ts`, `src/server/services/*` |
-| **A03** | [Extract & Locate Atomic Claims](PHASE-TRACKER.md#a03-extract-and-locate-atomic-claims) | A | 1 | A01, A02, A10 | B02 (Bifrost model profiles) | Model provider credentials | Sentence splitting, span math, extraction prompt, unit fixture tests | `extract-claims.ts`, extraction prompt, span resolver, `ClaimTicket[]` |
-| **A04** | [Research Planning & Semantic Assessment](PHASE-TRACKER.md#a04-assess-passages-against-a-claim) | A | 1 | A01, A02, A10 | A03, B02, B03 (Tavily passages) | Model provider credentials | Research planning, context-preserving extraction, vector shortlisting, quote verification | `research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts` |
+| **A03** | [Extract & Locate Atomic Claims](PHASE-TRACKER.md#a03-extract-and-locate-atomic-claims) | A | 1 | A01, A02, A10 | B02 (Bifrost model profiles) | Model provider credentials | Completed & Verified (REVIEW) | `src/server/verify/extract-claims.ts`, `identity.ts`, `span-resolver.ts`, `context-resolver.ts`, `ClaimTicket[]` |
+| **A04** | [Research Planning & Semantic Assessment](PHASE-TRACKER.md#a04-assess-passages-against-a-claim) | A | 1 | A01, A02, A10, A03 | B02, B03 (Tavily passages) | Model provider credentials | Unblocked (Ready for implementation) | `research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts` |
 | **A05** | [Apply Policy, Synthesis & Decisions](PHASE-TRACKER.md#a05-apply-deterministic-policy-and-score) | A | 1 | A04, A10 | None (pure deterministic TypeScript) | None | Precedence decision tree, date comparator, reason code registry, correction verifier | `decide.ts`, `correction.ts`, `DecisionRecord` generation |
 | **B03** | [Tavily Search & Extract Adapter](PHASE-TRACKER.md#b03-search-extract-and-evidence-capture) | B | 1 | A01, A02 | A10 (for ResearchPlan & SourceDocument schemas) | Tavily API Key (`TAVILY_API_KEY`) | In Progress (`@tavily/core` installed) | `src/server/tavily/client.ts`, `src/server/tavily/queries.ts` |
 | **B04b**| [Minimal Persisted DAG Slice](PHASE-TRACKER.md#b04-migrate-the-data-model-and-wire-the-vertical-slice) | B | 1 | B04a, A10 | B02, B03, A03, A04, A05 (for real verifier pipeline) | None | Unblocked (DB Baseline ready) | `src/server/services/prep-service.ts`, `src/server/services/dag-service.ts` |
@@ -568,6 +568,7 @@ To prevent integration bugs, boundaries between lanes are mediated by strict con
 | Producer | Consumer | Interface Artifact | Contract Authority | Availability Point | Verification Requirement |
 | :--- | :--- | :--- | :--- | :---: | :--- |
 | **A (A10)** | **B (B04a), C (C02)** | `src/lib/contracts/dag.ts`, `preparation.ts` | [docs/DATA-AND-JOBS.md](DATA-AND-JOBS.md) | **Completed & Merged (main)** | Zod schemas validate DAG nodes, edges, preparation records, and Server Action payloads. |
+| **A (A03)** | **A (A04), B (B04b)** | `src/server/verify/extract-claims.ts`, `src/lib/contracts/extraction.ts` | [docs/VERIFICATION.md §1](VERIFICATION.md) | **Completed & Verified (REVIEW)** | Decomposes answer into atomic `ClaimTicket[]` with exact UTF-16 spans, normalized propositions, and grounded qualifiers. |
 | **B (B02)** | **A (A03, A04)** | `src/server/bifrost/client.ts` | [docs/ARCHITECTURE.md](ARCHITECTURE.md#2-service-boundaries--hosting-topology) | End of Phase 0 | Mock model profile returns typed JSON; error maps to typed failure. |
 | **B (B03)** | **A (A04)** | `src/server/tavily/client.ts` | [src/lib/contracts/evidence.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/evidence.ts) | Wave 1 | Returns `EvidenceItem[]` with valid HTTP URLs, passages, and UTC dates. |
 | **A (A05)** | **B (B04b, B05)**| `src/server/verify/decide.ts` | [src/lib/contracts/report.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/report.ts) | Wave 1 | Returns `AssessedClaimResult` obeying verdict score rubric (100, 75, 0, null). |
