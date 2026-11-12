@@ -377,17 +377,19 @@ The final verdict is derived not by asking an LLM *"What is the overall score?"*
 
 ```mermaid
 flowchart TD
-    Start["Begin Claim Synthesis"] --> Step1["Step 1: Filter Wrong-Scope Evidence"]
-    Step1 --> Step2{"Step 2: Essential Scope Missing?"}
+    Start["Begin Claim Decision"] --> Step0["Step 0: Validate Aggregate"]
+    Step0 -- Invalid --> Invalid["invalid_input<br/>No verdict fabricated"]
+    Step0 -- Valid --> Step1["Step 1: Eligibility, Exclusions & Grounding"]
+    Step1 --> Step2{"Step 2: Essential Context Missing?"}
     Step2 -- Yes --> DepContext["depends_on_context<br/>Score: null | ESSENTIAL_CONTEXT_MISSING"]
-    Step2 -- No --> Step3{"Step 3: Direct Contradiction?"}
+    Step2 -- No --> Step3{"Step 3: Equal-Authority Conflict?"}
+    Step3 -- Yes --> Conflict["conflicting_evidence<br/>Score: null | CREDIBLE_SOURCES_DISAGREE"]
 
-    Step3 -- Yes --> CheckOutdated{"Prior Validity Proven<br/>+ Superseding Change?"}
+    Step3 -- No --> Step4{"Step 4: Decisive Contradiction?"}
+    Step4 -- Yes --> CheckOutdated{"Complete Supersession<br/>Chain Proven?"}
     CheckOutdated -- Yes --> Outdated["outdated<br/>Score: 0 | SUPERSEDED_HISTORICAL_CLAIM"]
-    CheckOutdated -- No --> Contradicted["contradicted<br/>Score: 0 | DECISIVE_CONTRADICTION"]
-
-    Step3 -- No --> Step4{"Step 4: Irreconcilable Conflict?"}
-    Step4 -- Yes --> Conflict["conflicting_evidence<br/>Score: null | CREDIBLE_SOURCES_DISAGREE"]
+    CheckOutdated -- "No, but contradiction is<br/>independently sufficient" --> Contradicted["contradicted<br/>Score: 0 | DECISIVE_CONTRADICTION<br/>(prior validity retained as limitation)"]
+    CheckOutdated -- "No, and contradiction<br/>is not sufficient" --> InsufficientTransition["insufficient_evidence<br/>Score: null | INSUFFICIENT_RETRIEVAL_DATA"]
 
     Step4 -- No --> Step5{"Step 5: Authoritative Support?"}
     Step5 -- Primary Authority --> Supported100["supported<br/>Score: 100 | AUTHORITATIVE_PRIMARY_SUPPORT"]
@@ -397,16 +399,20 @@ flowchart TD
 ```
 
 ### Deterministic Gate Precedence Order
-1. **Step 1 (Scope Filtering):** Discard all assessments whose extracted properties directly conflict with the explicit claim qualifiers.
+0. **Step 0 (Aggregate Validation):** Validate the complete aggregate and its cross-references before deciding. Wrong claim binding, stale/mixed revisions, dangling references, duplicate IDs with conflicting objects, multiple assessments for one evidence unit where 1:1 is required, inconsistent source grounding, and invalid policy/timestamps return `invalid_input` rather than a partial verdict.
+1. **Step 1 (Eligibility, Exclusions & Grounding):** Exclude unverifiable quotations, wrong-scope evidence, incomplete property matches, and assessments whose decisive meaning depends on unverified structural context. Unknown authority, temporal, scope, or grounding facts are never treated as established.
 2. **Step 2 (Essential Ambiguity Check):** If an essential qualifier is unknown and different valid options yield conflicting outcomes, return `depends_on_context` (`score: null`, `ESSENTIAL_CONTEXT_MISSING`).
-3. **Step 3 (Contradiction & Outdated Check):**
-   - If an authoritative source contradicts the asserted fact for the target time:
-     - If evidence proves the claim was historically valid and subsequent evidence proves a superseding transition, return `outdated` (`score: 0`, `SUPERSEDED_HISTORICAL_CLAIM`).
-     - Otherwise, return `contradicted` (`score: 0`, `DECISIVE_CONTRADICTION`).
-4. **Step 4 (Conflict Check):** If multiple equally credible sources from the same timeframe provide irreconcilable values, return `conflicting_evidence` (`score: null`, `CREDIBLE_SOURCES_DISAGREE`).
+3. **Step 3 (Conflict Check):** If grounded, claim-applicable assessments of equal authority both support and contradict the proposition under the same scope and applicable time, return `conflicting_evidence` (`score: null`, `CREDIBLE_SOURCES_DISAGREE`). This gate intentionally precedes the contradiction gate so an unresolved conflict cannot be won by gate order.
+4. **Step 4 (Contradiction & Outdated Check):**
+   - If a claim-applicable primary assessment contradicts the asserted fact for the target time:
+     - If evidence proves the claim was historically valid, a documented matching-scope change superseded it, and the change was effective by the target time, return `outdated` (`score: 0`, `SUPERSEDED_HISTORICAL_CLAIM`).
+     - If the supersession chain is incomplete, the claim remains `contradicted` (`score: 0`, `DECISIVE_CONTRADICTION`) whenever the current contradiction is independently sufficient. The earlier validity is retained in `limitations` with a `PRIOR_VALIDITY_TRANSITION_UNESTABLISHED` entry; a missing transition proof does not invalidate a sufficient contradiction.
+     - If neither a sufficient current contradiction nor a complete transition proof exists, preserve uncertainty rather than converting incomplete proof into a verdict.
+     - Historical evidence alone never establishes current falsity, and a later state does not contradict an explicit historical claim.
 5. **Step 5 (Support Check):**
-   - If a primary authoritative source directly confirms the proposition and scope, return `supported` (`score: 100`, `AUTHORITATIVE_PRIMARY_SUPPORT`).
-   - If only reputable secondary sources confirm the proposition without contradiction, return `supported` (`score: 75`, `INDIRECT_CREDIBLE_SUPPORT`).
+   - If a claim-applicable primary authority directly confirms the proposition under matching scope, applicable time, and no unresolved material conflict, return `supported` (`score: 100`, `AUTHORITATIVE_PRIMARY_SUPPORT`).
+   - If only reputable secondary sources confirm the proposition without unresolved authority conflict, return `supported` (`score: 75`, `INDIRECT_CREDIBLE_SUPPORT`). A 75 is qualifying credible-secondary support, not a penalty for incomplete research.
+   - A material unresolved coverage obligation that affects every available supporting assessment prevents a supported verdict. An evidence-scoped obligation blocks only its declared affected assessments, so independent unaffected evidence may still decide. Adding another source does not itself resolve an unresolved requirement. Non-material exclusions, `unrelated` rejected candidates, and free-text limitations do not mechanically block independently sufficient evidence. Budget exhaustion is retained as a limitation; it is not treated as a material factual gap by itself. Unknown material coverage is treated as claim-wide, never as silently complete.
 6. **Step 6 (Fallback):** If no decisive evidence exists, return `insufficient_evidence` (`score: null`, `INSUFFICIENT_RETRIEVAL_DATA`).
 
 ---
@@ -436,7 +442,7 @@ export interface DecisionRecord {
   recordId: string;                 // Stable unique record ID (e.g. "dec_01j98ab...")
   claimTicketId: string;            // Bound ClaimTicket ID
   claimRevision: number;            // Evaluated revision number
-  appliedPolicy: string;            // Policy module name (e.g. "pricing", "api", "generic")
+  appliedPolicy: string;            // Versioned policy identifier (e.g. "pricing@1.0.0", "generic@1.0.0")
   verdict:                          // Final verdict
     | 'supported'
     | 'outdated'
@@ -449,9 +455,16 @@ export interface DecisionRecord {
   scoreReason: string;              // Human-readable justification paragraph
   primaryEvidenceIds: string[];     // IDs of assessments that directly granted verdict
   counterEvidenceIds: string[];     // IDs of counterevidence assessments evaluated
-  excludedEvidence: Array<{         // Evidence discarded during synthesis
+  excludedEvidence: Array<{         // Evidence discarded or limited during synthesis
     evidenceId: string;
-    exclusionReason: 'wrong_scope' | 'unverifiable_quote' | 'superseded_date' | 'untrusted_source';
+    exclusionReason:
+      | 'wrong_scope'
+      | 'unverifiable_quote'
+      | 'superseded_date'
+      | 'untrusted_source'
+      | 'insufficient_authority'
+      | 'unverified_context'
+      | 'incomplete_property_match';
   }>;
   extractedQualifiers: VerificationProperty[]; // Final qualifier snapshot used for decision
   temporalBasis: {                  // Evaluated temporal markers
@@ -462,17 +475,64 @@ export interface DecisionRecord {
   };
   limitations: string[];            // Explicit epistemic boundaries (e.g. "Excludes enterprise custom contracts")
   traceIds: {                       // Model execution trace references (no private CoT or secret keys)
+    runId?: string;
+    nodeId?: string;
     researchPlanTraceId?: string;
     assessmentTraceId?: string;
+    proposalId?: string;
   };
+  verifiedAt?: string;              // Caller-injected decision timestamp
 }
 ```
+
+### 10.1 A05 Decision-Boundary Implementation Contract
+
+A05 is implemented as the pure function `decideClaim(input: unknown): DecideClaimOutcome` in `src/server/verify/decide.ts` and exported from `src/server/verify/index.ts`.
+
+**Outcomes.** The small discriminated union separates factual uncertainty from software faults:
+
+- `{ status: 'decided', decision: DecisionRecord }` — a valid factual result, including `insufficient_evidence`.
+- `{ status: 'invalid_input', reasonCode: 'INVALID_AGGREGATE_INPUT', issues }` — the aggregate is malformed; no verdict is fabricated from the remaining fields.
+- `{ status: 'internal_error', reasonCode: 'INTERNAL_INVARIANT_FAILURE', message }` — a post-construction schema or reference invariant failed. This is a bug signal, not `insufficient_evidence`.
+
+**Minimal complete input.** `DecideClaimInput` carries the claim ticket, assessments, evidence units, source provenance, claim temporal scope, per-assessment grounding facts (`quotation_only`, `verified_context`, `unverified_context`, or `unknown`), per-evidence temporal proofs, claim-specific source-authority facts, documented transition proofs, explicit coverage obligations/limitations, a small policy object, and an injected `decidedAt` timestamp. Missing or `unknown` facts remain unresolved; they never default to grounded, complete, authoritative, matching, or current.
+
+**Scope versus value.** Claim-property roles are supplied by policy and are claim-dependent (`scope_qualifier` or `asserted_value`). A mismatch on a scope qualifier excludes the assessment as `wrong_scope`; a mismatch on the asserted value is a same-scope value disagreement and can support a contradiction. A04's `scopeMatching` label is cross-checked against property-level facts, but a coarse `mismatch` label does not by itself exclude a value disagreement.
+
+**Authority qualification.** `sourceRole` and model-declared `sourceSuitability` are necessary but not sufficient. Score 100 additionally requires a provenance-grounded `SourceAuthorityFact` whose basis matches the source document and whose `claimApplicability` is `applicable`.
+
+**Temporal policy.** Publication time, event time, effective time, announcement time, user target time, and historical assertion time stay distinct. An old effective start alone, a publication date alone, or a model temporal label alone does not prove current validity. A future effective change is recorded as a limitation and cannot retroactively contradict current state. Historical claims are tested against their asserted interval and do not require present-day applicability.
+
+**Historical and coverage limits.** `outdated` requires the full chain: grounded earlier validity, a documented superseding change, matching entity/scope, effectiveness by the target time, and resolvable references. An incomplete chain does not invalidate an independently sufficient current contradiction: the result remains `contradicted` and the earlier validity is retained as a `PRIOR_VALIDITY_TRANSITION_UNESTABLISHED` limitation. Historical evidence alone yields no current contradiction or `outdated` verdict.
+
+`CoverageObligation` is typed by `scope` (`claim` or `evidence`), `affectedAssessmentIds`, `resolvedByAssessmentIds`, and `resolutionBasis`. A material unresolved obligation blocks only the support it affects; an evidence-scope obligation without affected IDs is treated as claim-wide because the affected set is unknown. A material unresolved obligation affecting every support prevents a supported verdict, and adding another source does not itself resolve it. Independent unaffected evidence may still decide, including reaching 75 on credible-secondary support. Non-material exclusions, `unrelated` rejected candidates, and free-text `coverage.limitations` do not mechanically block sufficient evidence. `researchComplete: false` without budget exhaustion is an unresolved claim-wide gap; `budgetExhausted: true` is retained as a limitation but is not by itself a material factual gap.
+
+**Determinism and immutability.** The function performs no network, database, queue, model, clock, or environment access. Ordering is canonicalized and the record ID is a stable hash of the decision inputs excluding audit metadata. Reordering equivalent evidence does not change the verdict, and the input object is never mutated.
+
+**A07 handoff.** A05 does not generate corrections. A07 exclusively owns correction text generation, replacement formatting, bounded re-verification scheduling, and withholding unverified corrections. A07 calls `decideClaim` re-entrantly for each candidate correction and may emit a diff only when the new decision is `supported` with score 100.
+
+**B04b loading/persistence requirements.** Lane B must load the complete aggregate (not only `claimTicketId` + `assessmentIds`), including claim temporal scope, per-assessment grounding, per-evidence temporal proofs, source-authority facts, transition proofs, and typed coverage facts. It must persist the returned categorical score, reason code, score reason, primary/counter/excluded evidence IDs, temporal basis, limitations, and trace IDs, and must not persist a `DecisionRecord` when the outcome is `invalid_input`. Message payloads may carry IDs, but the worker must assemble and validate the full typed aggregate before invoking A05. Lane B loads, validates, and passes facts; it does not manufacture authority, temporal applicability, supersession, or coverage semantics.
+
+### 10.2 Decision-Fact Producer Handoff
+
+A05 is deterministic and never invents missing semantic facts. The following table records who must produce each input class, what exists today, and where the live pipeline remains integration-blocked. "Exists today" describes the repository as of this acceptance; it does not claim a working live producer.
+
+| Input class / field | Semantic producer | Exists today? | Transport / persistence | Missing behavior | Remaining owner |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `SourceAuthorityFact` (`basis`, `claimApplicability`) | A06 domain policy, using B03 `SourceDocument.sourceRole` and A04 assessment | No | In-memory `DecideClaimInput.sourceAuthority`; no Prisma field | Derive provenance basis and claim-specific applicability per document | A06 (inputs from B03/A04) |
+| `AssessmentGrounding` (`contextBasis`, `limitations`) | A04 semantic assessment / context verification | Partial: A04 emits `quotationVerified` and retains structural context, but no grounding fact | In-memory `DecideClaimInput.assessmentGrounding`; no Prisma field | Emit explicit `quotation_only` / `verified_context` / `unverified_context` / `unknown` basis and limitations per assessment | A04 bounded follow-up |
+| `EvidenceTemporalProof` (`basis`, `applicableInterval`) | A04 temporal evaluation (`temporal.ts` + `assess-evidence.ts`) | Partial: A04 emits a `temporalApplicability` label, not a proof object | In-memory `DecideClaimInput.evidenceTemporalProofs`; no Prisma field | Emit basis and the actually supported interval; distinguish effective-start-only and publication-only | A04 bounded follow-up |
+| `TransitionProof` (`priorAssessmentId`, `supersedingAssessmentId`, `effectiveDate`, `entityAndScopeMatch`, `basis`) | A04 cross-assessment derivation from historical/current evidence and effective dates, with A06 policy for scope/entity applicability | No | In-memory `DecideClaimInput.transitions`; no Prisma field | Produce the initial documented transition before the first `decide_claim`; A07 may consume/present it but must not be its sole producer | A04 bounded follow-up with A06; A07 consumer |
+| `ClaimTemporalScope` (`quantifier`, `assertedTime`, `intervalSemantics`) and property roles | A03 for claim temporal meaning; A06 for `DecisionPropertyRole[]` | Partial: A03 emits `VerificationProperty[]` but not `ClaimTemporalScope`; A06 is TODO | In-memory `DecideClaimInput.claimTemporalScope` / `policy.propertyRoles`; no Prisma field | Derive explicit historical/current scope and declare scope-qualifier versus asserted-value roles | A03 bounded follow-up + A06 |
+| `DecisionCoverage` (`researchComplete`, `obligations`, `rejectedCandidates`, `budgetExhausted`) | A04 research/assessment loop for rejected candidates and additional-research signals; B05 dynamic expansion for budget/research completion | Partial: A04 emits `discardedAssessments` / `requiresAdditionalResearch`; no typed coverage object | In-memory `DecideClaimInput.coverage`; `DecideClaimPayloadSchema` carries only IDs; Prisma lacks coverage fields | Assemble typed obligations with scope/affected evidence, distinguish budget exhaustion from unknown incompleteness, and transport to `decide_claim` | A04 bounded follow-up + B05 (with B04b transport) |
+
+A05 currently supports every input class above **through validated supplied facts**, proven at E1/E2. Live pipeline paths remain integration-blocked until these producers and B04b loading/persistence exist. A07 owns timeline presentation and correction generation; it does not own the initial verification proof.
 
 ---
 
 ## 11. Surgical Correction Verification
 
-When a claim is determined to be **`outdated`** or **`contradicted`**, the verifier generates a minimal, surgical replacement proposition.
+Correction generation is owned exclusively by **A07**. A05 validates the aggregate and returns a `DecisionRecord`; it does not generate replacement text, schedule re-verification, or emit diffs. When a claim is determined to be **`outdated`** or **`contradicted`**, A07 generates a minimal, surgical replacement proposition and re-enters `decideClaim` against the identical target context. A07 may own timeline presentation and correction generation, but it does not own the initial transition proof: `TransitionProof` facts must already exist in the aggregate before the first `decide_claim` (produced upstream by A04/A06 and loaded by B04b).
 
 ### Verification Lifecycle for Corrections
 1. **Targeted Proposition Replacement:** The model generates a replacement phrase targeting *only* the superseded attribute value, preserving the subject and background context.
