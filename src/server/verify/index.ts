@@ -46,6 +46,15 @@ export {
   type DiscardedAssessment,
 } from './assess-evidence';
 
+// Stage 4: Deterministic Decision Gate
+export {
+  decideClaim,
+  DECISION_REASON_CODES,
+  type DecideClaimOutcome,
+  type DecisionInputIssue,
+  type DecisionReasonCode,
+} from './decide';
+
 // Temporal Interval & Validity Utilities
 export {
   parseDateToInterval,

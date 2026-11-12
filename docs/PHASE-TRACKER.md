@@ -109,7 +109,7 @@ The following mapping documents the evolution from the initial planning baseline
 | **C02** | Input composer skeleton with character counter and mode tabs. | Adds `PreparationReview` component displaying extracted claims, UTF-16 highlight spans, explicit qualifiers vs inferred suggestions, and editable target context fields. | Interactive preparation requires human review before verification confirms and materializes the DAG. |
 | **A03** | Text extraction logic and UTF-16 substring matching. | Parses text into `ClaimTicket[]` carrying strongly typed `VerificationProperty[]` context properties; enforces scope precedence invariant. | Claims must carry variable typed factual qualifiers rather than rigid dictionary fields or unvalidated JSON. |
 | **A04** | Passage relevance prompt and quote validation. | Implements `ResearchPlan` query generation (current-state, exceptions, counterevidence, historical), context-preserving extraction (`EvidenceUnit[]`), candidate shortlisting, and semantic assessment (`ClaimEvidenceAssessment[]`). | Decouples document retrieval from localized passage extraction and semantic assessment. |
-| **A05** | Precedence decision tree and scoring rubric. | Deterministic synthesis judge executing sequential decision gates; emits immutable `DecisionRecord`; enforces categorical 100/75/0/null rubric; validates surgical correction diffs with 100-score gate. | Epistemic truth scoring is governed by deterministic TypeScript decision gates, not LLM confidence guesswork or floating-point similarity. |
+| **A05** | Precedence decision tree and scoring rubric. | Deterministic synthesis judge executing sequential decision gates; validates the full claim/evidence aggregate; emits immutable `DecisionRecord`; enforces categorical 100/75/0/null rubric. | Epistemic truth scoring is governed by deterministic TypeScript decision gates, not LLM confidence guesswork or floating-point similarity. |
 | **A11** *(New)* | None (new ticket). | Optional vector similarity ranking over cached embeddings in PostgreSQL (active only when candidates $> 4$) and experimental counter-hypothesis testing. | Explicitly isolated as an optional, non-blocking ablation; strictly prohibited from contributing to public freshness scores. |
 | **B03** | Tavily REST client and query execution. | Executes queries formulated by `ResearchPlan`; captures `SourceDocument` provenance (URL, final redirected URL, title, publisher, crawl hash, pub/effective dates, source role). | Captures full document provenance and redirect history required for evidence decoupling. |
 | **B04** | Relational schema and initial execution slice. | Explicitly partitioned into internal milestones: **B04a** (Neon DDL baseline: `runs`, `preparations`, `claims`, `source_documents`, `evidence_units`, `claim_evidence_assessments`, `decision_records`, `events`, `dag_nodes`, `dag_edges`, `clarifications`) and **B04b** (wire minimal persisted DAG execution slice, retiring temporary synchronous orchestration). | Resolves the database migration vs live integration split without creating phase cycles or false synchronous paths. |
@@ -427,6 +427,8 @@ The following mapping documents the evolution from the initial planning baseline
   - [x] Generate execution-aware claim identities (`clm_${execHash}_${ordinal}_${stmtHash}`) satisfying PostgreSQL `VARCHAR(36)` bounds.
   - [x] Decompose verifier into cohesive modular domain helpers connected through imports and barrel exports.
   - [x] Implement live model integration tests (E4) and standalone CLI smoke test (`pnpm test:live`, `pnpm smoke:extract`).
+- **Decision-Fact Producer Follow-up (bounded; required for live A05 integration, not part of A03's original REVIEW scope):**
+  - [ ] Emit an explicit `ClaimTemporalScope` (`quantifier`, `assertedTime`, `intervalSemantics`) alongside each `ClaimTicket` so A05 can distinguish current from historical assertions. A03 must not rely on A05 or Lane B to infer claim temporal meaning.
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, A10.
   - **Integration / Completion Prerequisites:** B02 (Bifrost model gateway).
@@ -464,46 +466,57 @@ The following mapping documents the evolution from the initial planning baseline
   - [x] Enforce deterministic 1:1 mapping in `assess-evidence.ts` by discarding duplicate assessments for the same `evidenceId` into `discardedAssessments`.
   - [x] Preserve valid conflicting assessments for downstream A05 synthesis judge without artificial consensus.
   - [x] Implement live Bifrost integration test suite (`tests/integration/assess-evidence.live.test.ts`).
+- **Decision-Fact Producer Follow-up (bounded; required for live A05 integration, not part of A04's original DONE scope):**
+  - [ ] Emit `AssessmentGrounding` (`contextBasis`, `limitations`) for each assessment so A05 does not infer whether structural context was verified.
+  - [ ] Emit `EvidenceTemporalProof` (`basis`, `applicableInterval`) instead of only a coarse `temporalApplicability` label; distinguish effective-start-only, publication-only, current, and historical validity.
+  - [ ] Emit the initial documented `TransitionProof` when historical and current assessments plus an effective date and matching entity/scope corroborate a supersession. This proof must exist before the first `decide_claim`; A07 may consume/present it but must not be its sole producer.
+  - [ ] Emit typed coverage facts from the research/assessment loop: rejected candidates with materiality and unresolved obligations with claim/evidence scope and affected assessment IDs. Budget exhaustion remains a B05 flow fact.
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, A10.
   - **Integration / Completion Prerequisites:** A03, B02, B03 (mocked for unit testing; live Tavily integration deferred to B03).
   - **External Prerequisites:** Model provider credentials via Bifrost.
   - **What Can Start Early:** Research planner templates, context-preserving extraction helpers, quotation verifier logic, unit tests with mocked Tavily documents.
-- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b. Callable stages `generateResearchPlan`, `extractEvidenceUnits`, and `assessEvidenceAgainstClaim` ready for immediate DAG node wiring.
+- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b. Callable stages `generateResearchPlan`, `extractEvidenceUnits`, and `assessEvidenceAgainstClaim` ready for immediate DAG node wiring. The bounded decision-fact producer follow-up above is required before the live `decide_claim` path can supply grounding, temporal proofs, transition proofs, or typed coverage to A05.
 - **Positive Acceptance Examples:** An authoritative passage confirming entity, attribute, and scope is classified as `supports` with `quotationVerified: true`; table footnotes are captured into evidence unit; partial dates retain verbatim precision; duplicate assessment proposals for the same evidence unit are discarded with audit trails.
 - **Relevant Negative / Failure Cases:** An invented or hallucinated quote fails deterministic quotation verification and is discarded; fabricated section headers are filtered out; evidence with conflicting jurisdiction or currency is classified as wrong-scope.
 - **Verification Commands & Checks:** `pnpm test` (228 unit tests passing across 13 suites), `pnpm test:live` (live Bifrost E4 integration), `pnpm typecheck` (0 errors), `pnpm lint` (0 errors), `pnpm build` (clean in 5.0s).
 - **Evidence Level & Required Proof:** E1 (Static analysis, compiler, lint, build) + E2 (Vitest unit suite with 49 focused A04/date/temporal tests) + E4 (Live Railway Bifrost gateway integration).
 - **Observed Evidence:** Implemented partial-date preservation in `src/lib/contracts/dates.ts` and `src/lib/contracts/claim-ticket.ts`, retiring artificial padding in `src/server/verify/context-resolver.ts`. Implemented temporal interval evaluation in `src/server/verify/temporal.ts` with publication date fallback corrected to `undetermined`. Implemented prompt builders in `src/server/prompts/` (`research.ts`, `extract-evidence.ts`, `assess.ts`). Implemented modular verifier stages in `src/server/verify/` (`research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts`, `index.ts`) with fabricated header filtration, duplicate assessment deduplication, and model temporal judgment preservation. Authored 49 unit tests across `tests/unit/contracts/partial-dates.test.ts` (12 tests), `tests/unit/verify/temporal.test.ts` (14 tests), `tests/unit/verify/research-planner.test.ts` (7 tests), `tests/unit/verify/extract-evidence.test.ts` (7 tests), and `tests/unit/verify/assess-evidence.test.ts` (9 tests), bringing the total unit test suite to 228/228 passing tests. Executed live model integration tests against Railway Bifrost (`gemini-3.5-flash-lite`) via `tests/integration/assess-evidence.live.test.ts` (1/1 passed end-to-end with automated 503 backoff recovery). All static checks clean: `pnpm typecheck` (0 errors), `pnpm lint` (0 errors, 0 warnings), `pnpm build` (compiled in 5.0s, 5/5 static pages generated). Acceptance audit completed with follow-up corrections applied and verified. Status updated to DONE.
 - **Explicit Exclusions:** Vector embedding shortlisting (isolated in experimental A11), final score calculation (owned by A05), and Bifrost composite outer deadline management (owned by Lane B / B04b).
-- **Blocker / Decision:** None. Unblocks A05 to implement deterministic policy and decision gates.
+- **Blocker / Decision:** None for A04's original scope. The bounded decision-fact producer follow-up is an integration dependency for A05 and B04b; it does not reopen A04's accepted E2/E4 evidence.
 
 #### A05: Apply deterministic policy, synthesis judge and decision gates {#a05-apply-deterministic-policy-and-score}
 - **Owner:** A / Verification
-- **Plain-Language Outcome:** Implement deterministic synthesis judge executing sequential decision gates, producing immutable DecisionRecords with categorical score heuristics (100, 75, 0, null) and validating surgical corrections.
+- **Plain-Language Outcome:** Implement a pure deterministic decision boundary that validates a complete claim/evidence aggregate, applies documented gates, and emits an immutable auditable `DecisionRecord` with categorical score heuristics (100, 75, 0, null).
 - **Planned Date:** Nov 9, 2026 IST
-- **Status:** TODO
-- **Phase & Gate Contribution:** Core Phase 1 decision authority; mandatory prerequisite for Gate G1 and B04b.
-- **Canonical Design References:** [docs/VERIFICATION.md §8, §9, §10, §11](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-021](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/decide.ts` (proposed), `src/server/verify/correction.ts` (proposed), `tests/unit/verify/decide.test.ts` (proposed).
+- **Status:** DONE (A05 deterministic service accepted at E1/E2; integration tracked separately)
+- **Phase & Gate Contribution:** Core Phase 1 decision authority; mandatory prerequisite for Gate G1 and B04b. A05's scoped acceptance does not complete Gate G1: production worker wiring, persistence alignment, and semantic producers remain open.
+- **Canonical Design References:** [docs/VERIFICATION.md §8, §9, §10](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-005](docs/DECISIONS.md), [docs/DECISIONS.md#adr-021](docs/DECISIONS.md).
+- **Allowed Scope & Expected Files:** `src/server/verify/decide.ts`, `src/lib/contracts/decision.ts` (input/policy contracts), `tests/unit/verify/decide.test.ts`, `src/server/verify/index.ts` (barrel export). `src/server/verify/correction.ts` is **not** in A05 scope.
 - **Atomic Implementation Checklist:**
-  - [ ] Implement deterministic synthesis judge executing sequential decision gates: Step 1 Scope match, Step 2 Essential qualifier check, Step 3 Direct contradiction / Outdated check, Step 4 Conflicting evidence check, Step 5 Authoritative support check, Step 6 Fallback.
-  - [ ] Emit immutable `DecisionRecord` capturing evaluated claim revision, policy module, verdict, categorical score (100 | 75 | 0 | null), machine reason codes, primary/counter/excluded evidence IDs, and trace references.
-  - [ ] Enforce categorical score rubric: 100 (direct primary authority), 75 (indirect credible support), 0 (decisive contradiction or outdated), `null` (unresolved with explicit machine reason code).
-  - [ ] Implement recursive surgical correction verification (`correction.ts`): validate candidate replacement against identical target context; emit diff if and only if replacement achieves score of 100.
+  - [x] Validate and index the complete aggregate before deciding: claim binding, current revision, dangling references, duplicate IDs, one-assessment-per-evidence, source grounding, policy roles, and timestamps.
+  - [x] Apply eligibility and exclusions: unverifiable quotations, wrong-scope qualifiers, incomplete property matches, unverified structural context, and insufficient authority.
+  - [x] Execute the documented gate sequence: validate → eligibility/exclusions → context ambiguity → unresolved equal-authority conflict → contradiction/outdated → support → `insufficient_evidence`.
+  - [x] Emit an immutable `DecisionRecord` with verdict, categorical score, machine reason code, deterministic explanation, primary/counter/excluded evidence IDs, temporal basis, limitations, and trace references.
+  - [x] Enforce the categorical rubric: `supported` 100/75, `contradicted`/`outdated` 0, and `depends_on_context`/`conflicting_evidence`/`insufficient_evidence` null.
+  - [x] Keep the boundary pure: no model calls, Tavily/Bifrost calls, database access, `Date.now()`, environment-driven verdicts, or input mutation.
+  - [x] Add focused deterministic E2 coverage for support, authority qualification, scope versus value, equal-authority conflict, outdated/contradicted/incomplete transitions, historical truth, future announcements, publication versus event time, context, optional unknowns, coverage, duplicates, truth-signal fencing, schema validity, determinism, ordering, and immutability.
+  - [x] Preserve an independently sufficient current contradiction when earlier validity lacks a complete transition proof; return `outdated` only for a complete applicable chain and retain prior validity as a `PRIOR_VALIDITY_TRANSITION_UNESTABLISHED` limitation.
+  - [x] Apply typed coverage obligations by claim/evidence scope: material unresolved gaps block only affected support, independent evidence may still decide, 75 remains qualifying credible-secondary support, unrelated/non-material rejections do not block, and budget exhaustion alone is not a material factual gap.
+  - [ ] Persist and wire the decision into the DAG worker once B04b provides a production entry point.
 - **Prerequisites:**
   - **Start Prerequisites:** A04, A10.
-  - **Integration / Completion Prerequisites:** None (pure deterministic TypeScript logic).
-  - **External Prerequisites:** None.
-  - **What Can Start Early:** Entire decision tree logic, date comparator, reason code registry, and unit test suite.
-- **Deliverable & Interface Handoff:** Handed downstream to A06 (domain policies), B04b (vertical slice), and C04.
-- **Positive Acceptance Examples:** Direct primary authoritative support yields score 100 (`AUTHORITATIVE_PRIMARY_SUPPORT`); decisive contradiction yields score 0 (`DECISIVE_CONTRADICTION`).
-- **Relevant Negative / Failure Cases:** Outdated claim lacking verified proof of prior validity is marked contradicted, not outdated; candidate correction achieving score 75 is suppressed and marked `correction_unverified`.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/decide.test.ts`.
-- **Evidence Level & Required Proof:** E2 (Vitest unit suite verifying all decision paths).
-- **Observed Evidence:** *Pending execution*
-- **Explicit Exclusions:** Database transactions (managed by B04b) and external LLM calls.
-- **Blocker / Decision:** None.
+  - **Integration / Completion Prerequisites:** B04b (typed aggregate loading, worker invocation, and persistence), A06 (domain-specific property roles and source-role narrowing), A03/A04 bounded decision-fact producer follow-ups (claim temporal scope, grounding, temporal proofs, initial transition proof, coverage facts), and B05 (budget/research-completion facts).
+  - **External Prerequisites:** None for A05 itself.
+  - **What Can Start Early:** Entire decision tree logic, temporal comparator, reason code registry, and unit test suite.
+- **Deliverable & Interface Handoff:** `decideClaim(input): DecideClaimOutcome` is exported from `src/server/verify/index.ts` for A06, A07, and B04b. A06 supplies domain policy facts (property roles, authoritative source roles, `SourceAuthorityFact` applicability). A07 calls `decideClaim` re-entrantly for candidate corrections and may consume `TransitionProof`, but the initial transition proof must be produced upstream by A04/A06. B04b must assemble the full typed aggregate (including grounding, temporal proofs, authority, transitions, and typed coverage), persist the `DecisionRecord` fields, and treat `invalid_input` as a non-persisted failure. The field-by-field producer handoff is recorded in [docs/VERIFICATION.md §10.2](VERIFICATION.md).
+- **Positive Acceptance Examples:** Direct primary support with claim-specific provenance yields score 100 (`AUTHORITATIVE_PRIMARY_SUPPORT`); credible-secondary support yields 75 (`INDIRECT_CREDIBLE_SUPPORT`); decisive primary contradiction yields 0 (`DECISIVE_CONTRADICTION`); a documented matching-scope supersession yields 0 (`SUPERSEDED_HISTORICAL_CLAIM`); equal-authority unresolved opposition yields `conflicting_evidence`/null (`CREDIBLE_SOURCES_DISAGREE`).
+- **Relevant Negative / Failure Cases:** A role label or `sourceSuitability` without claim-applicable provenance cannot grant 100; a different jurisdiction is `wrong_scope`, not a value contradiction; a newer publication date alone does not resolve a conflict or prove supersession; an old effective-start or publication date alone does not prove current validity; unverified structural context cannot independently decide; a current primary contradiction with earlier validity but no complete transition remains `contradicted`/0 and retains `PRIOR_VALIDITY_TRANSITION_UNESTABLISHED`; a material unresolved coverage gap affecting every support prevents `supported`; malformed aggregates return `invalid_input` without a partial verdict.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/decide.test.ts`; `pnpm test`; `pnpm typecheck`; `pnpm lint`; `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (typecheck/lint/build) + E2 (41 focused Vitest decision cases, 269 total unit tests). No E3/E4/E5 evidence is claimed for A05. Integration remains blocked by B04b (no worker/API entry point, ID-only `DecideClaimPayloadSchema`, simplified Prisma `DecisionRecord`) and by missing semantic producers (A03/A04/A06/B05).
+- **Observed Evidence:** Implemented `src/server/verify/decide.ts` with `decideClaim`, `DECISION_REASON_CODES`, the `decided`/`invalid_input`/`internal_error` outcome union, aggregate validation/indexing, eligibility and exclusion evaluation, canonical ordering, deterministic record hashing, and `DecisionRecordSchema` plus `validateDecisionRecordReferences` validation. Extended `src/lib/contracts/decision.ts` with `DecideClaimInputSchema`, property-role policy, claim temporal scope, assessment grounding basis, evidence temporal proofs, source authority facts, transition proofs, typed coverage obligations (`scope`, `affectedAssessmentIds`, `resolvedByAssessmentIds`, `resolutionBasis`), and rejection records. Corrected the contradiction gate so missing transition proof no longer downgrades an independently sufficient current contradiction, and replaced the coarse coverage penalty with evidence-aware support blocking. Exported the gate from `src/server/verify/index.ts`. Expanded `tests/unit/verify/decide.test.ts` to 41 tests, including the required coverage regressions and the contradicted-versus-outdated transition pair. Executed `pnpm vitest run tests/unit/verify/decide.test.ts` → 41/41 passed; `pnpm test` → 14 suites / 269 tests passed; `pnpm typecheck` → 0 errors; `pnpm lint` → 0 errors and 0 warnings; `pnpm build` → clean production build (5/5 static pages). No live provider, database, or staged environment evidence is claimed.
+- **Explicit Exclusions:** Correction text generation, replacement formatting, bounded re-verification scheduling, and withholding unverified corrections (owned exclusively by A07); full A06 domain policy collection; LLM/research calls; database transactions, queue delivery, and persistence (owned by B04b); UI rendering; vector/embedding or `modelConfidence` truth signals.
+- **Blocker / Decision:** **A05 deterministic service accepted at E1/E2; integration tracked separately.** Production integration is blocked by B04b: no `src/app/api/**` route or worker entry exists, `DecideClaimPayloadSchema` carries only IDs, and the Prisma `DecisionRecord` model lacks score/reason/evidence/temporal/limitation fields. Semantic producer gaps remain under A03 (claim temporal scope), A04 (grounding, temporal proof, initial transition proof, coverage facts), A06 (authority applicability and property roles), and B05 (budget/research-completion facts). Do not wire persistence or treat Gate G1 as complete until those owners deliver.
 
 #### B03: Implement search, extract and evidence capture {#b03-search-extract-and-evidence-capture}
 - **Owner:** B / Platform
@@ -578,12 +591,13 @@ The following mapping documents the evolution from the initial planning baseline
   - [ ] Implement `regulation.ts` (match jurisdiction, covered group, effective date).
   - [ ] Implement `leadership.ts` (match entity, office, acting vs permanent, handover date).
   - [ ] Implement domain-specific clarification question planning for material ambiguities.
+  - [ ] Emit `SourceAuthorityFact` facts (provenance basis plus claim applicability) and declare `DecisionPropertyRole[]` scope-qualifier versus asserted-value roles for the A05 aggregate.
 - **Prerequisites:**
   - **Start Prerequisites:** A05, B03.
   - **Integration / Completion Prerequisites:** None.
   - **External Prerequisites:** None.
   - **What Can Start Early:** Policy interface definitions, qualifier matching algorithms, and unit test suites.
-- **Deliverable & Interface Handoff:** Handed downstream to B05 (dynamic DAG expansion), C04 (clarification form), A07, and A08.
+- **Deliverable & Interface Handoff:** Handed downstream to B05 (dynamic DAG expansion), C04 (clarification form), A07, and A08. Supplies A05 with `SourceAuthorityFact` applicability and `DecisionPropertyRole[]`; it does not manufacture temporal or supersession facts.
 - **Positive Acceptance Examples:** One mixed answer successfully validates claims across all 4 domains; pricing policy rejects monthly assertion matched against annual rate.
 - **Relevant Negative / Failure Cases:** Deprecated API parameter claimed to be "removed" is marked contradicted; regulation claimed in force before effective date is flagged as upcoming change.
 - **Verification Commands & Checks:** `pnpm vitest run tests/unit/policies/domain-policies.test.ts`.
@@ -633,12 +647,13 @@ The following mapping documents the evolution from the initial planning baseline
   - [ ] Implement dynamic runtime graph expansion protocol (DFS cycle check $\to$ atomic commit of node outcome, newly expanded nodes/edges, and events).
   - [ ] Implement non-blocking clarification wait states in `dag_nodes` (`waiting_for_input`) holding zero worker leases.
   - [ ] Implement reconciliation route `/api/internal/reconcile` to recover expired leases, dispatch stranded eligible nodes, and handle clarification timeouts.
+  - [ ] Emit typed `DecisionCoverage` facts for `decide_claim`: research completion, material obligations with claim/evidence scope, and budget exhaustion. Lane B transports these facts; it must not manufacture semantic authority or supersession.
 - **Prerequisites:**
   - **Start Prerequisites:** B04b.
   - **Integration / Completion Prerequisites:** A06 (for multi-domain execution).
   - **External Prerequisites:** Upstash QStash account, token, and signing keys (`QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`).
   - **What Can Start Early:** Signature verification helpers, DFS cycle detection algorithm, and lease expiration logic.
-- **Deliverable & Interface Handoff:** Handed downstream to B06, B07, and C04; completes Gate G2 platform requirement.
+- **Deliverable & Interface Handoff:** Handed downstream to B06, B07, and C04; completes Gate G2 platform requirement. Supplies budget/research-completion coverage facts to the `decide_claim` aggregate through B04b; semantic authority, temporal applicability, and supersession remain upstream A04/A06 facts.
 - **Positive Acceptance Examples:** Sibling claims fan out across QStash with max 3 concurrent branches; paused clarification branch holds zero leases; reconciliation sweeper re-enqueues timed-out nodes.
 - **Relevant Negative / Failure Cases:** Duplicate delivery of identical webhook cannot insert duplicate claim records; worker losing its lease fails closed upon completion attempt (`409 Conflict`).
 - **Verification Commands & Checks:** `pnpm vitest run tests/integration/dynamic-dag-recovery.test.ts`.
@@ -686,20 +701,21 @@ The following mapping documents the evolution from the initial planning baseline
 - **Status:** TODO
 - **Phase & Gate Contribution:** Phase 3 verifier deliverable; mandatory prerequisite for Gate G3 and C05.
 - **Canonical Design References:** [docs/VERIFICATION.md §5, §11](docs/VERIFICATION.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-009](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/transition.ts` (proposed), `src/server/verify/correction.ts` (proposed), `tests/unit/verify/transition-correction.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/verify/transition.ts` (proposed), `src/server/verify/correction.ts` (proposed), `tests/unit/verify/transition-correction.test.ts` (proposed). A07 exclusively owns `correction.ts`; A05 provides the re-entrant `decideClaim` decision boundary only.
 - **Atomic Implementation Checklist:**
   - [ ] Implement chronology composer assembling then, transition, now, and upcoming timeline entries.
   - [ ] Separate announced date from effective date; flag future-effective changes with `Scheduled change`.
-  - [ ] Implement surgical correction generator replacing only verified attributes.
-  - [ ] Run recursive verifier against replacement text; withhold correction if score < 100.
+  - [ ] Consume the initial `TransitionProof` produced upstream by A04/A06; A07 may present and enrich the timeline but must not be the sole producer of the proof required for the first `outdated` verdict.
+  - [ ] Implement surgical correction generator replacing only verified attributes, consuming A05's `DecisionRecord` and never generating a correction for an unresolved or conflicting verdict.
+  - [ ] Run the recursive verifier (`decideClaim`) against replacement text; withhold the diff unless the new decision is `supported` with score 100.
 - **Prerequisites:**
   - **Start Prerequisites:** A05, A06.
   - **Integration / Completion Prerequisites:** None.
   - **External Prerequisites:** None.
   - **What Can Start Early:** Timeline composer, date separation logic, and unit test suite.
-- **Deliverable & Interface Handoff:** Handed downstream to C05, C06, and A09.
+- **Deliverable & Interface Handoff:** Handed downstream to C05, C06, and A09. Consumes A05's `DecisionRecord`, upstream `TransitionProof` facts, and re-entrant `decideClaim` outcome; does not duplicate deterministic verdict logic and does not own the initial transition proof.
 - **Positive Acceptance Examples:** Outdated claim produces structured Then vs. Now chronology; valid replacement achieves score 100 and emits clean diff.
-- **Relevant Negative / Failure Cases:** Future-effective event maintains today's valid verdict and attaches `Scheduled change` badge; withheld correction is marked `correction_unverified` rather than emitting speculative text.
+- **Relevant Negative / Failure Cases:** Future-effective event maintains today's valid verdict and attaches `Scheduled change` badge; withheld correction is marked `correction_unverified` rather than emitting speculative text; a replacement that reaches only score 75, 0, or null is suppressed.
 - **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/transition-correction.test.ts`.
 - **Evidence Level & Required Proof:** E2 (Vitest unit suite).
 - **Observed Evidence:** *Pending execution*
