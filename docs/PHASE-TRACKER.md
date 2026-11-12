@@ -288,7 +288,7 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** B / Platform
 - **Plain-Language Outcome:** Deploy Bifrost model gateway on Railway using the official prebuilt container image (`maximhq/bifrost`) with persistent volume `/app/data`, verify local Docker-free `pnpm bifrost` script, configure model profiles, implement client wrapper, and verify inference failover.
 - **Planned Date:** Nov 8, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 0 platform deliverable; mandatory prerequisite for Gate G0 and A03.
 - **Canonical Design References:** [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/SETUP-AND-DEPLOYMENT.md §4](docs/SETUP-AND-DEPLOYMENT.md), [docs/DECISIONS.md#adr-023](docs/DECISIONS.md).
 - **Allowed Scope & Expected Files:** `src/server/bifrost/client.ts` (proposed), `src/server/bifrost/profiles.ts` (proposed), `infra/smoke-bifrost.ts` (proposed).
@@ -322,11 +322,11 @@ The following mapping documents the evolution from the initial planning baseline
 - **Canonical Design References:** [docs/DATA-AND-JOBS.md §1, §2](docs/DATA-AND-JOBS.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-013](docs/DECISIONS.md), [docs/DECISIONS.md#adr-022](docs/DECISIONS.md).
 - **Allowed Scope & Expected Files:** `prisma/schema.prisma` (proposed), `src/server/db/client.ts` (proposed), `src/server/services/prep-service.ts` (proposed), `src/server/services/dag-service.ts` (proposed), `tests/integration/dag-slice.test.ts` (proposed).
 - **Atomic Implementation Checklist:**
-  - [ ] **Internal Milestone B04a (Database Baseline & DDL Migrations · Phase 0 / Gate G0):**
-    - [ ] Define Prisma relational models: `VerificationRun`, `Preparation`, `Claim`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `DecisionRecord`, `RunEvent`, `DagNode`, `DagEdge`, `Clarification`.
-    - [ ] Configure Prisma with pooled `DATABASE_URL` (PgBouncer) for runtime queries and direct `DIRECT_URL` for DDL migrations.
-    - [ ] Run baseline migration (`pnpm prisma migrate dev --name init`) creating all tables, indexes, unique constraints, and foreign keys against Neon dev branch (`afterfact-dev`).
-    - [ ] Implement Prisma client singleton in `src/server/db/client.ts` with Next.js hot module reloading guard.
+  - [x] **Internal Milestone B04a (Database Baseline & DDL Migrations · Phase 0 / Gate G0):**
+    - [x] Define Prisma relational models: `VerificationRun`, `Preparation`, `Claim`, `SourceDocument`, `EvidenceUnit`, `ClaimEvidenceAssessment`, `DecisionRecord`, `RunEvent`, `DagNode`, `DagEdge`, `Clarification`.
+    - [x] Configure Prisma with pooled `DATABASE_URL` (PgBouncer) for runtime queries and direct `DIRECT_URL` for DDL migrations.
+    - [x] Run baseline migration (`pnpm prisma migrate dev --name init`) creating all tables, indexes, unique constraints, and foreign keys against Neon dev branch (`Apex1`).
+    - [x] Implement Prisma client singleton in `src/server/db/client.ts` with Next.js hot module reloading guard.
   - [ ] **Internal Milestone B04b (Wire Minimal Persisted DAG Slice · Phase 1 / Gate G1):**
     - [ ] Implement `PreparationService` (input hash binding and claim ticket/qualifier persistence).
     - [ ] Implement local `DagExecutionService` executing a single-claim paste through real persisted DAG nodes (`root_extract_prep` $\to$ `plan_research` $\to$ `search_evidence` $\to$ `extract_evidence` $\to$ `assess_evidence` $\to$ `decide_claim` $\to$ `finalize_run`).
