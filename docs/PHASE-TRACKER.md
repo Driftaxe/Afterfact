@@ -445,30 +445,35 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Formulate structured ResearchPlan queries, execute context-preserving extraction of EvidenceUnits, and perform semantic assessment producing ClaimEvidenceAssessments with deterministic quotation verification.
 - **Planned Date:** Nov 9, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Core Phase 1 evidence evaluation component; mandatory prerequisite for Gate G1 and A05.
 - **Canonical Design References:** [docs/VERIFICATION.md §3, §4, §5, §7](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-019](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/research-planner.ts` (proposed), `src/server/verify/extract-evidence.ts` (proposed), `src/server/verify/assess-evidence.ts` (proposed), `src/server/prompts/assess.ts` (proposed), `tests/unit/verify/assess-evidence.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/verify/research-planner.ts`, `src/server/verify/extract-evidence.ts`, `src/server/verify/assess-evidence.ts`, `src/server/verify/temporal.ts`, `src/server/prompts/research.ts`, `src/server/prompts/extract-evidence.ts`, `src/server/prompts/assess.ts`, `tests/unit/verify/research-planner.test.ts`, `tests/unit/verify/extract-evidence.test.ts`, `tests/unit/verify/assess-evidence.test.ts`, `tests/unit/verify/temporal.test.ts`, `tests/integration/assess-evidence.live.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Implement `research-planner.ts` generating structured `ResearchPlan` queries with explicit purposes (`establish_current_state`, `investigate_exceptions_or_scope`, `seek_counterevidence`, `establish_historical_state_or_transition`), target source roles, and early stopping bounds.
-  - [ ] Implement context-preserving extraction in `extract-evidence.ts` to produce `EvidenceUnit[]` retaining negation markers, header trails, table structures, and footnotes.
-  - [ ] Implement candidate shortlisting (bypassed when candidate passages $\le 4$; lexical/date sort baseline).
-  - [ ] Author semantic assessment prompt sending normalized proposition and candidate `EvidenceUnit[]` to Bifrost.
-  - [ ] Require model to return candidate `ClaimEvidenceAssessment[]` with matching quotes, property match status, and temporal tags.
-  - [ ] Execute deterministic TypeScript quotation verification (`SourceDocument.text.includes(quote)`); reject ungrounded quotes.
+  - [x] Fix partial-date normalization prerequisite: export `isValidCalendarDateOrPartial` and `CalendarDateOrPartialDateSchema` in `dates.ts`, permit partial dates in `VerificationPropertySchema`, and remove artificial date padding from `normalizePropertyValue`.
+  - [x] Implement `research-planner.ts` generating structured `ResearchPlan` queries with explicit purposes (`establish_current_state`, `investigate_exceptions_or_scope`, `seek_counterevidence`, `establish_historical_state_or_transition`), target source roles, remaining allowance enforcement, and early stopping bounds.
+  - [x] Enforce deterministic policy counterevidence requirement for exclusivity, superlatives, and active validity assertions.
+  - [x] Implement context-preserving extraction in `extract-evidence.ts` to produce `EvidenceUnit[]` retaining negation markers, header trails, table structures, and footnotes.
+  - [x] Execute deterministic TypeScript quotation verification (`SourceDocument.rawText.includes(quote)`) and re-anchor character offsets using context headers.
+  - [x] Implement candidate budgeting (bypassed when candidate passages $\le 4$; bounded to top 8; lexical/date sort baseline).
+  - [x] Author semantic assessment prompt sending normalized proposition and candidate `EvidenceUnit[]` to Bifrost.
+  - [x] Require model to return candidate `ClaimEvidenceAssessment[]` with matching quotes, property match status, and temporal tags.
+  - [x] Enforce deterministic invariants: scope mismatch clamped to `relevant_but_inconclusive`, future effective change classified as `future_scheduled_change` / `future_pending`, historical validity preserved without false contradiction.
+  - [x] Preserve valid conflicting assessments for downstream A05 synthesis judge without artificial consensus.
+  - [x] Implement live Bifrost integration test suite (`tests/integration/assess-evidence.live.test.ts`).
 - **Prerequisites:**
   - **Start Prerequisites:** A01, A02, A10.
-  - **Integration / Completion Prerequisites:** A03, B02, B03 (Tavily retrieved documents).
+  - **Integration / Completion Prerequisites:** A03, B02, B03 (mocked for unit testing; live Tavily integration deferred to B03).
   - **External Prerequisites:** Model provider credentials via Bifrost.
-  - **What Can Start Early:** Research planner templates, context-preserving HTML extraction helpers, quotation verifier logic, unit tests with mocked Tavily documents.
-- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b.
-- **Positive Acceptance Examples:** An authoritative passage confirming entity, attribute, and scope is classified as `supports` with `quotationVerified: true`; table footnotes are captured into evidence unit.
+  - **What Can Start Early:** Research planner templates, context-preserving extraction helpers, quotation verifier logic, unit tests with mocked Tavily documents.
+- **Deliverable & Interface Handoff:** Handed downstream to A05 (policy, synthesis judge & decision records) and B04b. Callable stages `generateResearchPlan`, `extractEvidenceUnits`, and `assessEvidenceAgainstClaim` ready for immediate DAG node wiring.
+- **Positive Acceptance Examples:** An authoritative passage confirming entity, attribute, and scope is classified as `supports` with `quotationVerified: true`; table footnotes are captured into evidence unit; partial dates retain verbatim precision.
 - **Relevant Negative / Failure Cases:** An invented or hallucinated quote fails deterministic quotation verification and is discarded; evidence with conflicting jurisdiction or currency is classified as wrong-scope.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/assess-evidence.test.ts`.
-- **Evidence Level & Required Proof:** E2 (Vitest unit suite with injected mock documents and hallucinated excerpts).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `pnpm test` (222 unit tests passing), `pnpm test:live` (live Bifrost E4 integration), `pnpm typecheck`, `pnpm lint`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis, compiler, lint, build) + E2 (Vitest unit suite with 43 focused A04/date tests) + E4 (Live Railway Bifrost gateway integration).
+- **Observed Evidence:** Implemented partial-date preservation in `src/lib/contracts/dates.ts` and `src/lib/contracts/claim-ticket.ts`, retiring artificial padding in `src/server/verify/context-resolver.ts`. Implemented temporal interval evaluation in `src/server/verify/temporal.ts`. Implemented prompt builders in `src/server/prompts/` (`research.ts`, `extract-evidence.ts`, `assess.ts`). Implemented modular verifier stages in `src/server/verify/` (`research-planner.ts`, `extract-evidence.ts`, `assess-evidence.ts`, `index.ts`). Authored 43 new unit tests across `tests/unit/contracts/partial-dates.test.ts` (12 tests), `tests/unit/verify/temporal.test.ts` (12 tests), `tests/unit/verify/research-planner.test.ts` (7 tests), `tests/unit/verify/extract-evidence.test.ts` (6 tests), and `tests/unit/verify/assess-evidence.test.ts` (6 tests), bringing the total unit test suite to 222/222 passing tests. Executed live model integration tests against Railway Bifrost (`gemini-3.5-flash-lite`) via `tests/integration/assess-evidence.live.test.ts` (1/1 passed end-to-end with automated 503 backoff recovery). All static checks clean: `pnpm typecheck` (0 errors), `pnpm lint` (0 errors, 0 warnings), `pnpm build` (compiled in 8.8s, 5/5 static pages generated). Status updated to REVIEW.
 - **Explicit Exclusions:** Vector embedding shortlisting (isolated in experimental A11) and final score calculation (owned by A05).
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** None. Ready for scoped review.
 
 #### A05: Apply deterministic policy, synthesis judge and decision gates {#a05-apply-deterministic-policy-and-score}
 - **Owner:** A / Verification

@@ -208,7 +208,7 @@ flowchart TD
     B03["B03: Tavily Search & Extract Adapter"]:::unblocked
 
     A03["A03: Extract & Locate Claims (Done)"]:::upstream
-    A04["A04: Assess Evidence Passages"]:::unblocked
+    A04["A04: Assess Evidence Passages (Done)"]:::upstream
     A05["A05: Deterministic Policy & Scoring"]:::unblocked
 
     B04b["B04b: Wire Minimal Persisted DAG Slice"]:::unblocked

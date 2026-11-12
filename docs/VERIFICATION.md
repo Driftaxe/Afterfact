@@ -64,6 +64,9 @@ export interface VerificationProperty {
 }
 ```
 
+> [!NOTE]
+> **Date Precision Preservation:** Properties with `propertyType: 'date'` support complete ISO calendar dates (`YYYY-MM-DD`), year-month partial dates (`YYYY-MM`), or year partial dates (`YYYY`) validated via `isValidCalendarDateOrPartial()`. Precision is preserved verbatim without artificial midnight or day padding (`-01-01`).
+
 ### C. Domain Extensibility & Novel Domain Invariants
 - **Pre-Known Domains:** Specialized domain modules (Pricing, APIs, Regulations, Leadership) define property catalogs (e.g., `billingCommitment`, `sdkLanguage`, `regulatoryBody`).
 - **Novel Domains:** When claims fall outside pre-known domains, the extraction pass proposes novel properties conforming to the identical `VerificationProperty` meta-schema. Novel domains **never** require database DDL schema migrations, hardcoded TypeScript classes, or dynamic client-side JSX execution.

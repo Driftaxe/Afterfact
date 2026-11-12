@@ -72,18 +72,13 @@ export function convertUserTargetContext(contextOverrides?: SharedContext | null
 }
 
 /**
- * Normalizes partial dates (e.g. "YYYY-MM" or "YYYY") into complete ISO calendar dates
- * so that they strictly satisfy VerificationPropertySchema calendar validation.
+ * Normalizes property values according to their declared property type.
+ * Trims whitespace for strings and dates.
+ * Preserves exact calendar date and partial date precision without artificial day/month padding.
  */
 export function normalizePropertyValue(type: PropertyType, val: unknown): unknown {
   if (type === 'date' && typeof val === 'string') {
-    const trimmed = val.trim();
-    if (/^\d{4}-\d{2}$/.test(trimmed)) {
-      return `${trimmed}-01`;
-    }
-    if (/^\d{4}$/.test(trimmed)) {
-      return `${trimmed}-01-01`;
-    }
+    return val.trim();
   }
   return val;
 }
