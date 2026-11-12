@@ -14,8 +14,9 @@ async function testBifrost() {
   try {
     const response = await bifrostChat({
       model: 'gemini/gemini-3.5-flash-lite',
-      messages: [{ role: 'user', content: 'Say hello and confirm you are working.' }],
+      messages: [{ role: 'user', content: 'Hello, how are you?' }],
       timeoutMs: 15000,
+      temperature: 2.0,
     });
 
     console.log('\nSuccess! Response from gateway:');
