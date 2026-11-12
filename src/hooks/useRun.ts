@@ -10,6 +10,7 @@ export interface UseRunResult {
   runSnapshot: Report | null;
   events: VerificationEvent[];
   connectionState: ConnectionState;
+  notFound: boolean;
 }
 
 export function useRun(runId: string): UseRunResult {
@@ -17,6 +18,7 @@ export function useRun(runId: string): UseRunResult {
   const [events, setEvents] = useState<VerificationEvent[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
   const [latestSeq, setLatestSeq] = useState<number>(0);
+  const [notFound, setNotFound] = useState<boolean>(false);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,7 +46,18 @@ export function useRun(runId: string): UseRunResult {
       const fetchSnapshot = async () => {
         try {
           const res = await fetch(`/api/runs/${runId}`);
+          if (!isSubscribed) return;
+
+          if (res.status === 404) {
+            // Run does not exist — surface not-found state immediately
+            setNotFound(true);
+            stopPolling();
+            setConnectionState('disconnected');
+            return;
+          }
+
           if (!res.ok) return;
+
           const data = await res.json();
           if (!isSubscribed) return;
 
@@ -105,6 +118,7 @@ export function useRun(runId: string): UseRunResult {
         if (!isSubscribed) return;
         es.close();
         eventSourceRef.current = null;
+        // SSE failed — fall back to snapshot polling which handles 404 detection
         startPolling();
       };
     };
@@ -125,5 +139,6 @@ export function useRun(runId: string): UseRunResult {
     runSnapshot,
     events,
     connectionState,
+    notFound,
   };
 }
