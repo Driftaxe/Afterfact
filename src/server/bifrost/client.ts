@@ -9,6 +9,7 @@ export interface BifrostChatOptions {
   response_format?: { type: 'json_object' };
   timeoutMs?: number;
   enableFallback?: boolean;
+  maxRetries?: number;
 }
 
 export class BifrostError extends Error {
@@ -45,47 +46,68 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
     modelToUse = getModelProfile(role);
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
+  const maxRetries = options.maxRetries ?? 2;
+  let lastError: unknown;
 
-  try {
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${credentials}`,
-        ...(virtualKey ? { 'x-bf-vk': virtualKey } : {}),
-      },
-      body: JSON.stringify({
-        model: modelToUse,
-        messages: options.messages,
-        temperature: options.temperature ?? 0,
-        response_format: options.response_format,
-      }),
-      signal: controller.signal,
-    });
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new BifrostError(res.status, errText, `Bifrost HTTP ${res.status}: ${errText}`);
-    }
-
-    const data = await res.json();
-    return data.choices[0]?.message?.content ?? '';
-  } catch (error) {
-    const fallbackModel = getModelProfile('fallback');
-    if (options.enableFallback && modelToUse !== fallbackModel) {
-      console.warn(`[Bifrost] Primary model ${modelToUse} failed. Falling back to ${fallbackModel}...`);
-      
-      return bifrostChat({
-        ...options,
-        model: fallbackModel,
-        enableFallback: false,
+    try {
+      const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${credentials}`,
+          ...(virtualKey ? { 'x-bf-vk': virtualKey } : {}),
+        },
+        body: JSON.stringify({
+          model: modelToUse,
+          messages: options.messages,
+          temperature: options.temperature ?? 0,
+          response_format: options.response_format,
+        }),
+        signal: controller.signal,
       });
-    }
 
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
+      if (!res.ok) {
+        const errText = await res.text();
+        const isRetryable = res.status === 503 || res.status === 429 || res.status === 502;
+        if (isRetryable && attempt < maxRetries) {
+          const backoffMs = (attempt + 1) * 1500;
+          console.warn(`[Bifrost] Received HTTP ${res.status} (model high demand / capacity spike). Retrying in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          continue;
+        }
+        throw new BifrostError(res.status, errText, `Bifrost HTTP ${res.status}: ${errText}`);
+      }
+
+      const data = await res.json();
+      return data.choices[0]?.message?.content ?? '';
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries && error instanceof Error && (error.name === 'AbortError' || error.message.includes('fetch failed'))) {
+        const backoffMs = (attempt + 1) * 1500;
+        console.warn(`[Bifrost] Request timed out or network error. Retrying in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        continue;
+      }
+      break;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
+
+  const fallbackModel = getModelProfile('fallback');
+  if (options.enableFallback && modelToUse !== fallbackModel) {
+    console.warn(`[Bifrost] Primary model ${modelToUse} failed. Falling back to ${fallbackModel}...`);
+    
+    return bifrostChat({
+      ...options,
+      model: fallbackModel,
+      enableFallback: false,
+    });
+  }
+
+  throw lastError;
 }

@@ -277,7 +277,7 @@ export function buildExtractionMessages(
       role: 'system',
       content: `${EXTRACTION_SYSTEM_PROMPT}\n\n### FEW-SHOT DEMONSTRATIONS:\n${SYNTHETIC_EXTRACTION_EXAMPLES.map(
         (ex, idx) =>
-          `Example ${idx + 1}:\nInput: """${ex.input}"""\nOutput:\n${JSON.stringify(ex.output, null, 2)}`
+          `Example ${idx + 1}:\nInput: """${ex.input}"""\nOutput: ${JSON.stringify(ex.output)}`
       ).join('\n\n')}`,
     },
     {
