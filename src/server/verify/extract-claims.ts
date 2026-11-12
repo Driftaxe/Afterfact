@@ -1,17 +1,14 @@
-import { createHash } from 'node:crypto';
 import {
   ExtractClaimsInput,
   ExtractClaimsInputSchema,
   ExtractClaimsOutcome,
   ExtractClaimsOutcomeSchema,
-  RawExtractedClaim,
   RawExtractionResponse,
   RawExtractionResponseSchema,
 } from '@/lib/contracts/extraction';
 import {
   ClaimTicket,
   ClaimTicketSchema,
-  PropertyType,
   resolveEffectiveContext,
   VerificationProperty,
   VerificationPropertySchema,
@@ -21,266 +18,21 @@ import { isValidCalendarDate, isValidIsoTimestamp } from '@/lib/contracts/dates'
 import { bifrostChat, BifrostError } from '@/server/bifrost/client';
 import { getModelProfile } from '@/server/bifrost/profiles';
 import { buildExtractionMessages } from '@/server/prompts/extract';
-import type { SharedContext } from '@/lib/contracts/request';
 
-/**
- * Computes deterministic SHA-256 hash of exact source text.
- */
-export function computeInputHash(text: string): string {
-  return createHash('sha256').update(text, 'utf8').digest('hex');
-}
+// Import modular domain helpers
+import { computeInputHash, generateClaimIdentity } from './identity';
+import { resolveClaimSpan, resolveQualifierSpan } from './span-resolver';
+import { convertUserTargetContext, normalizePropertyValue } from './context-resolver';
 
-/**
- * Checks whether an index in a UTF-16 string splits a surrogate pair.
- */
-export function isSplittingSurrogate(str: string, index: number): boolean {
-  if (index <= 0 || index >= str.length) return false;
-  const prev = str.charCodeAt(index - 1);
-  const curr = str.charCodeAt(index);
-  return prev >= 0xd800 && prev <= 0xdbff && curr >= 0xdc00 && curr <= 0xdfff;
-}
-
-/**
- * Finds all exact 0-based UTF-16 character indices of a substring in source text.
- */
-function findAllOccurrences(source: string, sub: string): number[] {
-  const indices: number[] = [];
-  if (!sub || !source) return indices;
-  let idx = 0;
-  while (idx < source.length) {
-    const found = source.indexOf(sub, idx);
-    if (found === -1) break;
-    indices.push(found);
-    idx = found + 1;
-  }
-  return indices;
-}
-
-/**
- * Resolves the character span for a claim statement in the unmodified source text.
- * Returns null if the excerpt is present but its specific occurrence is ambiguous.
- * Throws an Error with code 'GROUNDING_FAILURE' if the statement is absent.
- */
-function resolveClaimSpan(
-  sourceText: string,
-  claim: RawExtractedClaim
-): { start: number; end: number } | null {
-  const statement = claim.statement;
-  const occurrences = findAllOccurrences(sourceText, statement);
-
-  if (occurrences.length === 0) {
-    throw new Error('GROUNDING_FAILURE: Claim statement not found in source text');
-  }
-
-  // Single unique occurrence: direct grounding
-  if (occurrences.length === 1) {
-    const start = occurrences[0];
-    const end = start + statement.length;
-    if (isSplittingSurrogate(sourceText, start) || isSplittingSurrogate(sourceText, end)) {
-      throw new Error('GROUNDING_FAILURE: Span splits a Unicode surrogate pair');
-    }
-    return { start, end };
-  }
-
-  // Multiple occurrences: attempt disambiguation using locationHint
-  const hint = claim.locationHint;
-  if (hint) {
-    // 1. Candidate span check
-    if (hint.candidateSpan) {
-      const { start, end } = hint.candidateSpan;
-      if (
-        start >= 0 &&
-        end <= sourceText.length &&
-        start < end &&
-        sourceText.slice(start, end) === statement &&
-        !isSplittingSurrogate(sourceText, start) &&
-        !isSplittingSurrogate(sourceText, end)
-      ) {
-        return { start, end };
-      }
-    }
-
-    // 2. Occurrence index check
-    if (hint.occurrence !== undefined && hint.occurrence >= 0 && hint.occurrence < occurrences.length) {
-      const start = occurrences[hint.occurrence];
-      const end = start + statement.length;
-      if (!isSplittingSurrogate(sourceText, start) && !isSplittingSurrogate(sourceText, end)) {
-        return { start, end };
-      }
-    }
-
-    // 3. Prefix/suffix anchoring
-    if (hint.prefix || hint.suffix) {
-      const matchingIndices = occurrences.filter((idx) => {
-        let matches = true;
-        if (hint.prefix) {
-          const expectedPrefixStart = idx - hint.prefix.length;
-          if (expectedPrefixStart < 0 || sourceText.slice(expectedPrefixStart, idx) !== hint.prefix) {
-            matches = false;
-          }
-        }
-        if (hint.suffix) {
-          const expectedSuffixStart = idx + statement.length;
-          const expectedSuffixEnd = expectedSuffixStart + hint.suffix.length;
-          if (
-            expectedSuffixEnd > sourceText.length ||
-            sourceText.slice(expectedSuffixStart, expectedSuffixEnd) !== hint.suffix
-          ) {
-            matches = false;
-          }
-        }
-        return matches;
-      });
-
-      if (matchingIndices.length === 1) {
-        const start = matchingIndices[0];
-        const end = start + statement.length;
-        if (!isSplittingSurrogate(sourceText, start) && !isSplittingSurrogate(sourceText, end)) {
-          return { start, end };
-        }
-      }
-    }
-  }
-
-  // Ambiguous occurrence with no conclusive disambiguation:
-  // Preserved as an unhighlighted claim (sourceSpan: null) per canonical specification.
-  return null;
-}
-
-/**
- * Resolves the character span for an explicit qualifier.
- * Checks within the claim's statement bounds first, then in the surrounding source text.
- */
-function resolveQualifierSpan(
-  sourceText: string,
-  exactExcerpt: string,
-  claimSpan: { start: number; end: number } | null
-): { start: number; end: number } {
-  // If claim has an established span, try to locate excerpt within that statement first
-  if (claimSpan) {
-    const claimSubstring = sourceText.slice(claimSpan.start, claimSpan.end);
-    const relIdx = claimSubstring.indexOf(exactExcerpt);
-    if (relIdx !== -1) {
-      const start = claimSpan.start + relIdx;
-      const end = start + exactExcerpt.length;
-      if (!isSplittingSurrogate(sourceText, start) && !isSplittingSurrogate(sourceText, end)) {
-        return { start, end };
-      }
-    }
-  }
-
-  // Otherwise, locate in the broader source text (e.g. shared sentence qualifier)
-  const occurrences = findAllOccurrences(sourceText, exactExcerpt);
-  if (occurrences.length === 0) {
-    throw new Error('GROUNDING_FAILURE: Explicit qualifier excerpt not found in source text');
-  }
-
-  // If claim span exists, choose the occurrence closest to the claim span
-  let chosenIdx = occurrences[0];
-  if (claimSpan && occurrences.length > 1) {
-    let minDistance = Infinity;
-    for (const idx of occurrences) {
-      const dist = Math.abs(idx - claimSpan.start);
-      if (dist < minDistance) {
-        minDistance = dist;
-        chosenIdx = idx;
-      }
-    }
-  }
-
-  const start = chosenIdx;
-  const end = start + exactExcerpt.length;
-  if (isSplittingSurrogate(sourceText, start) || isSplittingSurrogate(sourceText, end)) {
-    throw new Error('GROUNDING_FAILURE: Qualifier span splits a Unicode surrogate pair');
-  }
-
-  return { start, end };
-}
-
-/**
- * Converts user-supplied target context into VerificationProperty items.
- */
-function convertUserTargetContext(contextOverrides: SharedContext): VerificationProperty[] {
-  const properties: VerificationProperty[] = [];
-
-  if (contextOverrides.jurisdiction) {
-    properties.push({
-      key: 'jurisdiction',
-      label: 'Geographic Jurisdiction',
-      propertyType: 'string',
-      value: contextOverrides.jurisdiction,
-      origin: 'user_target_context',
-      status: 'confirmed',
-      applicability: 'run_level',
-    });
-  }
-
-  if (contextOverrides.region) {
-    properties.push({
-      key: 'region',
-      label: 'Geographic Region',
-      propertyType: 'string',
-      value: contextOverrides.region,
-      origin: 'user_target_context',
-      status: 'confirmed',
-      applicability: 'run_level',
-    });
-  }
-
-  if (contextOverrides.currency) {
-    properties.push({
-      key: 'currency',
-      label: 'Currency',
-      propertyType: 'string',
-      value: contextOverrides.currency,
-      origin: 'user_target_context',
-      status: 'confirmed',
-      applicability: 'run_level',
-    });
-  }
-
-  if (contextOverrides.version) {
-    properties.push({
-      key: 'version',
-      label: 'Version or Release',
-      propertyType: 'string',
-      value: contextOverrides.version,
-      origin: 'user_target_context',
-      status: 'confirmed',
-      applicability: 'run_level',
-    });
-  }
-
-  if (contextOverrides.billingTerm) {
-    properties.push({
-      key: 'billingTerm',
-      label: 'Billing Commitment',
-      propertyType: 'string',
-      value: contextOverrides.billingTerm,
-      origin: 'user_target_context',
-      status: 'confirmed',
-      applicability: 'run_level',
-    });
-  }
-
-  return properties;
-}
-
-/**
- * Helper to normalize partial dates (e.g. "YYYY-MM" or "YYYY") into complete ISO calendar dates.
- */
-function normalizePropertyValue(type: PropertyType, val: unknown): unknown {
-  if (type === 'date' && typeof val === 'string') {
-    const trimmed = val.trim();
-    if (/^\d{4}-\d{2}$/.test(trimmed)) {
-      return `${trimmed}-01`;
-    }
-    if (/^\d{4}$/.test(trimmed)) {
-      return `${trimmed}-01-01`;
-    }
-  }
-  return val;
-}
+// Re-export modular helpers for full backward compatibility
+export { computeInputHash, generateClaimIdentity } from './identity';
+export {
+  isSplittingSurrogate,
+  findAllOccurrences,
+  resolveClaimSpan,
+  resolveQualifierSpan,
+} from './span-resolver';
+export { convertUserTargetContext, normalizePropertyValue } from './context-resolver';
 
 /**
  * Primary Extraction Service for Ticket A03.
@@ -592,13 +344,13 @@ export async function extractClaimsFromText(
       return !matched || matched.origin === 'model_inferred' || matched.origin === 'unknown' || matched.value === null;
     });
 
-    // Incorporate trusted execution identity (runId/prepId), candidate ordinal, and statement hash.
-    // Length: "clm_" (4) + execHash (8) + "_" (1) + ordinal (1..3) + "_" (1) + stmtHash (8) <= 25 chars (fits VARCHAR(36)).
-    // Deterministic within the same execution and revision; differentiated across distinct executions.
-    const execHash = createHash('sha256').update(input.runId, 'utf8').digest('hex').slice(0, 8);
-    const stmtHash = createHash('sha256').update(claim.statement, 'utf8').digest('hex').slice(0, 8);
-    const claimId = `clm_${execHash}_${i}_${stmtHash}`;
-    const ticketId = `tkt_${claimId}_r${input.revision}`;
+    // Incorporate trusted execution identity (runId/prepId), candidate ordinal, and statement hash
+    const { claimId, ticketId } = generateClaimIdentity({
+      runId: input.runId,
+      ordinal: i,
+      statement: claim.statement,
+      revision: input.revision,
+    });
 
     // Assemble and validate canonical ClaimTicket
     const ticketParsed = ClaimTicketSchema.safeParse({
