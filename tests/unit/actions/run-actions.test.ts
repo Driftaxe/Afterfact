@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   startPreparationAction,
   confirmPreparationAction,
+  submitClarificationAction,
   _clearPreparationStore,
 } from '@/actions/run-actions';
 import {
@@ -10,7 +11,7 @@ import {
 } from '@/lib/contracts/actions';
 import { MAX_PASTE_LENGTH } from '@/lib/contracts/request';
 
-describe('Task C03: run-actions Server Actions', () => {
+describe('Task C03 & C04: run-actions Server Actions', () => {
   beforeEach(async () => {
     await _clearPreparationStore();
   });
@@ -219,6 +220,41 @@ describe('Task C03: run-actions Server Actions', () => {
       if (confirmRes.success) return;
 
       expect(confirmRes.code).toBe('STALE_PREPARATION_REVISION');
+    });
+  });
+
+  describe('submitClarificationAction', () => {
+    it('handles clarification submission error gracefully when clarification is missing', async () => {
+      const result = await submitClarificationAction({
+        clarificationId: 'nonexistent-clarification-id',
+        answer: { answers: { jurisdiction: 'US' }, unknown: false },
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
+    });
+
+    it('submits successfully when ClarificationService resumes answer', async () => {
+      // Mock ClarificationService dynamic import
+      vi.doMock('@/server/services/clarification-service', () => ({
+        ClarificationService: {
+          resumeWithAnswer: vi.fn().mockResolvedValue({ success: true }),
+        },
+      }));
+
+      const result = await submitClarificationAction({
+        clarificationId: 'clar_mock_123',
+        answer: { answers: { jurisdiction: 'US' }, unknown: false },
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.accepted).toBe(true);
+      }
+
+      vi.doUnmock('@/server/services/clarification-service');
     });
   });
 });
