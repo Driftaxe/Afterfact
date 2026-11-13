@@ -5,3 +5,4 @@ export * from './ClaimDetail';
 export * from './EvidenceCard';
 export * from './ReportSummaryBar';
 export * from './ReportStates';
+export * from './LiveReportViewer';

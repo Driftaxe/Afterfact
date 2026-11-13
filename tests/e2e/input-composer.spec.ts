@@ -59,17 +59,20 @@ test.describe('C02 Input Composer Interactive Experience (/)', () => {
     await expect(textarea).toHaveValue('');
   });
 
-  test('C02-03: Arbitrary input submission shows honest not-connected notice, never a fake report', async ({ page }) => {
+  test('C02-03: Arbitrary input submission initiates preparation review flow (Task C03)', async ({ page }) => {
     const textarea = page.locator('#answer-input');
     await textarea.fill('Custom text that is not in any database.');
 
     const verifyButton = page.getByRole('button', { name: 'Verify answer' });
     await verifyButton.click();
 
-    // Verify honest notice appears without URL change or fake report display
-    const notice = page.getByText(/Live verification isn[’']t available yet/i);
-    await expect(notice).toBeVisible();
-    await expect(page).toHaveURL('/');
+    // Verify preparation review state appears with extracted claims and confirmation CTA
+    const reviewHeading = page.getByText(/Review Prepared Claims & Scope/i);
+    await expect(reviewHeading).toBeVisible();
+    await expect(page.getByText('Custom text that is not in any database.')).toBeVisible();
+
+    const confirmButton = page.getByRole('button', { name: 'Confirm & Run Verification' });
+    await expect(confirmButton).toBeVisible();
 
     // Verify sample report action remains distinct and leads to /report/demo?mode=fixture
     const sampleLink = page.getByRole('link', { name: 'View sample report' }).first();
