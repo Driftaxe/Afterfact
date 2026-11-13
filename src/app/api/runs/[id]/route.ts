@@ -17,9 +17,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // Validate the CUID before attempting a database query.
+  if (!/^c[a-z0-9]{24}$/.test(id)) {
+    return problemResponse({
+      status: 404,
+      code: 'RUN_NOT_FOUND',
+      title: 'Run Not Found',
+      detail: 'The requested run was not found.',
+      instance: `/api/runs/${id}`,
+    });
+  }
+
   const { ownerHash } = resolveOwnerHash(req);
 
   const snapshot = await getSanitizedRunSnapshot(id, ownerHash);
+
   if (!snapshot) {
     return problemResponse({
       status: 404,
