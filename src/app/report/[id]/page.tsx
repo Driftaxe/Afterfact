@@ -22,8 +22,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const { mode } = await searchParams;
 
-  // Use fixture playback when requesting demo mode or explicit fixture mode
-  if (id === 'demo' || mode === 'fixture') {
+  // Live dynamic run stream with SSE and snapshot polling fallback
+  // Only valid live verification run IDs (e.g. run_<hash>) that are not fixtures use the dynamic hook
+  const isLiveRun = id.startsWith('run_') && id !== 'run_golden_fixture_mixed_001' && mode !== 'fixture';
+
+  if (!isLiveRun) {
     const result = getReportById(id);
 
     if (!result.success) {
