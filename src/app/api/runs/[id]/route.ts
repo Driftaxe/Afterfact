@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSanitizedRunSnapshot } from '@/server/services/run-query-service';
 import { resolveOwnerHash } from '@/server/services/auth-helper';
@@ -17,6 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
 
   // Validate the CUID before attempting a database query.
   if (!/^c[a-z0-9]{24}$/.test(id)) {

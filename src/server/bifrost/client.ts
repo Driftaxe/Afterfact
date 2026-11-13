@@ -54,7 +54,8 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
     const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
 
     try {
-      const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      const url = `${baseUrl}/v1/chat/completions`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,6 +73,12 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
 
       if (!res.ok) {
         const errText = await res.text();
+        console.error('[BIFROST HTTP ERROR]', {
+          status: res.status,
+          url,
+          model: modelToUse,
+          response: errText,
+        });
         const isRetryable = res.status === 503 || res.status === 429 || res.status === 502;
         if (isRetryable && attempt < maxRetries) {
           const backoffMs = (attempt + 1) * 1500;

@@ -30,7 +30,7 @@ describe('Unit: Auth Helper (resolveOwnerHash)', () => {
     });
 
     const resolved = resolveOwnerHash(req);
-    expect(resolved.ownerHash).toHaveLength(64); // SHA-256 hex string
+    expect(resolved.ownerHash).toHaveLength(64);
     expect(resolved.isNew).toBe(false);
   });
 
@@ -160,13 +160,16 @@ describe('Unit: POST /api/v1/verify', () => {
     const body = await res.json();
     expect(body).toEqual(mockRunResult);
 
-    // Verify afterfact_owner cookie was set for new caller
     const setCookie = res.headers.get('set-cookie');
     expect(setCookie).toContain(OWNER_COOKIE_NAME);
   });
 });
 
 describe('Unit: GET /api/runs/[id]', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('returns 404 when run does not exist or owner mismatch', async () => {
     vi.spyOn(runQueryService, 'getSanitizedRunSnapshot').mockResolvedValue(null);
 
@@ -186,9 +189,11 @@ describe('Unit: GET /api/runs/[id]', () => {
   });
 
   it('returns 200 with Cache-Control: no-store when snapshot found', async () => {
+    const validCuid = 'clh1234567890123456789012';
+
     const mockSnapshot = {
-      id: 'run_mock_456',
-      reportId: 'run_mock_456',
+      id: validCuid,
+      reportId: validCuid,
       parentRunId: null,
       mode: 'paste',
       state: 'running',
@@ -205,23 +210,25 @@ describe('Unit: GET /api/runs/[id]', () => {
       dag: { totalNodes: 2, completedNodes: 1, activeStage: 'evaluating', clarificationAwaiting: false },
     };
 
-    vi.spyOn(runQueryService, 'getSanitizedRunSnapshot').mockResolvedValue(mockSnapshot as unknown as Awaited<ReturnType<typeof runQueryService.getSanitizedRunSnapshot>>);
+    vi.spyOn(runQueryService, 'getSanitizedRunSnapshot').mockResolvedValue(
+      mockSnapshot as unknown as Awaited<ReturnType<typeof runQueryService.getSanitizedRunSnapshot>>
+    );
 
-    const req = new NextRequest('http://localhost:3000/api/runs/run_mock_456', {
+    const req = new NextRequest(`http://localhost:3000/api/runs/${validCuid}`, {
       headers: {
-        cookie: `${OWNER_COOKIE_NAME}=test_owner`,
+        'x-owner-hash': 'test_owner_hash',
       },
     });
 
     const res = await snapshotGet(req, {
-      params: Promise.resolve({ id: 'run_mock_456' }),
+      params: Promise.resolve({ id: validCuid }),
     });
 
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toBe('no-store');
     const body = await res.json();
-    expect(body.id).toBe('run_mock_456');
-    expect(body.reportId).toBe('run_mock_456');
+    expect(body.id).toBe(validCuid);
+    expect(body.reportId).toBe(validCuid);
   });
 });
 

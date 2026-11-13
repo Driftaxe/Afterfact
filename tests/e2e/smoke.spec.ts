@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 
-const ARTIFACT_DIR = 'C:/Users/Mayur/.gemini/antigravity-cli/brain/42d56a48-6341-45ec-8623-b4624b03e678';
+// SAFE FOR ALL 3 CONTRIBUTORS & CI: Stores inside the project repo workspace
+const ARTIFACT_DIR = path.join(process.cwd(), 'test-results', 'artifacts');
+
+if (!fs.existsSync(ARTIFACT_DIR)) {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+}
 
 test.describe('Root Application Landing Page & Visual Review', () => {
   test('serves the Afterfact root route and renders expected refined heading and CTA', async ({ page }) => {

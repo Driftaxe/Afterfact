@@ -1,3 +1,4 @@
+
 import { NextRequest } from 'next/server';
 import { db } from '@/server/db/client';
 import { resolveOwnerHash } from '@/server/services/auth-helper';
@@ -18,6 +19,7 @@ export async function GET(
 ) {
   const { id } = await params;
 
+
   // Validate the CUID before attempting a database query.
   if (!/^c[a-z0-9]{24}$/.test(id)) {
     return problemResponse({
@@ -28,6 +30,7 @@ export async function GET(
       instance: `/api/runs/${id}/events`,
     });
   }
+
 
   const { ownerHash } = resolveOwnerHash(req);
 
