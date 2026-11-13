@@ -205,6 +205,40 @@ export async function _setPreparationStore(
   preparationStore.set(preparationId, record);
 }
 
+/**
+ * Submits user clarification answers to resume a paused DAG branch.
+ * Uses dynamic import of ClarificationService to avoid bundling heavy DB/QStash
+ * dependencies into the initial Server Action module (keeps cold starts fast).
+ * When B04b is not live, the dynamic import throws → error is caught cleanly.
+ */
+export async function submitClarificationAction(input: {
+  clarificationId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  answer: any;
+}): Promise<ActionResponse<{ accepted: true }>> {
+  try {
+    // Dynamic import prevents bundling DB client into the initial Server Action module
+    const { ClarificationService } = await import(
+      '@/server/services/clarification-service'
+    );
+
+    await ClarificationService.resumeWithAnswer(
+      input.clarificationId,
+      input.answer
+    );
+
+    return { success: true, data: { accepted: true } };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Clarification submission failed';
+    const code =
+      err instanceof Error && 'code' in err
+        ? String((err as Error & { code?: string }).code)
+        : 'CLARIFICATION_SUBMISSION_FAILED';
+    return { success: false, error: message, code };
+  }
+}
+
 export type {
   StartPreparationActionInput,
   StartPreparationActionResult,

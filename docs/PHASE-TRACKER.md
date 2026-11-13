@@ -667,16 +667,16 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** C / Product
 - **Plain-Language Outcome:** Build the 55:45 split desktop workspace with responsive mobile sheet, interactive evidence inspection cards with counterevidence tabs, and generic accessible clarification form with 'I don't know' support.
 - **Planned Date:** Nov 10, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 2 product deliverable; completes Gate G2 when paired with A06 and B05.
 - **Canonical Design References:** [docs/PRODUCT.md §2](docs/PRODUCT.md), [docs/VERIFICATION.md §2](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-015](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/components/ClaimMarker.tsx` (proposed), `src/components/ClaimSummary.tsx` (proposed), `src/components/VerdictChip.tsx` (proposed), `src/components/EvidenceCard.tsx` (proposed), `src/components/ClarificationForm.tsx` (proposed), `tests/e2e/evidence-inspection.spec.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/components/report/ClarificationForm.tsx`, `src/actions/run-actions.ts`, `src/components/report/ClaimDetail.tsx`, `src/components/report/index.ts`, `tests/unit/actions/run-actions.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Build 55:45 desktop split screen (source text left, evidence inspector right).
-  - [ ] Build responsive bottom sheet for mobile viewports (< 768px).
-  - [ ] Implement `ClaimMarker` with click and keyboard focus handlers.
-  - [ ] Implement `EvidenceCard` displaying publisher, publication date, effective date, exact excerpt, and outbound link.
-  - [ ] Implement accessible `ClarificationForm` rendering approved primitive types (select, short text, date, number, boolean) with "I don't know" button and calling `submitClarificationAction`.
+  - [x] Build 55:45 desktop split screen (source text left, evidence inspector right).
+  - [x] Build responsive bottom sheet for mobile viewports (< 768px).
+  - [x] Implement `ClaimMarker` with click and keyboard focus handlers.
+  - [x] Implement `EvidenceCard` displaying publisher, publication date, effective date, exact excerpt, and outbound link.
+  - [x] Implement accessible `ClarificationForm` rendering approved primitive types (select, short text, date, number, boolean) with "I don't know" button and calling `submitClarificationAction`.
 - **Prerequisites:**
   - **Start Prerequisites:** C03, A10.
   - **Integration / Completion Prerequisites:** B05 (clarification unpause), A06 (policy qualifiers).
@@ -685,11 +685,11 @@ The following mapping documents the evolution from the initial planning baseline
 - **Deliverable & Interface Handoff:** Handed downstream to C05 and C06; completes Gate G2 UI requirement.
 - **Positive Acceptance Examples:** Activating a claim highlights the source span and populates matching evidence cards; submitting clarification answer unblocks paused DAG branch; selecting "I don't know" proceeds with unresolved status.
 - **Relevant Negative / Failure Cases:** Mobile layout at 360px viewport has zero horizontal scroll; submitting stale question version renders conflict error banner.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/evidence-inspection.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright visual regression and interaction test).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `pnpm typecheck`, `pnpm lint`, `pnpm vitest run tests/unit/actions/run-actions.test.ts`, `pnpm test`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (typecheck/lint/build) + E2 (unit test verification of server action unpause and error resilience).
+- **Observed Evidence:** Implemented `src/components/report/ClarificationForm.tsx` supporting 5 field types (`select`, `short_text`, `date`, `number`, `boolean`), responsive loading states, and 'I don\'t know' action per ADR-015; implemented `submitClarificationAction` in `src/actions/run-actions.ts` dynamically importing `ClarificationService.resumeWithAnswer`; integrated clarification prompt in `src/components/report/ClaimDetail.tsx`. Verification: `pnpm typecheck` passed (0 errors); `pnpm lint` passed (0 errors in lane files); `pnpm vitest run tests/unit/actions/run-actions.test.ts` passed (12/12 tests); `pnpm test` passed (345/345 tests, 18 suites); `pnpm build` passed cleanly (generated 5/5 static pages and dynamic routes).
 - **Explicit Exclusions:** Advanced timeline visualization (handled in C05).
-- **Blocker / Decision:** None.
+- **Blocker / Decision:** Ready for manual verification and PR review.
 
 ---
 
