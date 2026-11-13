@@ -26,7 +26,7 @@ model VerificationRun {
   expiresAt      DateTime  @db.Timestamptz
   nextEventSeq   Int       @default(1)
 
-  preparation    Preparation?    @relation(fields: [prepId], references: [id], onDelete: SetNull)
+  preparation    Preparation?       @relation(fields: [prepId], references: [id], onDelete: SetNull)
   claims         Claim[]
   sourceDocs     SourceDocument[]
   events         RunEvent[]
@@ -41,160 +41,237 @@ model VerificationRun {
 }
 
 model Preparation {
-  id             String   @id @default(cuid()) @db.VarChar(36)
-  inputHash      String   @unique @db.VarChar(64)
-  normalizedText String   @db.Text
-  claimTickets   Json     @db.JsonB
-  qualifiers     Json     @db.JsonB
-  createdAt      DateTime @default(now()) @db.Timestamptz
+  id                     String    @id @default(cuid()) @db.VarChar(36)
+  ownerHash              String?   @db.VarChar(64)
+  inputHash              String    @unique @db.VarChar(64)
+  mode                   String?   @db.VarChar(16)
+  text                   String?   @db.Text
+  normalizedText         String?   @db.Text
+  question               String?   @db.Text
+  status                 String?   @db.VarChar(16)
+  claims                 Json?     @db.JsonB
+  claimTickets           Json?     @db.JsonB
+  qualifiers             Json?     @db.JsonB
+  inferredSuggestions    Json?     @db.JsonB
+  clarificationQuestions Json?     @db.JsonB
+  createdAt              DateTime  @default(now()) @db.Timestamptz
+  expiresAt              DateTime? @db.Timestamptz
 
-  runs           VerificationRun[]
+  runs                   VerificationRun[]
 
+  @@index([ownerHash, inputHash, status])
   @@map("preparations")
 }
 
 model Claim {
-  id             String   @id @default(cuid()) @db.VarChar(36)
-  runId          String   @db.VarChar(36)
-  text           String   @db.Text
-  normalizedText String   @db.Text
-  qualifiers     Json?    @db.JsonB
-  status         String   @default("PENDING") @db.VarChar(24)
-  createdAt      DateTime @default(now()) @db.Timestamptz
+  id               String          @id @default(cuid()) @db.VarChar(36)
+  runId            String          @db.VarChar(36)
+  ordinal          Int             @default(0)
+  text             String?         @db.Text
+  normalizedText   String?         @db.Text
+  qualifiers       Json?           @db.JsonB
+  spec             Json?           @db.JsonB
+  decisionRecordId String?         @db.VarChar(36)
+  result           Json?           @db.JsonB
+  state            String          @default("pending") @db.VarChar(16)
+  status           String?         @default("PENDING") @db.VarChar(24)
+  createdAt        DateTime        @default(now()) @db.Timestamptz
 
-  run            VerificationRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
-  assessments    ClaimEvidenceAssessment[]
-  decision       DecisionRecord?
-  clarifications Clarification[]
+  run              VerificationRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  decisionRecord   DecisionRecord?           @relation(fields: [decisionRecordId], references: [id], onDelete: SetNull)
+  decision         DecisionRecord?           @relation("ClaimDecisionLegacy")
+  assessments      ClaimEvidenceAssessment[]
+  dagNodes         DagNode[]
+  clarifications   Clarification[]
 
-  @@index([runId])
+  @@unique([runId, ordinal])
+  @@index([runId, state])
   @@map("claims")
 }
 
 model SourceDocument {
-  id         String   @id @default(cuid()) @db.VarChar(36)
-  runId      String   @db.VarChar(36)
-  url        String   @db.Text
-  title      String?  @db.Text
-  domain     String?  @db.VarChar(255)
-  rawContent String?  @db.Text
-  createdAt  DateTime @default(now()) @db.Timestamptz
+  id              String          @id @default(cuid()) @db.VarChar(36)
+  runId           String          @db.VarChar(36)
+  url             String          @db.Text
+  finalUrl        String?         @db.Text
+  title           String?         @db.Text
+  publisher       String?         @db.VarChar(128)
+  domain          String?         @db.VarChar(255)
+  contentHash     String?         @db.VarChar(64)
+  sourceRole      String?         @db.VarChar(32)
+  rawContent      String?         @db.Text
+  publicationDate DateTime?       @db.Date
+  effectiveDate   DateTime?       @db.Date
+  retrievedAt     DateTime        @default(now()) @db.Timestamptz
 
-  run           VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  evidenceUnits EvidenceUnit[]
+  run             VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  evidenceUnits   EvidenceUnit[]
 
-  @@index([runId])
+  @@index([runId, contentHash])
   @@map("source_documents")
 }
 
 model EvidenceUnit {
-  id          String   @id @default(cuid()) @db.VarChar(36)
-  sourceDocId String   @db.VarChar(36)
-  content     String   @db.Text
-  quote       String?  @db.Text
-  metadata    Json?    @db.JsonB
-  createdAt   DateTime @default(now()) @db.Timestamptz
+  id                  String                    @id @default(cuid()) @db.VarChar(36)
+  documentId          String?                   @db.VarChar(36)
+  sourceDocId         String?                   @db.VarChar(36)
+  verbatimText        String?                   @db.Text
+  content             String?                   @db.Text
+  quote               String?                   @db.Text
+  locator             Json?                     @db.JsonB
+  surroundingHeaders  Json?                     @db.JsonB
+  tableContext        Json?                     @db.JsonB
+  footnotes           Json?                     @db.JsonB
+  extractedProperties Json?                     @db.JsonB
+  metadata            Json?                     @db.JsonB
+  createdAt           DateTime                  @default(now()) @db.Timestamptz
 
-  sourceDoc   SourceDocument            @relation(fields: [sourceDocId], references: [id], onDelete: Cascade)
-  assessments ClaimEvidenceAssessment[]
+  document            SourceDocument?           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  assessments         ClaimEvidenceAssessment[]
 
+  @@index([documentId])
   @@index([sourceDocId])
   @@map("evidence_units")
 }
 
 model ClaimEvidenceAssessment {
-  id             String   @id @default(cuid()) @db.VarChar(36)
-  claimId        String   @db.VarChar(36)
-  evidenceUnitId String   @db.VarChar(36)
-  stance         String   @db.VarChar(24)
-  confidence     Float
-  rationale      String   @db.Text
-  createdAt      DateTime @default(now()) @db.Timestamptz
+  id                    String        @id @default(cuid()) @db.VarChar(36)
+  claimId               String        @db.VarChar(36)
+  evidenceUnitId        String        @db.VarChar(36)
+  claimRevision         Int           @default(1)
+  relationship          String?       @db.VarChar(32)
+  stance                String?       @db.VarChar(24)
+  confidence            Float?
+  rationale             String?       @db.Text
+  quotationVerified     Boolean       @default(true)
+  propertyMatchStatus   Json?         @db.JsonB
+  temporalApplicability String?       @db.VarChar(32)
+  sourceSuitability     String?       @db.VarChar(32)
+  reasoning             String?       @db.Text
+  createdAt             DateTime      @default(now()) @db.Timestamptz
 
-  claim        Claim        @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  evidenceUnit EvidenceUnit @relation(fields: [evidenceUnitId], references: [id], onDelete: Cascade)
+  claim                 Claim         @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  evidenceUnit          EvidenceUnit  @relation(fields: [evidenceUnitId], references: [id], onDelete: Cascade)
 
-  @@unique([claimId, evidenceUnitId])
+  @@unique([claimId, evidenceUnitId, claimRevision])
+  @@index([claimId, relationship])
   @@map("claim_evidence_assessments")
 }
 
 model DecisionRecord {
-  id         String   @id @default(cuid()) @db.VarChar(36)
-  claimId    String   @unique @db.VarChar(36)
-  verdict    String   @db.VarChar(32)
-  confidence Float
-  summary    String   @db.Text
-  reasoning  Json     @db.JsonB
-  createdAt  DateTime @default(now()) @db.Timestamptz
+  id                  String    @id @default(cuid()) @db.VarChar(36)
+  claimId             String    @unique @db.VarChar(36)
+  legacyClaim         Claim     @relation("ClaimDecisionLegacy", fields: [claimId], references: [id], onDelete: Cascade)
+  claimRevision       Int       @default(1)
+  appliedPolicy       String?   @db.VarChar(32)
+  verdict             String    @db.VarChar(32)
+  confidence          Float?
+  score               Int?
+  reasonCode          String?   @db.VarChar(48)
+  summary             String?   @db.Text
+  scoreReason         String?   @db.Text
+  reasoning           Json?     @db.JsonB
+  primaryEvidenceIds  Json?     @db.JsonB
+  counterEvidenceIds  Json?     @db.JsonB
+  excludedEvidence    Json?     @db.JsonB
+  extractedQualifiers Json?     @db.JsonB
+  temporalBasis       Json?     @db.JsonB
+  limitations         Json?     @db.JsonB
+  traceIds            Json?     @db.JsonB
+  createdAt           DateTime  @default(now()) @db.Timestamptz
 
-  claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  claims              Claim[]
 
+  @@index([claimId, claimRevision])
   @@map("decision_records")
 }
 
 model RunEvent {
-  id        String   @id @default(cuid()) @db.VarChar(36)
-  runId     String   @db.VarChar(36)
+  id        String          @id @default(cuid()) @db.VarChar(36)
+  runId     String          @db.VarChar(36)
   seq       Int
-  type      String   @db.VarChar(48)
-  payload   Json     @db.JsonB
-  createdAt DateTime @default(now()) @db.Timestamptz
+  type      String          @db.VarChar(48)
+  payload   Json            @db.JsonB
+  createdAt DateTime        @default(now()) @db.Timestamptz
 
   run       VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
 
   @@unique([runId, seq])
-  @@map("run_events")
+  @@map("events")
 }
 
 model DagNode {
-  id             String    @id @default(cuid()) @db.VarChar(36)
-  runId          String    @db.VarChar(36)
-  nodeKey        String    @db.VarChar(48)
-  status         String    @default("PENDING") @db.VarChar(24)
-  leaseOwner     String?   @db.VarChar(64)
-  leaseExpiresAt DateTime? @db.Timestamptz
-  attempt        Int       @default(0)
-  input          Json?     @db.JsonB
-  output         Json?     @db.JsonB
-  error          String?   @db.Text
-  startedAt      DateTime? @db.Timestamptz
-  finishedAt     DateTime? @db.Timestamptz
+  id              String          @id @default(cuid()) @db.VarChar(48)
+  runId           String          @db.VarChar(36)
+  nodeKey         String?         @db.VarChar(48)
+  claimId         String?         @db.VarChar(36)
+  nodeType        String          @default("dag_node") @db.VarChar(32)
+  state           String          @default("pending") @db.VarChar(20)
+  status          String?         @default("PENDING") @db.VarChar(24)
+  attempt         Int             @default(0)
+  leaseToken      String?         @db.VarChar(36)
+  leaseOwner      String?         @db.VarChar(64)
+  leaseUntil      DateTime?       @db.Timestamptz
+  leaseExpiresAt  DateTime?       @db.Timestamptz
+  nextAttemptAt   DateTime        @default(now()) @db.Timestamptz
+  publishedAt     DateTime?       @db.Timestamptz
+  input           Json?           @db.JsonB
+  output          Json?           @db.JsonB
+  outputReference Json?           @db.JsonB
+  error           String?         @db.Text
+  errorMessage    String?         @db.Text
+  startedAt       DateTime?       @db.Timestamptz
+  finishedAt      DateTime?       @db.Timestamptz
 
-  run           VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  outgoingEdges DagEdge[]       @relation("FromNode")
-  incomingEdges DagEdge[]       @relation("ToNode")
+  run             VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  claim           Claim?          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  clarifications  Clarification[]
+  predecessorOf   DagEdge[]       @relation("PredecessorEdges")
+  successorOf     DagEdge[]       @relation("SuccessorEdges")
 
-  @@unique([runId, nodeKey])
+  @@unique([runId, id])
+  @@index([runId, state])
+  @@index([state, nextAttemptAt])
   @@index([status, leaseExpiresAt])
   @@map("dag_nodes")
 }
 
 model DagEdge {
-  id         String @id @default(cuid()) @db.VarChar(36)
-  runId      String @db.VarChar(36)
-  fromNodeId String @db.VarChar(36)
-  toNodeId   String @db.VarChar(36)
+  id            String          @id @db.VarChar(48)
+  runId         String          @db.VarChar(36)
+  predecessorId String          @db.VarChar(48)
+  successorId   String          @db.VarChar(48)
+  condition     String          @default("on_success") @db.VarChar(16)
+  createdAt     DateTime        @default(now()) @db.Timestamptz
 
-  run        VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  fromNode   DagNode         @relation("FromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
-  toNode     DagNode         @relation("ToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+  run           VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  predecessor   DagNode         @relation("PredecessorEdges", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor     DagNode         @relation("SuccessorEdges", fields: [successorId], references: [id], onDelete: Cascade)
 
-  @@unique([runId, fromNodeId, toNodeId])
+  @@unique([runId, predecessorId, successorId])
+  @@index([runId, predecessorId])
   @@map("dag_edges")
 }
 
 model Clarification {
-  id        String   @id @default(cuid()) @db.VarChar(36)
-  runId     String   @db.VarChar(36)
-  claimId   String?  @db.VarChar(36)
-  question  String   @db.Text
-  answer    String?  @db.Text
-  status    String   @default("OPEN") @db.VarChar(24)
-  createdAt DateTime @default(now()) @db.Timestamptz
+  id                 String          @id @default(cuid()) @db.VarChar(36)
+  runId              String          @db.VarChar(36)
+  nodeId             String?         @db.VarChar(48)
+  claimId            String?         @db.VarChar(36)
+  version            Int             @default(1)
+  question           String?         @db.Text
+  answer             String?         @db.Text
+  status             String          @default("pending") @db.VarChar(24)
+  questionDefinition Json?           @db.JsonB
+  answers            Json?           @db.JsonB
+  answeredAt         DateTime?       @db.Timestamptz
+  createdAt          DateTime        @default(now()) @db.Timestamptz
 
-  run       VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  claim     Claim?          @relation(fields: [claimId], references: [id], onDelete: SetNull)
+  run                VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  node               DagNode?        @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  claim              Claim?          @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@index([runId])
+  @@index([runId, nodeId, status])
   @@map("clarifications")
 }
