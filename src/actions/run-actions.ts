@@ -205,6 +205,32 @@ export async function _setPreparationStore(
   preparationStore.set(preparationId, record);
 }
 
+/**
+ * Submits a user answer to a pending clarification question,
+ * resuming the paused DAG branch via ClarificationService.
+ *
+ * NOTE: ClarificationService performs DB writes (Prisma) and job dispatch.
+ * When B04b is not live the call will throw; the error is caught and surfaced cleanly.
+ */
+export async function submitClarificationAction(input: {
+  clarificationId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  answer: any;
+}): Promise<{ success: true } | { success: false; error: string; code: string }> {
+  try {
+    const { ClarificationService } = await import('@/server/services/clarification-service');
+    await ClarificationService.resumeWithAnswer(input.clarificationId, input.answer);
+    return { success: true };
+  } catch (err: unknown) {
+    const e = err as { message?: string; code?: string };
+    return {
+      success: false,
+      error: e?.message ?? 'Failed to submit clarification answer',
+      code: e?.code ?? 'CLARIFICATION_SUBMIT_ERROR',
+    };
+  }
+}
+
 export type {
   StartPreparationActionInput,
   StartPreparationActionResult,

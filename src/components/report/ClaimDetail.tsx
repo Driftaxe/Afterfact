@@ -3,16 +3,26 @@
 import React from 'react';
 import type { ClaimResultItem } from '@/lib/contracts/report';
 import type { EvidenceItem } from '@/lib/contracts/evidence';
+import type { ClarificationQuestion } from '@/lib/contracts/clarification';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EvidenceCard } from './EvidenceCard';
+import { ClarificationForm } from './ClarificationForm';
+
+export interface ClaimClarificationContext {
+  clarificationId: string;
+  questions: ClarificationQuestion[];
+}
 
 export interface ClaimDetailProps {
   claim: ClaimResultItem | null;
   evidenceMap: Map<string, EvidenceItem>;
   className?: string;
+  /** Present when the claim's DAG branch is waiting_for_input */
+  clarification?: ClaimClarificationContext;
+  onClarificationSuccess?: () => void;
 }
 
-export function ClaimDetail({ claim, evidenceMap, className = '' }: ClaimDetailProps) {
+export function ClaimDetail({ claim, evidenceMap, className = '', clarification, onClarificationSuccess }: ClaimDetailProps) {
   if (!claim) {
     return (
       <div className={`rounded-2xl border border-border-subtle bg-surface p-6 text-center text-xs text-text-muted ${className}`}>
@@ -161,6 +171,15 @@ export function ClaimDetail({ claim, evidenceMap, className = '' }: ClaimDetailP
             {claim.correction.diff}
           </pre>
         </div>
+      )}
+
+      {/* Clarification Form — rendered when the DAG branch is waiting_for_input */}
+      {clarification && (
+        <ClarificationForm
+          clarificationId={clarification.clarificationId}
+          questions={clarification.questions}
+          onSuccess={onClarificationSuccess ?? (() => {})}
+        />
       )}
 
       {/* Cited Evidence Cards */}
