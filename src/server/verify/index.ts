@@ -55,6 +55,27 @@ export {
   type DecisionReasonCode,
 } from './decide';
 
+// Stage 5: Timeline & Chronological Transitions (Ticket A07)
+export {
+  composeTimeline,
+  type ComposeTimelineInput,
+  type ComposeTimelineResult,
+} from './transition';
+
+// Stage 6: Surgical Claim Correction & Re-Verification (Ticket A07)
+export {
+  isCorrectionEligible,
+  buildCorrectionPrompt,
+  draftSurgicalReplacement,
+  reconstructCandidate,
+  reverifyCandidate,
+  createExactSpanEdit,
+  reconcileMultipleEdits,
+  orchestrateClaimCorrection,
+  formatUnifiedDiff,
+  type GenerateCorrectionInput,
+} from './correction';
+
 // Temporal Interval & Validity Utilities
 export {
   parseDateToInterval,
@@ -64,3 +85,5 @@ export {
   type DateInterval,
 } from './temporal';
 
+// Export correction contracts
+export * from '@/lib/contracts/correction';

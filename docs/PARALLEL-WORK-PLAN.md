@@ -313,11 +313,11 @@ flowchart TD
 
     A05["A05: Scoring Engine"]:::upstream
     A06["A06: Domain Policies"]:::upstream
+    A07["A07: Derive Transitions & Corrections (DONE)"]:::upstream
     B04b["B04b: Persistence"]:::upstream
     B05["B05: QStash Worker & Dynamic DAG"]:::upstream
     C04["C04: Workspace & Clarification UI"]:::upstream
 
-    A07["A07: Derive Transitions & Corrections"]:::unblocked
     A08["A08: Freeze Test Set (eval/cases.jsonl)"]:::partial
 
     B06["B06: Public Snapshots, SSE & Programmatic API"]:::unblocked
@@ -573,6 +573,7 @@ To prevent integration bugs, boundaries between lanes are mediated by strict con
 | **B (B02)** | **A (A03, A04)** | `src/server/bifrost/client.ts` | [docs/ARCHITECTURE.md](ARCHITECTURE.md#2-service-boundaries--hosting-topology) | End of Phase 0 | Mock model profile returns typed JSON; error maps to typed failure. |
 | **B (B03)** | **A (A04)** | `src/server/tavily/client.ts` | [src/lib/contracts/evidence.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/evidence.ts) | Wave 1 | Returns `EvidenceItem[]` with valid HTTP URLs, passages, and UTC dates. |
 | **A (A05)** | **B (B04b, B05), A (A06, A07)** | `src/server/verify/decide.ts` | [src/lib/contracts/decision.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/decision.ts) | DONE (E1/E2 scoped acceptance; integration tracked separately) | Returns `DecideClaimOutcome`; `decided` carries a validated `DecisionRecord` obeying the verdict/score rubric (100, 75, 0, null), while `invalid_input` and `internal_error` are non-verdict outcomes. |
+| **A (A07)** | **C (C05, C06), A (A09)** | `src/server/verify/transition.ts`, `correction.ts` | [src/lib/contracts/correction.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/correction.ts) | **Completed & Verified (DONE)** | Assembles Then vs. Now chronology with ADR-009 date separation; generates surgical claim corrections with re-entrant Score 100 verification, unified diffs, and reverse-offset reconciliation. |
 | **B (B04b)**| **C (C03)** | `startPreparationAction`, `confirmPreparationAction` | [docs/API.md](API.md#2-server-action-specifications-browser-mutations) | Wave 1 | Server actions return typed preparation preview and materialized run ID. |
 | **A (A02)** | **C (C01–C04)** | `fixtures/golden-mixed-report.json`| [src/lib/contracts/report.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/report.ts) | **Available Now** | `ReportSchema.parse(fixture)` succeeds without Zod errors. |
 | **B (B06)** | **C (C03)** | `GET /api/runs/[id]/events` | [src/lib/contracts/events.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/lib/contracts/events.ts) | Wave 3 | Emits sequenced SSE stream replayable via `Last-Event-ID` or `afterSeq`. |
