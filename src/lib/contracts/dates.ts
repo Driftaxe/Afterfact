@@ -144,3 +144,16 @@ export const CalendarDateOrPartialDateSchema = z.string().refine(isValidCalendar
   message: 'Must be a valid complete calendar date (YYYY-MM-DD) or partial date (YYYY-MM or YYYY)',
 });
 
+/**
+ * Accepts a complete calendar date (YYYY-MM-DD), a partial calendar date (YYYY-MM, YYYY),
+ * or an ISO 8601 timestamp with explicit timezone.
+ * Used for timeline entries where dates may be partial without artificial padding.
+ */
+export const CalendarDateOrTimestampOrPartialSchema = z.string().refine(
+  (val) => isValidCalendarDateOrPartial(val) || isValidIsoTimestamp(val),
+  {
+    message: 'Must be a valid calendar date (complete or partial) or an ISO 8601 timestamp with explicit timezone',
+  }
+);
+
+

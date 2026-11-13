@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ClaimSpanSchema, validateClaimSpan } from './claim';
 import { EvidenceItemSchema } from './evidence';
-import { CompleteCalendarDateSchema, CalendarDateOrTimestampSchema, IsoTimestampSchema } from './dates';
+import { CompleteCalendarDateSchema, CalendarDateOrTimestampOrPartialSchema, IsoTimestampSchema } from './dates';
 import { SharedContextSchema } from './request';
 
 /**
@@ -60,8 +60,8 @@ export type TimelineState = z.infer<typeof TimelineStateSchema>;
  */
 export const TimelineEntrySchema = z.object({
   state: TimelineStateSchema,
-  effectiveDate: CalendarDateOrTimestampSchema.nullable().optional(),
-  announcementDate: CalendarDateOrTimestampSchema.nullable().optional(),
+  effectiveDate: CalendarDateOrTimestampOrPartialSchema.nullable().optional(),
+  announcementDate: CalendarDateOrTimestampOrPartialSchema.nullable().optional(),
   summary: z.string().min(1, { message: 'Timeline summary cannot be empty' }),
   evidenceId: z.string().nullable().optional(),
 });

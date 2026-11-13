@@ -699,16 +699,16 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Implement Then vs. Now chronological transition composer and surgical correction generator validated through a recursive verifier pass requiring score 100.
 - **Planned Date:** Nov 11, 2026 IST
-- **Status:** TODO
+- **Status:** DONE
 - **Phase & Gate Contribution:** Phase 3 verifier deliverable; mandatory prerequisite for Gate G3 and C05.
 - **Canonical Design References:** [docs/VERIFICATION.md §5, §11](docs/VERIFICATION.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-009](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/verify/transition.ts` (proposed), `src/server/verify/correction.ts` (proposed), `tests/unit/verify/transition-correction.test.ts` (proposed). A07 exclusively owns `correction.ts`; A05 provides the re-entrant `decideClaim` decision boundary only.
+- **Allowed Scope & Expected Files:** `src/lib/contracts/correction.ts`, `src/server/verify/transition.ts`, `src/server/verify/correction.ts`, `tests/unit/verify/transition-correction.test.ts`. A07 exclusively owns `correction.ts` and `transition.ts`; A05 provides the re-entrant `decideClaim` decision boundary only.
 - **Atomic Implementation Checklist:**
-  - [ ] Implement chronology composer assembling then, transition, now, and upcoming timeline entries.
-  - [ ] Separate announced date from effective date; flag future-effective changes with `Scheduled change`.
-  - [ ] Consume the initial `TransitionProof` produced upstream by A04/A06; A07 may present and enrich the timeline but must not be the sole producer of the proof required for the first `outdated` verdict.
-  - [ ] Implement surgical correction generator replacing only verified attributes, consuming A05's `DecisionRecord` and never generating a correction for an unresolved or conflicting verdict.
-  - [ ] Run the recursive verifier (`decideClaim`) against replacement text; withhold the diff unless the new decision is `supported` with score 100.
+  - [x] Implement chronology composer assembling then, transition, now, and upcoming timeline entries.
+  - [x] Separate announced date from effective date; flag future-effective changes with `Scheduled change`.
+  - [x] Consume the initial `TransitionProof` produced upstream by A04/A06; A07 presents and enriches the timeline but is not the sole producer of the proof required for the first `outdated` verdict.
+  - [x] Implement surgical correction generator replacing only verified attributes, consuming A05's `DecisionRecord` and never generating a correction for an unresolved or conflicting verdict.
+  - [x] Run the recursive verifier (`decideClaim`) against replacement text; withhold the diff unless the new decision is `supported` with score 100.
 - **Prerequisites:**
   - **Start Prerequisites:** A05, A06.
   - **Integration / Completion Prerequisites:** None.
@@ -717,9 +717,14 @@ The following mapping documents the evolution from the initial planning baseline
 - **Deliverable & Interface Handoff:** Handed downstream to C05, C06, and A09. Consumes A05's `DecisionRecord`, upstream `TransitionProof` facts, and re-entrant `decideClaim` outcome; does not duplicate deterministic verdict logic and does not own the initial transition proof.
 - **Positive Acceptance Examples:** Outdated claim produces structured Then vs. Now chronology; valid replacement achieves score 100 and emits clean diff.
 - **Relevant Negative / Failure Cases:** Future-effective event maintains today's valid verdict and attaches `Scheduled change` badge; withheld correction is marked `correction_unverified` rather than emitting speculative text; a replacement that reaches only score 75, 0, or null is suppressed.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/transition-correction.test.ts`.
-- **Evidence Level & Required Proof:** E2 (Vitest unit suite).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/verify/transition-correction.test.ts`, `pnpm typecheck`, `pnpm lint`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis: TypeScript clean, ESLint clean), E2 (Vitest unit suite: 24/24 tests passed).
+- **Observed Evidence:**
+  - E1 (`pnpm typecheck`): `tsc --noEmit` exited 0.
+  - E1 (`pnpm lint`): `eslint .` exited 0 (0 errors, 0 warnings in A07 files).
+  - E2 (`pnpm vitest run tests/unit/verify/transition-correction.test.ts`): 24 tests passed (100% pass rate).
+  - E2 (`pnpm vitest run tests/unit`): 16 test files passed, 324 tests passed.
+  - E1 (`pnpm build`): Next.js 15.5.29 production build succeeded in 6.1s.
 - **Explicit Exclusions:** UI rendering of timeline cards.
 - **Blocker / Decision:** None.
 
@@ -1026,7 +1031,7 @@ The following mapping documents the evolution from the initial planning baseline
 | *Pending* | A11 | `pnpm vitest run tests/unit/verify/vector-ranker.test.ts` | Local Dev | *Pending execution* | [A11](#a11-explore-optional-vector-shortlisting-and-counter-hypothesis-experiments) |
 | *Pending* | B05 | `pnpm vitest run tests/integration/dynamic-dag-recovery.test.ts` | Staging / QStash | *Pending execution* | [B05](#b05-implement-signed-delivery-leases-and-recovery) |
 | *Pending* | C04 | `pnpm playwright test tests/e2e/evidence-inspection.spec.ts` | Local Dev | *Pending execution* | [C04](#c04-implement-evidence-inspection-screen) |
-| *Pending* | A07 | `pnpm vitest run tests/unit/verify/transition-correction.test.ts` | Local Dev | *Pending execution* | [A07](#a07-derive-transitions-and-validate-corrections) |
+| 2026-11-13 | A07 | `pnpm vitest run tests/unit/verify/transition-correction.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 24/24 unit tests passed (E2); 324/324 total unit tests passed; tsc clean (E1); eslint clean (E1); Next.js build clean (E1). Timeline composition, ADR-009 date separation, partial date preservation, surgical correction drafting, re-entrant candidate re-verification with mandatory Score 100 Gate, exact-span diffing, and reverse-offset multi-edit reconciliation verified. DONE. | [A07](#a07-derive-transitions-and-validate-corrections) |
 | *Pending* | A08 | `pnpm vitest run tests/unit/eval/test-set.test.ts` | Local Dev | *Pending execution* | [A08](#a08-freeze-the-test-set-before-tuning) |
 | *Pending* | B06 | `pnpm vitest run tests/integration/run-endpoints.test.ts` | Local Dev | *Pending execution* | [B06](#b06-implement-the-public-run-endpoints) |
 | *Pending* | B07 | `pnpm tsx infra/smoke-staging.ts` | Vercel Staging | *Pending execution* | [B07](#b07-provision-staging-with-real-integrations) |
