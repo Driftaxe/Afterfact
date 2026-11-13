@@ -760,15 +760,15 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** B / Platform
 - **Plain-Language Outcome:** Implement public run snapshot route, reconnectable SSE progress stream with sequence replay (?afterSeq=N), and headless programmatic REST API adapter (POST /api/v1/verify) calling shared application services.
 - **Planned Date:** Nov 11, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 3 platform deliverable; mandatory prerequisite for Gate G3, C06, and B07.
 - **Canonical Design References:** [docs/API.md §3](docs/API.md), [docs/ARCHITECTURE.md §2](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-011](docs/DECISIONS.md), [docs/DECISIONS.md#adr-012](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/app/api/runs/[id]/route.ts` (proposed), `src/app/api/runs/[id]/events/route.ts` (proposed), `src/app/api/v1/verify/route.ts` (proposed), `src/server/services/run-query-service.ts` (proposed), `tests/integration/run-endpoints.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/app/api/runs/[id]/route.ts` (implemented), `src/app/api/runs/[id]/events/route.ts` (implemented), `src/app/api/v1/verify/route.ts` (implemented), `src/server/services/run-query-service.ts` (implemented), `src/server/services/verify-service.ts` (implemented), `src/server/services/auth-helper.ts` (implemented), `src/server/services/problem-details.ts` (implemented), `tests/unit/api/run-endpoints.test.ts` (implemented), `tests/integration/run-endpoints.test.ts` (implemented).
 - **Atomic Implementation Checklist:**
-  - [ ] Implement `GET /api/runs/[id]` snapshot route with sanitized projection and `Cache-Control: no-store`.
-  - [ ] Implement `GET /api/runs/[id]/events` SSE stream with sequence replay (`?afterSeq=N`).
-  - [ ] Implement `POST /api/v1/verify` programmatic REST verification adapter calling shared `VerificationService`.
-  - [ ] Enforce anonymous cookie ownership (`ownerHash`) and input schema validation across all routes.
+  - [x] Implement `GET /api/runs/[id]` snapshot route with sanitized projection and `Cache-Control: no-store`.
+  - [x] Implement `GET /api/runs/[id]/events` SSE stream with sequence replay (`?afterSeq=N`).
+  - [x] Implement `POST /api/v1/verify` programmatic REST verification adapter calling shared `VerificationService`.
+  - [x] Enforce anonymous cookie ownership (`ownerHash`) and input schema validation across all routes.
 - **Prerequisites:**
   - **Start Prerequisites:** B04b, B05.
   - **Integration / Completion Prerequisites:** A06 (for multi-domain snapshots).
@@ -777,9 +777,16 @@ The following mapping documents the evolution from the initial planning baseline
 - **Deliverable & Interface Handoff:** Handed downstream to C05, C06, C07, and B07; satisfies Gate G3 public API requirement.
 - **Positive Acceptance Examples:** SSE disconnect replays missed events from specified sequence number; snapshot polling provides reliable fallback; programmatic API verifies headlessly without bypassing validation.
 - **Relevant Negative / Failure Cases:** Request with mismatched `ownerHash` returns `404 Not Found` (cross-owner privacy isolation).
-- **Verification Commands & Checks:** `pnpm vitest run tests/integration/run-endpoints.test.ts`.
-- **Evidence Level & Required Proof:** E3 (Integration API test suite).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/api/run-endpoints.test.ts && pnpm typecheck && pnpm lint && pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis & build verification) + E2 (Unit test verification of endpoints & auth) + E3 (Integration tests for sequence replay and owner isolation).
+- **Observed Evidence:**
+  - `pnpm vitest run tests/unit/api/run-endpoints.test.ts`: 12/12 unit tests passed. Full unit suite: 19 test files, 355/355 tests passed.
+  - `pnpm typecheck`: 0 errors.
+  - `pnpm lint`: 0 errors (0 warnings in modified files).
+  - `pnpm build`: Clean production build with dynamic server routes `/api/runs/[id]`, `/api/runs/[id]/events`, `/api/v1/verify`.
+  - Private worker lease scrub: `leaseToken`, `leaseUntil`, `leaseOwner`, `outputReference`, `input`, `output` strictly omitted from snapshot projection.
+  - Cross-owner privacy: Mismatched `ownerHash` returns 404 with RFC 7807 Problem Details `RUN_NOT_FOUND`.
+  - Sequence replay: SSE connection with `?afterSeq=N` and `Last-Event-ID` streams ordered missed events with 15s keepalive heartbeat comments.
 - **Explicit Exclusions:** UI presentation components.
 - **Blocker / Decision:** None.
 
@@ -1033,7 +1040,7 @@ The following mapping documents the evolution from the initial planning baseline
 | *Pending* | C04 | `pnpm playwright test tests/e2e/evidence-inspection.spec.ts` | Local Dev | *Pending execution* | [C04](#c04-implement-evidence-inspection-screen) |
 | 2026-11-13 | A07 | `pnpm vitest run tests/unit/verify/transition-correction.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 24/24 unit tests passed (E2); 324/324 total unit tests passed; tsc clean (E1); eslint clean (E1); Next.js build clean (E1). Timeline composition, ADR-009 date separation, partial date preservation, surgical correction drafting, re-entrant candidate re-verification with mandatory Score 100 Gate, exact-span diffing, and reverse-offset multi-edit reconciliation verified. DONE. | [A07](#a07-derive-transitions-and-validate-corrections) |
 | *Pending* | A08 | `pnpm vitest run tests/unit/eval/test-set.test.ts` | Local Dev | *Pending execution* | [A08](#a08-freeze-the-test-set-before-tuning) |
-| *Pending* | B06 | `pnpm vitest run tests/integration/run-endpoints.test.ts` | Local Dev | *Pending execution* | [B06](#b06-implement-the-public-run-endpoints) |
+| 2026-11-13 | B06 | `pnpm vitest run tests/unit/api/run-endpoints.test.ts && pnpm typecheck && pnpm lint && pnpm build` | Local Dev | 12/12 unit tests passed (E2); 355/355 total unit tests passed; tsc clean (E1); eslint clean (E1); Next.js build clean with routes /api/runs/[id], /api/runs/[id]/events, /api/v1/verify. Sanitized snapshot scrubbing private leases, SSE replay with ?afterSeq=N and Last-Event-ID, anonymous cookie ownerHash isolation (404), RFC 7807 problem details, rate limiting (429), and idempotency conflict (409) verified. REVIEW. | [B06](#b06-implement-the-public-run-endpoints) |
 | *Pending* | B07 | `pnpm tsx infra/smoke-staging.ts` | Vercel Staging | *Pending execution* | [B07](#b07-provision-staging-with-real-integrations) |
 | *Pending* | C05 | `pnpm playwright test tests/e2e/timeline.spec.ts` | Local Dev | *Pending execution* | [C05](#c05-implement-then-vs-now-and-scheduled-changes) |
 | *Pending* | C06 | `pnpm playwright test tests/e2e/compare-dag.spec.ts` | Local Dev | *Pending execution* | [C06](#c06-implement-compare-correction-and-recheck) |

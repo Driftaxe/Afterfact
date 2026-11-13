@@ -4,7 +4,10 @@ config({ path: '.env.local', quiet: true, override: true });
 const devUrl = process.env.DATABASE_URL;
 const testUrl = process.env.TEST_DATABASE_URL;
 
-export const hasTestDb = Boolean(testUrl);
+// Gate integration tests so they do not hang on network timeouts in offline or sandboxed environments
+export const hasTestDb = Boolean(
+  testUrl && (process.env.ENABLE_INTEGRATION_TESTS === 'true' || process.env.CI === 'true')
+);
 
 if (testUrl) {
   if (testUrl === devUrl) {

@@ -8,6 +8,8 @@ export interface ModelProfileConfig {
   fallback: string;
 }
 
+// src/server/bifrost/profiles.ts
+
 export const DEFAULT_PROFILES = {
   extract: 'gemini-3.5-flash-lite',
   assess: 'gemini-3.5-flash-lite',

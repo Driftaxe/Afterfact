@@ -192,7 +192,10 @@ export async function createRunAndInitializeDag(params: {
   inputHash: string;
   prepId?: string;
   text: string;
+  question?: string;
   mode?: string;
+  context?: Record<string, unknown>;
+  idempotencyKey?: string;
 }) {
   return await db.$transaction(async (tx) => {
     const run = await tx.verificationRun.create({
@@ -202,7 +205,9 @@ export async function createRunAndInitializeDag(params: {
         prepId: params.prepId,
         mode: params.mode ?? 'paste',
         text: params.text,
-        context: {},
+        question: params.question,
+        context: (params.context ?? {}) as Prisma.InputJsonValue,
+        idempotencyKey: params.idempotencyKey,
         state: 'running',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
