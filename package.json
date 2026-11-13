@@ -20,8 +20,8 @@
     "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost",
     "smoke:bifrost": "node --import tsx/esm infra/smoke-bifrost.ts",
     "smoke:extract": "node --import tsx/esm infra/test-live-extraction.ts",
-    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
-    "db:generate": "dotenv -e .env.local -- prisma generate"
+    "db:migrate": "dotenv run -f .env.local -- prisma migrate dev",
+    "db:generate": "dotenv run -f .env.local -- prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
