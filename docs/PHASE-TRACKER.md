@@ -580,18 +580,19 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** A / Verification
 - **Plain-Language Outcome:** Implement specialized domain verification policies for Pricing, APIs, Regulations, and Leadership, enforcing qualifier constraints and triggering structured clarification questions.
 - **Planned Date:** Nov 10, 2026 IST
-- **Status:** TODO
+- **Status:** DONE
 - **Phase & Gate Contribution:** Phase 2 verifier deliverable; mandatory prerequisite for Gate G2 and B05.
 - **Canonical Design References:** [docs/VERIFICATION.md §4](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-015](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/server/policies/index.ts` (proposed), `src/server/policies/pricing.ts` (proposed), `src/server/policies/api.ts` (proposed), `src/server/policies/regulation.ts` (proposed), `src/server/policies/leadership.ts` (proposed), `tests/unit/policies/domain-policies.test.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/server/policies/index.ts`, `src/server/policies/pricing.ts`, `src/server/policies/api.ts`, `src/server/policies/regulation.ts`, `src/server/policies/leadership.ts`, `src/server/policies/generic.ts`, `src/server/policies/types.ts`, `tests/unit/policies/domain-policies.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Build policy registry mapping extracted claim attributes to domain policies.
-  - [ ] Implement `pricing.ts` (match tier, currency, billing commitment, tax terms).
-  - [ ] Implement `api.ts` (match vendor, REST vs SDK, version string, deprecated vs removed).
-  - [ ] Implement `regulation.ts` (match jurisdiction, covered group, effective date).
-  - [ ] Implement `leadership.ts` (match entity, office, acting vs permanent, handover date).
-  - [ ] Implement domain-specific clarification question planning for material ambiguities.
-  - [ ] Emit `SourceAuthorityFact` facts (provenance basis plus claim applicability) and declare `DecisionPropertyRole[]` scope-qualifier versus asserted-value roles for the A05 aggregate.
+  - [x] Build policy registry mapping extracted claim attributes and domain semantics to domain policies.
+  - [x] Implement `pricing.ts` (match tier, currency, billing commitment, tax terms; resolve price as asserted_value).
+  - [x] Implement `api.ts` (distinguish version-as-scope vs version-as-asserted-value; match vendor, SDK, version, deprecated vs removed).
+  - [x] Implement `regulation.ts` (match jurisdiction, covered group, effective status, statutory provisions).
+  - [x] Implement `leadership.ts` (match entity, office, interim vs permanent; resolve leader name as asserted_value).
+  - [x] Implement `generic.ts` (conservative universal fallback preserving typed metadata without arbitrary position-based guessing).
+  - [x] Implement domain-specific clarification question planning for material ambiguities within ADR-015 bounds with explicit round exhaustion (`ClarificationPlanResult`).
+  - [x] Emit `SourceAuthorityFact` facts (provenance basis plus claim applicability) with explicit provenance validation and declare `DecisionPropertyRole[]` scope-qualifier versus asserted-value roles for the A05 aggregate.
 - **Prerequisites:**
   - **Start Prerequisites:** A05, B03.
   - **Integration / Completion Prerequisites:** None.
@@ -600,11 +601,11 @@ The following mapping documents the evolution from the initial planning baseline
 - **Deliverable & Interface Handoff:** Handed downstream to B05 (dynamic DAG expansion), C04 (clarification form), A07, and A08. Supplies A05 with `SourceAuthorityFact` applicability and `DecisionPropertyRole[]`; it does not manufacture temporal or supersession facts.
 - **Positive Acceptance Examples:** One mixed answer successfully validates claims across all 4 domains; pricing policy rejects monthly assertion matched against annual rate.
 - **Relevant Negative / Failure Cases:** Deprecated API parameter claimed to be "removed" is marked contradicted; regulation claimed in force before effective date is flagged as upcoming change.
-- **Verification Commands & Checks:** `pnpm vitest run tests/unit/policies/domain-policies.test.ts`.
-- **Evidence Level & Required Proof:** E2 (Vitest unit suite covering all 4 domain policies).
-- **Observed Evidence:** *Pending execution*
-- **Explicit Exclusions:** UI rendering of clarification forms (handled in C04).
-- **Blocker / Decision:** None.
+- **Verification Commands & Checks:** `pnpm vitest run tests/unit/policies/domain-policies.test.ts && pnpm typecheck && pnpm lint && pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis, compiler, lint, build) + E2 (Vitest unit suite covering all 4 domain policies, generic fallback, and A05 integration).
+- **Observed Evidence:** A06 deterministic policy services accepted at E1/E2; upstream semantic/provenance producers and production integration tracked separately. Implemented `src/server/policies/` (`types.ts`, `pricing.ts`, `api.ts`, `regulation.ts`, `leadership.ts`, `generic.ts`, `index.ts`). Resolved specific acceptance criteria: (1) explicit clarification round exhaustion via `ClarificationPlanResult` (`not_needed`, `questions_planned`, `rounds_exhausted`, `invalid_input`) with A05 ambiguity gate integration (`depends_on_context`), (2) generic property-role resolution without position-dependent guessing, (3) source authority qualification requiring explicit provenance basis and claim applicability binding, (4) clear separation between user-context clarification and research obligations. Authored 31-test unit suite in `tests/unit/policies/domain-policies.test.ts`. Full test suite: 300/300 passed across 15 suites in 7.26s. Static verification: `pnpm typecheck` (0 errors), `pnpm lint` (0 errors), `pnpm build` (compiled clean in 8.7s). Status updated to DONE.
+- **Explicit Exclusions:** UI rendering of clarification forms (handled in C04), live web crawling/provenance pipeline (B03/A04).
+- **Blocker / Decision:** None. Deterministic E1/E2 service complete and accepted.
 
 #### A11: Explore optional vector shortlisting and counter-hypothesis experiments (Experimental) {#a11-explore-optional-vector-shortlisting-and-counter-hypothesis-experiments}
 - **Owner:** A / Verification
