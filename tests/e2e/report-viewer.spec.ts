@@ -34,6 +34,8 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
   });
 
   test('C02-04b: Unknown report ID honestly renders not-found error state, never fabricating a report', async ({ page }) => {
+    await page.route('**/api/runs/unknown_test_id_9999**', (route) =>
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ code: 'RUN_NOT_FOUND' }) }));
     await page.goto('/report/unknown_test_id_9999');
     await page.waitForLoadState('networkidle');
 
@@ -102,8 +104,8 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
 
     // Assert detail panel updates to claim 4 (Outdated, Score 0, Timeline, Correction)
     await expect(page.getByText('SUPERSEDED_HISTORICAL_CLAIM')).toBeVisible();
-    await expect(page.getByText('Linda Yaccarino is the CEO of X (formerly Twitter)')).toBeVisible();
-    await expect(page.getByText('Twitter announces Parag Agrawal as Chief Executive Officer')).toBeVisible();
+    await expect(page.getByText('Linda Yaccarino is the CEO of X (formerly Twitter)', { exact: true })).toBeVisible();
+    await expect(page.getByText('Twitter announces Parag Agrawal as Chief Executive Officer').first()).toBeVisible();
 
     // 2. Click claim list item for claim 2 (Stripe)
     const stripeListItem = page.getByText(/Stripe's payment intent requires specifying/i).first();
@@ -114,8 +116,8 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
       name: /Stripe's payment intent requires specifying/i,
     });
     await expect(stripeHighlight).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByText('DECISIVE_CONTRADICTION')).toBeVisible();
-    await expect(page.getByText(/We recommend using automatic_payment_methods/i)).toBeVisible();
+    await expect(page.getByText('DECISIVE_CONTRADICTION').first()).toBeVisible();
+    await expect(page.getByText(/We recommend using automatic_payment_methods/i).first()).toBeVisible();
   });
 
   test('C02-08: Evidence cards render distinct dates, passage quotes, and safe links', async ({ page }) => {
