@@ -3,6 +3,7 @@
 import React from 'react';
 import type { ClaimResultItem } from '@/lib/contracts/report';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ScheduledChangeBadge } from './ScheduledChangeBadge';
 import type { VerdictFilter } from './ReportSummaryBar';
 
 export interface ClaimListProps {
@@ -77,6 +78,10 @@ export function ClaimList({
             verdictLabel = 'Failed';
           }
 
+          const hasScheduledChange =
+            Boolean(claim.timeline?.some((e) => e.state === 'upcoming')) ||
+            (claim.state === 'assessed' && claim.reasonCode === 'SCHEDULED_CHANGE_PENDING');
+
           return (
             <div
               key={claim.id}
@@ -97,11 +102,14 @@ export function ClaimList({
               }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-raised text-[10px] font-mono font-medium text-text-muted border border-border-subtle">
                     {claim.ordinal + 1}
                   </span>
                   <StatusBadge status={verdictStatus} label={verdictLabel} size="sm" />
+                  {hasScheduledChange && (
+                    <ScheduledChangeBadge size="sm" showDate={false} />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1.5 text-xs font-mono">

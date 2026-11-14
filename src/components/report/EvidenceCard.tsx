@@ -35,6 +35,7 @@ export function EvidenceCard({ evidence, className = '' }: EvidenceCardProps) {
 
   return (
     <article
+      id={`evidence-${evidence.id}`}
       className={`rounded-xl border border-border-subtle bg-surface p-4 space-y-3 transition-colors ${className}`}
       aria-label={`Evidence: ${evidence.title || hostname}`}
     >
