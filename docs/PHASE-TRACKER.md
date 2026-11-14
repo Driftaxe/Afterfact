@@ -831,15 +831,15 @@ The following mapping documents the evolution from the initial planning baseline
 - **Owner:** C / Product
 - **Plain-Language Outcome:** Build the Then vs. Now chronological transition cards linking to supporting evidence passages and render Scheduled change badges on future-effective events.
 - **Planned Date:** Nov 11, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 3 product deliverable; contributes directly to Gate G3.
 - **Canonical Design References:** [docs/PRODUCT.md §3](docs/PRODUCT.md), [docs/VERIFICATION.md §5](docs/VERIFICATION.md), [docs/DECISIONS.md#adr-009](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/components/ChangeTimeline.tsx` (proposed), `src/components/ScheduledChangeBadge.tsx` (proposed), `tests/e2e/timeline.spec.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/components/report/ChangeTimeline.tsx`, `src/components/report/ScheduledChangeBadge.tsx`, `src/components/report/ClaimDetail.tsx`, `src/components/report/ClaimList.tsx`, `src/components/report/EvidenceCard.tsx`, `src/components/report/index.ts`, `tests/unit/report/timeline.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Build `ChangeTimeline` displaying historical state, transition event, current state, and upcoming changes.
-  - [ ] Link each timeline entry directly to its supporting evidence passage.
-  - [ ] Implement `ScheduledChangeBadge` for future-effective regulations or API deprecations.
-  - [ ] Display honest fallback message when historical transitions are unverified.
+  - [x] Build `ChangeTimeline` displaying historical state, transition event, current state, and upcoming changes.
+  - [x] Link each timeline entry directly to its supporting evidence passage (`#evidence-{id}`).
+  - [x] Implement `ScheduledChangeBadge` for future-effective regulations or API deprecations ($T_{\text{effective}} > T_{\text{target}}$).
+  - [x] Display honest fallback message when historical transitions are unverified.
 - **Prerequisites:**
   - **Start Prerequisites:** C04, A07.
   - **Integration / Completion Prerequisites:** None.
@@ -848,9 +848,19 @@ The following mapping documents the evolution from the initial planning baseline
 - **Deliverable & Interface Handoff:** Handed downstream to C06.
 - **Positive Acceptance Examples:** Current fact with a future-effective event displays a distinct `Scheduled change` badge without marking the claim outdated.
 - **Relevant Negative / Failure Cases:** Claims lacking proof of prior validity omit the transition card and render contradicted verdict.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/timeline.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright component test).
-- **Observed Evidence:** *Pending execution*
+- **Verification Commands & Checks:** `pnpm typecheck`, `pnpm lint`, `pnpm exec vitest run tests/unit/report/timeline.test.ts`, `pnpm exec vitest run tests/unit`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis & build), E2 (Unit test suite).
+- **Observed Evidence:**
+  - `src/components/report/ScheduledChangeBadge.tsx`: Implemented with calendar icon, semantic status colors, accessible aria labels, size options (`sm` / `md`), and explicit three-date separation ($T_{\text{effective}}$ / $T_{\text{announced}}$).
+  - `src/components/report/ChangeTimeline.tsx`: Vertical chronological timeline card supporting 4 states (`historical`, `transition`, `current`, `upcoming`), direct anchor links (`#evidence-{id}`) with passage preview, honest unverified transition fallback, and upcoming badge indicator in header.
+  - `src/components/report/ClaimDetail.tsx`: Integrated `ChangeTimeline` and header `ScheduledChangeBadge` for claims with historical transitions and scheduled changes (`SCHEDULED_CHANGE_PENDING`).
+  - `src/components/report/ClaimList.tsx`: Integrated inline `ScheduledChangeBadge` on list items for glanceable discovery.
+  - `src/components/report/EvidenceCard.tsx`: Added `id="evidence-{id}"` anchor targets.
+  - `pnpm typecheck`: Passed with 0 errors (`tsc --noEmit`) (E1).
+  - `pnpm lint`: Passed with 0 errors, 0 warnings in Lane C codebase (E1).
+  - `pnpm exec vitest run tests/unit/report/timeline.test.ts`: Passed (10/10 tests) (E2).
+  - `pnpm exec vitest run tests/unit`: Passed (20 test files, 367 tests) (E2).
+  - `pnpm build`: Passed cleanly with all static pages (5/5) and dynamic API routes compiled (E1).
 - **Explicit Exclusions:** Context comparison drawer (handled in C06).
 - **Blocker / Decision:** None.
 

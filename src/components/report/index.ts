@@ -7,3 +7,5 @@ export * from './ReportSummaryBar';
 export * from './ReportStates';
 export * from './LiveReportViewer';
 export * from './ClarificationForm';
+export * from './ScheduledChangeBadge';
+export * from './ChangeTimeline';

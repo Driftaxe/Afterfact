@@ -7,6 +7,8 @@ import type { ClarificationQuestion } from '@/lib/contracts/clarification';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EvidenceCard } from './EvidenceCard';
 import { ClarificationForm } from './ClarificationForm';
+import { ChangeTimeline } from './ChangeTimeline';
+import { ScheduledChangeBadge } from './ScheduledChangeBadge';
 
 /**
  * Context data required to render an inline clarification form within a claim detail.
@@ -72,6 +74,16 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
     }
   }
 
+  // Detect future-dated scheduled changes without falsely marking current fact stale
+  const upcomingEntry = claim.timeline?.find((e) => e.state === 'upcoming');
+  const hasScheduledChange =
+    Boolean(upcomingEntry) ||
+    (claim.state === 'assessed' && claim.reasonCode === 'SCHEDULED_CHANGE_PENDING');
+
+  const hasTimelineData =
+    Boolean(claim.timeline && claim.timeline.length > 0) ||
+    Boolean('transition' in claim && (claim as unknown as { transition?: unknown }).transition);
+
   return (
     <div
       className={`rounded-2xl border border-border-subtle bg-surface p-5 sm:p-6 space-y-6 ${className}`}
@@ -81,11 +93,18 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
       {/* Header & Claim Text */}
       <div className="space-y-3 pb-4 border-b border-border-subtle">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-raised text-xs font-mono font-medium text-text-muted border border-border-subtle">
               {claim.ordinal + 1}
             </span>
             <StatusBadge status={verdictStatus} label={verdictLabel} size="md" />
+            {hasScheduledChange && (
+              <ScheduledChangeBadge
+                effectiveDate={upcomingEntry?.effectiveDate}
+                announcementDate={upcomingEntry?.announcementDate}
+                size="sm"
+              />
+            )}
           </div>
 
           <div className="text-right">
@@ -120,42 +139,12 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
       </div>
 
       {/* Then vs. Now Transition Timeline */}
-      {claim.state === 'assessed' && claim.timeline && claim.timeline.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider font-mono">
-            Then vs. Now Timeline
-          </h4>
-
-          <div className="relative pl-4 space-y-3 border-l-2 border-border-subtle">
-            {claim.timeline.map((entry, idx) => {
-              let stateBadgeColor = 'bg-surface-raised text-text-muted border-border-subtle';
-              if (entry.state === 'current') {
-                stateBadgeColor = 'bg-status-supported-bg text-status-supported-text border-status-supported-border';
-              } else if (entry.state === 'upcoming') {
-                stateBadgeColor = 'bg-status-outdated-bg text-status-outdated-text border-status-outdated-border';
-              } else if (entry.state === 'transition') {
-                stateBadgeColor = 'bg-surface-raised text-accent border-accent/40';
-              }
-
-              return (
-                <div key={`timeline-${idx}`} className="relative space-y-1">
-                  <div className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-border-strong border-2 border-surface" />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded px-1.5 py-0.2 text-[10px] font-mono uppercase border ${stateBadgeColor}`}>
-                      {entry.state}
-                    </span>
-                    {(entry.effectiveDate || entry.announcementDate) && (
-                      <span className="text-[11px] font-mono text-text-muted">
-                        Effective: {entry.effectiveDate || entry.announcementDate}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-text-secondary leading-relaxed">{entry.summary}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {hasTimelineData && (
+        <ChangeTimeline
+          timeline={claim.timeline}
+          transition={'transition' in claim ? (claim as unknown as { transition?: unknown }).transition : undefined}
+          evidenceMap={evidenceMap}
+        />
       )}
 
       {/* Verified Surgical Correction Diff */}
