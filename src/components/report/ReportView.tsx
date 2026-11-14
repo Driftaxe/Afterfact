@@ -9,6 +9,9 @@ import { ClaimList } from './ClaimList';
 import { ClaimDetail } from './ClaimDetail';
 import { ReportSummaryBar, type VerdictFilter } from './ReportSummaryBar';
 import { ReportEmptyClaimsState, ReportPartialBanner } from './ReportStates';
+import { ExportReport } from '@/components/ExportReport';
+import { DagInspector, type SanitizedDagNode } from '@/components/DagInspector';
+import { ReportErrorBoundary } from './ReportErrorBoundaries';
 
 export interface ReportViewProps {
   report: Report;
@@ -81,6 +84,8 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
         </div>
 
         <div className="flex items-center gap-2">
+          <ExportReport report={report} />
+
           {onBack ? (
             <button
               type="button"
@@ -139,6 +144,16 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
           <ClaimDetail claim={selectedClaim} evidenceMap={evidenceMap} />
         </div>
       </div>
+
+      {/* Dynamic DAG Graph Inspector */}
+      <ReportErrorBoundary>
+        <DagInspector
+          nodes={((report as unknown as { dagNodes?: SanitizedDagNode[] }).dagNodes) || []}
+          totalNodes={((report as unknown as { dag?: { totalNodes?: number } }).dag)?.totalNodes}
+          completedNodes={((report as unknown as { dag?: { completedNodes?: number } }).dag)?.completedNodes}
+          defaultExpanded={false}
+        />
+      </ReportErrorBoundary>
     </div>
   );
 }

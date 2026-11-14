@@ -9,3 +9,7 @@ export * from './LiveReportViewer';
 export * from './ClarificationForm';
 export * from './ScheduledChangeBadge';
 export * from './ChangeTimeline';
+export * from '../ContextComparison';
+export * from '../DagInspector';
+export * from '../ExportReport';
+export * from './ReportErrorBoundaries';

@@ -9,6 +9,7 @@ import { EvidenceCard } from './EvidenceCard';
 import { ClarificationForm } from './ClarificationForm';
 import { ChangeTimeline } from './ChangeTimeline';
 import { ScheduledChangeBadge } from './ScheduledChangeBadge';
+import { ContextComparison } from '@/components/ContextComparison';
 
 /**
  * Context data required to render an inline clarification form within a claim detail.
@@ -147,9 +148,9 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
         />
       )}
 
-      {/* Verified Surgical Correction Diff */}
+      {/* Verified Surgical Correction Diff & Context Comparison */}
       {claim.state === 'assessed' && claim.correction && (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider font-mono">
               Surgical Correction
@@ -164,6 +165,14 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
           <pre className="rounded-xl border border-border-subtle bg-surface-raised p-3 text-xs font-mono text-text-primary leading-relaxed overflow-x-auto whitespace-pre-wrap">
             {claim.correction.diff}
           </pre>
+
+          <ContextComparison
+            title="Surgical Context Comparison"
+            originalText={claim.correction.originalText}
+            discoveredText={claim.correction.replacementText}
+            discoveredSourceUrl={claim.correction.evidenceIds?.[0] ? evidenceMap.get(claim.correction.evidenceIds[0])?.url : undefined}
+            discoveredPublisher={claim.correction.evidenceIds?.[0] ? evidenceMap.get(claim.correction.evidenceIds[0])?.publisher : undefined}
+          />
         </div>
       )}
 
