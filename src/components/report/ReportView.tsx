@@ -28,7 +28,7 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
   // Pre-index evidence by ID for instant O(1) lookups
   const evidenceMap = useMemo(() => {
     const map = new Map<string, EvidenceItem>();
-    for (const evi of report.evidence) {
+    for (const evi of (report.evidence || [])) {
       map.set(evi.id, evi);
     }
     return map;

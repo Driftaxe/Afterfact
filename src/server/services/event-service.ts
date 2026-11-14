@@ -38,11 +38,17 @@ export type EventInput =
       state: 'completed' | 'partial' | 'failed';
       summary: {
         totalClaims: number;
-        supportedClaims: number;
-        contradictedClaims: number;
-        outdatedClaims: number;
-        indeterminateClaims: number;
-        truthScore: number | null;
+        supported?: number;
+        outdated?: number;
+        contradicted?: number;
+        unresolved?: number;
+        supportedClaims?: number;
+        contradictedClaims?: number;
+        outdatedClaims?: number;
+        indeterminateClaims?: number;
+        truthScore?: number | null;
+        failed?: number;
+        pending?: number;
       };
     };
 
@@ -70,8 +76,47 @@ export class EventService {
     const allocatedSeq = updatedRun.nextEventSeq - 1;
     const timestamp = new Date().toISOString();
 
+    // Normalize run_finished summary so both contract format (supported/outdated/etc.)
+    // and legacy format (supportedClaims/outdatedClaims/etc.) satisfy ReportSummarySchema
+    let normalizedData = eventData;
+    if (eventData.type === 'run_finished') {
+      const s = eventData.summary as Record<string, unknown>;
+      normalizedData = {
+        ...eventData,
+        summary: {
+          totalClaims: typeof s.totalClaims === 'number' ? s.totalClaims : 0,
+          supported:
+            typeof s.supported === 'number'
+              ? s.supported
+              : typeof s.supportedClaims === 'number'
+                ? s.supportedClaims
+                : 0,
+          outdated:
+            typeof s.outdated === 'number'
+              ? s.outdated
+              : typeof s.outdatedClaims === 'number'
+                ? s.outdatedClaims
+                : 0,
+          contradicted:
+            typeof s.contradicted === 'number'
+              ? s.contradicted
+              : typeof s.contradictedClaims === 'number'
+                ? s.contradictedClaims
+                : 0,
+          unresolved:
+            typeof s.unresolved === 'number'
+              ? s.unresolved
+              : typeof s.indeterminateClaims === 'number'
+                ? s.indeterminateClaims
+                : 0,
+          failed: typeof s.failed === 'number' ? s.failed : 0,
+          pending: typeof s.pending === 'number' ? s.pending : 0,
+        },
+      };
+    }
+
     const fullEvent = {
-      ...eventData,
+      ...normalizedData,
       runId,
       seq: allocatedSeq,
       timestamp,
