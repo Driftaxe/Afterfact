@@ -20,8 +20,8 @@ export async function GET(
   const { id } = await params;
 
 
-  // Validate the CUID before attempting a database query.
-  if (!/^c[a-z0-9]{24}$/.test(id)) {
+  // Validate the run identifier format before attempting a database query.
+  if (!/^(c[a-z0-9]{24}|run_[a-zA-Z0-9_-]+)$/.test(id)) {
     return problemResponse({
       status: 404,
       code: 'RUN_NOT_FOUND',

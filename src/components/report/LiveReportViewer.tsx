@@ -17,7 +17,11 @@ export function LiveReportViewer({ runId }: { runId: string }) {
     );
   }
 
-  if (!runSnapshot) {
+  if (
+    !runSnapshot ||
+    (runSnapshot.state === 'running' &&
+      (!runSnapshot.claims || runSnapshot.claims.length === 0))
+  ) {
     return <ReportLoadingSkeleton />;
   }
 

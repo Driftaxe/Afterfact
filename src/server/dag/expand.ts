@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { db } from '@/server/db/client';
 import { MAX_DAG_NODES_PER_RUN } from '@/lib/contracts/dag';
 import { Prisma } from '@prisma/client';
@@ -133,7 +134,12 @@ export async function expandDag(params: ExpandDagParams, tx?: Prisma.Transaction
 
     // 4. Atomically insert new edges
     for (const edge of newEdges) {
-      const edgeId = `edge_${runId}_${edge.predecessorId}_${edge.successorId}`;
+      const edgeHash = crypto
+        .createHash('sha256')
+        .update(`${runId}:${edge.predecessorId}:${edge.successorId}`)
+        .digest('hex')
+        .slice(0, 32);
+      const edgeId = `edge_${edgeHash}`;
       await client.dagEdge.create({
         data: {
           id: edgeId,

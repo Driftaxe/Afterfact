@@ -38,44 +38,46 @@ export function useRun(runId: string): UseRunResult {
       }
     };
 
+    const fetchSnapshot = async () => {
+      try {
+        const res = await fetch(`/api/runs/${runId}`);
+        if (!isSubscribed) return;
+
+        if (res.status === 404) {
+          // Run does not exist — surface not-found state immediately
+          setNotFound(true);
+          stopPolling();
+          setConnectionState('disconnected');
+          return;
+        }
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!isSubscribed) return;
+
+        const snapshot = data.report || data;
+        if (snapshot && typeof snapshot === 'object' && ('reportId' in snapshot || 'id' in snapshot)) {
+          setRunSnapshot(snapshot as Report);
+          const state = snapshot.state || snapshot.status;
+          if (state === 'completed' || state === 'failed') {
+            stopPolling();
+            if (!eventSourceRef.current) {
+              setConnectionState('disconnected');
+            }
+          }
+        }
+      } catch {
+        // Soft retry on next interval
+      }
+    };
+
     const startPolling = () => {
       stopPolling();
       if (!isSubscribed) return;
       setConnectionState('polling');
-
-      const fetchSnapshot = async () => {
-        try {
-          const res = await fetch(`/api/runs/${runId}`);
-          if (!isSubscribed) return;
-
-          if (res.status === 404) {
-            // Run does not exist — surface not-found state immediately
-            setNotFound(true);
-            stopPolling();
-            setConnectionState('disconnected');
-            return;
-          }
-
-          if (!res.ok) return;
-
-          const data = await res.json();
-          if (!isSubscribed) return;
-
-          const snapshot = data.report || data;
-          if (snapshot && typeof snapshot === 'object' && 'reportId' in snapshot) {
-            setRunSnapshot(snapshot as Report);
-            if (snapshot.status && snapshot.status !== 'running') {
-              stopPolling();
-              setConnectionState('disconnected');
-            }
-          }
-        } catch {
-          // Soft retry on next interval
-        }
-      };
-
       fetchSnapshot();
-      pollIntervalRef.current = setInterval(fetchSnapshot, 2000);
+      pollIntervalRef.current = setInterval(fetchSnapshot, 1500);
     };
 
     const connectSSE = () => {
@@ -87,7 +89,8 @@ export function useRun(runId: string): UseRunResult {
       es.onopen = () => {
         if (!isSubscribed) return;
         setConnectionState('connected');
-        stopPolling();
+        // Initial fetch so the UI has snapshot data immediately on connect
+        fetchSnapshot();
       };
 
       es.onmessage = (messageEvent) => {
@@ -101,12 +104,18 @@ export function useRun(runId: string): UseRunResult {
               setEvents((prev) => [...prev, parsed as VerificationEvent]);
             }
 
+            // Immediately refresh snapshot from database upon receiving progress events
+            fetchSnapshot();
+
             if ('reportId' in parsed) {
               setRunSnapshot(parsed as Report);
-            } else if (parsed.type === 'run_finished' && parsed.report) {
-              setRunSnapshot(parsed.report as Report);
+            } else if (parsed.type === 'run_finished') {
+              if (parsed.report) {
+                setRunSnapshot(parsed.report as Report);
+              }
               es.close();
               setConnectionState('disconnected');
+              stopPolling();
             }
           }
         } catch {
@@ -123,6 +132,8 @@ export function useRun(runId: string): UseRunResult {
       };
     };
 
+    // Always fetch initial snapshot immediately and start background polling
+    startPolling();
     connectSSE();
 
     return () => {

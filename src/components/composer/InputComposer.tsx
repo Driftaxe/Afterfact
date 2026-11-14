@@ -245,14 +245,23 @@ export function InputComposer({
                 Verify another answer
               </Button>
 
-              {showSampleLink && (
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                {showSampleLink && (
+                  <Link
+                    href="/report/demo?mode=fixture"
+                    className="inline-flex items-center justify-center h-10 px-4 rounded-[9px] border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring text-center"
+                  >
+                    View sample report
+                  </Link>
+                )}
+
                 <Link
-                  href="/report/demo?mode=fixture"
-                  className="inline-flex items-center justify-center h-10 px-4 rounded-[9px] bg-accent text-accent-contrast hover:bg-accent/90 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring text-center"
+                  href={`/report/${confirmedRun.runId}`}
+                  className="inline-flex items-center justify-center h-10 px-5 rounded-[9px] bg-accent text-accent-contrast hover:bg-accent/90 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring text-center shadow-sm"
                 >
-                  View sample report (Replay)
+                  Open Live Report &rarr;
                 </Link>
-              )}
+              </div>
             </div>
           </div>
         </Card>
