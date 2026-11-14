@@ -14,6 +14,15 @@ vi.mock('@/components/report/EvidenceCard', () => ({
     React.createElement('div', { id: `evidence-${evidence.id}` }, evidence.passage),
 }));
 
+// Mock ContextComparison to isolate ClaimDetail from interactive hook-based diff component
+vi.mock('@/components/ContextComparison', () => ({
+  ContextComparison: ({ originalText, discoveredText }: { originalText?: string; discoveredText?: string }) =>
+    React.createElement('div', { 'data-testid': 'context-comparison' },
+      originalText ? React.createElement('span', null, originalText) : null,
+      discoveredText ? React.createElement('span', null, discoveredText) : null,
+    ),
+}));
+
 describe('Task C05: Then vs. Now Timeline & Scheduled Changes', () => {
   describe('ScheduledChangeBadge', () => {
     it('renders scheduled change badge with explicit effective date', () => {

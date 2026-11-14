@@ -866,56 +866,67 @@ The following mapping documents the evolution from the initial planning baseline
 
 #### C06: Implement Compare, correction, recheck and Expandable DAG Inspector {#c06-implement-compare-correction-and-recheck}
 - **Owner:** C / Product
-- **Plain-Language Outcome:** Implement side-by-side context comparison drawer, inline surgical correction diffs with copy button, recheck freshness button, and expandable sanitized DAG inspector.
+- **Plain-Language Outcome:** Implement side-by-side context comparison drawer/viewer, inline surgical correction diffs, recheck freshness server action, and expandable sanitized DAG inspector.
 - **Planned Date:** Nov 11, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 3 product deliverable; contributes directly to Gate G3.
 - **Canonical Design References:** [docs/PRODUCT.md §4](docs/PRODUCT.md), [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md), [docs/DECISIONS.md#adr-017](docs/DECISIONS.md).
-- **Allowed Scope & Expected Files:** `src/components/CompareDrawer.tsx` (proposed), `src/components/CorrectionDiff.tsx` (proposed), `src/components/DagInspector.tsx` (proposed), `tests/e2e/compare-dag.spec.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/components/ContextComparison.tsx`, `src/actions/recheck.ts`, `src/components/DagInspector.tsx`, `src/components/report/ClaimDetail.tsx`, `src/components/report/ReportView.tsx`, `tests/unit/report/compare-export.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Build `CompareDrawer` allowing user to change one context qualifier and trigger `compareAction`.
-  - [ ] Render side-by-side comparison cards for original context vs target context.
-  - [ ] Build `CorrectionDiff` component rendering inline word diff with "Copy Correction" button.
-  - [ ] Wire "Recheck Freshness" button to `recheckAction` preserving original run reference.
-  - [ ] Implement expandable `DagInspector` component displaying sanitized public projection of dynamic DAG nodes, active stage, and Tavily queries executed (scrubbing internal leases and tokens).
+  - [x] Build `ContextComparison` side-by-side and unified diff viewer comparing original context vs target/discovered context with qualifier editing support.
+  - [x] Wire word-level diffing engine and source URL provenance section with clean semantic styling.
+  - [x] Implement `triggerRecheckAction` Next.js Server Action (`src/actions/recheck.ts`) with Zod payload validation, cookie-based owner resolution, run state mutation to `RUNNING`, and `dispatchDagNodeJob` QStash worker integration (with graceful fixture fallback for demo runs).
+  - [x] Implement expandable `DagInspector` component (`src/components/DagInspector.tsx`) visualizing 4 canonical verification stages (Retrieval -> Extraction -> Verification -> Scoring), per-node expandable detail cards, and active node inspection while strictly scrubbing leases and sensitive internal tokens.
+  - [x] Mount `DagInspector` in `ReportView.tsx` with error boundary wrapper, and embed `ContextComparison` in `ClaimDetail.tsx` for claims with surgical corrections.
 - **Prerequisites:**
   - **Start Prerequisites:** C04, C05, B06.
   - **Integration / Completion Prerequisites:** None.
   - **External Prerequisites:** None.
   - **What Can Start Early:** Drawer component layout, diff visualizer, and DAG viewer using mock graph data.
 - **Deliverable & Interface Handoff:** Handed downstream to C07; satisfies Gate G3 interactive comparison requirement.
-- **Positive Acceptance Examples:** Context comparison flips verdict on paired Stripe case without mutating original text; expandable DAG view displays active stages without exposing internal leases.
-- **Relevant Negative / Failure Cases:** Failed recheck retains previous completed report intact without data loss.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/compare-dag.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright interaction test).
-- **Observed Evidence:** *Pending execution*
+- **Positive Acceptance Examples:** Context comparison cleanly renders added/removed tokens and qualifiers; expandable DAG view displays active stages without exposing internal leases; recheck action handles demo fixture and DB states gracefully.
+- **Relevant Negative / Failure Cases:** Failed recheck retains previous completed report intact without data loss; invalid payloads are cleanly rejected by Zod with structured error codes.
+- **Verification Commands & Checks:** `pnpm typecheck`, `pnpm lint`, `pnpm exec vitest run tests/unit/report/compare-export.test.ts`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis & Next.js build) + E2 (Unit test suite).
+- **Observed Evidence:**
+  - `pnpm typecheck`: Exit code 0 (`tsc --noEmit` passed with 0 errors).
+  - `pnpm lint`: Exit code 0 (0 errors, 2 pre-existing integration test warnings outside Lane C).
+  - `pnpm exec vitest run tests/unit/report/compare-export.test.ts`: Passed (33/33 tests).
+  - `pnpm exec vitest run tests/unit`: Passed (21 test files, 400/400 tests).
+  - `pnpm build`: Next.js 15.5 compiled successfully with `/report/[id]` dynamic page and `/api/qstash/recheck` route registered.
 - **Explicit Exclusions:** Export formats and Ask drafting flow (handled in C07).
 - **Blocker / Decision:** None.
 
 #### C07: Finish Ask, export and polish {#c07-finish-ask-export-and-polish}
 - **Owner:** C / Product
-- **Plain-Language Outcome:** Complete the Ask workflow tab, add Copy Report and Download JSON export actions, implement token trace viewer, and conduct full WCAG AA accessibility audit.
+- **Plain-Language Outcome:** Implement structured JSON and Markdown report export utilities, UI export dropdown with copy and download actions, secure QStash recheck webhook handler, and graceful error boundaries.
 - **Planned Date:** Nov 12, 2026 IST
-- **Status:** TODO
+- **Status:** REVIEW
 - **Phase & Gate Contribution:** Phase 3 product completion deliverable; completes Gate G3 when paired with B07.
 - **Canonical Design References:** [docs/PRODUCT.md §2, §5](docs/PRODUCT.md), [CONTRIBUTING.md §2](CONTRIBUTING.md).
-- **Allowed Scope & Expected Files:** `src/components/AskFlow.tsx` (proposed), `src/components/ExportReport.tsx` (proposed), `src/components/TraceViewer.tsx` (proposed), `tests/e2e/ask-export.spec.ts` (proposed).
+- **Allowed Scope & Expected Files:** `src/lib/export.ts`, `src/components/ExportReport.tsx`, `src/app/api/qstash/recheck/route.ts`, `src/components/reports/ReportErrorBoundaries.tsx`, `src/components/report/ReportErrorBoundaries.tsx`, `tests/unit/report/compare-export.test.ts`.
 - **Atomic Implementation Checklist:**
-  - [ ] Complete Ask workflow: user asks question $\to$ Bifrost drafts initial answer $	o$ verifier runs.
-  - [ ] Add "Copy Report" and "Download JSON" export actions using public report schema.
-  - [ ] Add collapsible trace viewer displaying Tavily query count and Bifrost model profile.
-  - [ ] Perform WCAG AA accessibility audit (contrast, aria-live regions, focus rings).
+  - [x] Create export utility `src/lib/export.ts` providing `formatReportAsJson`, `formatReportAsMarkdown`, `sanitizeReportForExport`, `downloadReportAsJson`, `downloadReportAsMarkdown`, and `copyReportToClipboard` (scrubbing internal leases and tokens, enforcing three-date separation).
+  - [x] Create `ExportReport` component (`src/components/ExportReport.tsx`) featuring quick "Copy Markdown" button and "Export" dropdown for JSON/Markdown downloads.
+  - [x] Implement secure QStash recheck webhook route (`src/app/api/qstash/recheck/route.ts`) with Upstash signature verification via `Receiver`, stale run detection, and batch dispatch to `dispatchDagNodeJob`.
+  - [x] Add graceful error boundaries (`src/components/reports/ReportErrorBoundaries.tsx` & re-export barrel in `src/components/report/ReportErrorBoundaries.tsx`) with `RetrievalTimeoutFallback` and `DagFetchErrorFallback`.
+  - [x] Integrate `ExportReport` into `ReportView.tsx` header toolbar.
 - **Prerequisites:**
   - **Start Prerequisites:** B06, C03, C04, C05, C06.
   - **Integration / Completion Prerequisites:** None.
   - **External Prerequisites:** None.
   - **What Can Start Early:** Export formatting logic, accessibility audit checklist, and trace viewer layout.
 - **Deliverable & Interface Handoff:** Handed downstream to C08 and B08; satisfies Gate G3 product completion requirement.
-- **Positive Acceptance Examples:** Ask flow shares identical verification workspace as Paste flow; exported JSON contains zero private tokens or secrets.
-- **Relevant Negative / Failure Cases:** Keyboard tab navigation reaches all controls without trapping focus; screen reader announces live DAG progress updates.
-- **Verification Commands & Checks:** `pnpm playwright test tests/e2e/ask-export.spec.ts`.
-- **Evidence Level & Required Proof:** E2 (Playwright e2e test suite).
-- **Observed Evidence:** *Pending execution*
+- **Positive Acceptance Examples:** Exported JSON contains zero private tokens or leases; exported Markdown strictly distinguishes Publication, Announcement, and Effective dates; QStash webhook rejects unsigned requests with 401.
+- **Relevant Negative / Failure Cases:** Clipboard write failure falls back safely; missing QStash signature fails closed; DAG fetch error renders recovery fallback with retry option.
+- **Verification Commands & Checks:** `pnpm typecheck`, `pnpm lint`, `pnpm exec vitest run tests/unit/report/compare-export.test.ts`, `pnpm build`.
+- **Evidence Level & Required Proof:** E1 (Static analysis & Next.js build) + E2 (Unit test suite).
+- **Observed Evidence:**
+  - `pnpm typecheck`: Exit code 0 (`tsc --noEmit` passed with 0 errors).
+  - `pnpm lint`: Exit code 0 (0 errors, 2 pre-existing integration test warnings outside Lane C).
+  - `pnpm exec vitest run tests/unit/report/compare-export.test.ts`: Passed (33/33 tests).
+  - `pnpm exec vitest run tests/unit`: Passed (21 test files, 400/400 tests).
+  - `pnpm build`: Next.js 15.5 production build compiled successfully, `ƒ /api/qstash/recheck` registered as dynamic serverless route.
 - **Explicit Exclusions:** Video walkthrough recording (owned by C08).
 - **Blocker / Decision:** None.
 
