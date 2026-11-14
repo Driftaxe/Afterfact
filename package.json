@@ -20,6 +20,7 @@
     "bifrost": "dotenv -e .env -- pnpm dlx @maximhq/bifrost",
     "smoke:bifrost": "node --import tsx/esm infra/smoke-bifrost.ts",
     "smoke:extract": "node --import tsx/esm infra/test-live-extraction.ts",
+    "smoke:staging": "node --import tsx/esm infra/smoke-staging.ts",
     "db:migrate": "dotenv run -f .env.local -- prisma migrate dev",
     "db:generate": "dotenv run -f .env.local -- prisma generate"
   },
