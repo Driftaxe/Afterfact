@@ -242,7 +242,7 @@ export function ScratchRevealHeadline({
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="font-sans text-[clamp(1.75rem,3.75vw,2.85rem)] font-light tracking-[-0.015em] text-[var(--af-ivory)] text-center leading-[1.2] drop-shadow-sm">
+        <h1 className="font-serif uppercase text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-normal tracking-[-0.025em] text-[var(--af-ivory)] text-center leading-[1.18] drop-shadow-[0_0_15px_rgba(232,225,218,0.12)]">
           Every claim has a story.
         </h1>
       </div>
