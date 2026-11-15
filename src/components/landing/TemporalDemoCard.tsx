@@ -4,73 +4,67 @@ import React from 'react';
 
 export function TemporalDemoCard() {
   return (
-    <div className="rounded-lg bg-surface/95 dark:bg-[#18191C]/95 border border-border-strong/90 p-3.5 sm:p-4 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-accent/40 group space-y-3">
-      {/* Header Bar: Sequence Number + Topic + Status Badge */}
-      <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-border-subtle/70">
-        <div className="flex items-center gap-2.5">
-          <span className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-accent">
+    <div className="rounded-md bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle p-5 sm:p-6 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-accent/40 space-y-4">
+      {/* Header: Sequence Number + Verification Identifier + Status */}
+      <div className="flex items-center justify-between pb-3 border-b border-border-subtle/60">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-2xl sm:text-3xl font-light text-accent">
             02
           </span>
-          <span className="text-xs font-mono font-medium text-text-primary">
-            Twitter/X Enterprise API Access
+          <div>
+            <div className="text-[10px] font-mono tracking-widest uppercase text-text-muted">
+              TEMPORAL TRANSITION
+            </div>
+            <div className="text-xs font-mono text-text-secondary">
+              Twitter / X Enterprise API Access
+            </div>
+          </div>
+        </div>
+
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-status-outdated-text">
+          <span className="w-1.5 h-1.5 rounded-full bg-status-outdated-text" />
+          OUTDATED
+        </span>
+      </div>
+
+      {/* Prominent Historical vs Current Transition */}
+      <div className="grid grid-cols-2 gap-4 pt-1">
+        <div className="space-y-1">
+          <span className="font-mono text-[11px] text-text-muted uppercase tracking-wider block">
+            HISTORICAL // 2021
           </span>
+          <div className="font-serif text-xl sm:text-2xl font-normal text-text-muted line-through decoration-status-outdated-text/70">
+            $42,000 / mo
+          </div>
+          <p className="font-sans text-[11px] text-text-muted">
+            Firehose access stream
+          </p>
         </div>
 
-        <span className="px-2 py-0.5 rounded-sm bg-status-outdated-bg border border-status-outdated-border text-[9px] font-mono font-semibold text-status-outdated-text uppercase tracking-wider">
-          OUTDATED (SCORE: 0)
-        </span>
-      </div>
-
-      {/* Visual Connected Chronological Node Diagram */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[9px] font-mono text-text-muted">
-          <span>TEMPORAL DRIFT DIAGRAM</span>
-          <span className="text-status-outdated-text">SUPERSEDED 2023-06</span>
-        </div>
-
-        {/* Visual Node Diagram */}
-        <div className="grid grid-cols-11 items-center gap-1.5 py-1">
-          {/* Node 1: Historical 2021 */}
-          <div className="col-span-5 rounded bg-surface-raised/70 border border-border-subtle p-2 space-y-0.5">
-            <div className="flex items-center justify-between text-[9px] font-mono text-text-muted">
-              <span>HISTORICAL</span>
-              <span className="text-status-outdated-text font-semibold">2021</span>
-            </div>
-            <div className="text-xs font-mono font-medium text-text-secondary line-through truncate">
-              $42,000 / month
-            </div>
+        <div className="space-y-1 border-l border-border-subtle/60 pl-4">
+          <span className="font-mono text-[11px] text-status-supported-text uppercase tracking-wider block">
+            SUPERSEDED // 2023 → PRESENT
+          </span>
+          <div className="font-serif text-xl sm:text-2xl font-normal text-text-primary">
+            $100 – $5,000 / mo
           </div>
-
-          {/* Visual Connector Arrow */}
-          <div className="col-span-1 flex flex-col items-center justify-center">
-            <span className="text-accent text-sm font-bold">→</span>
-          </div>
-
-          {/* Node 2: Current 2026 */}
-          <div className="col-span-5 rounded bg-surface-raised/70 border border-status-supported-border/40 p-2 space-y-0.5">
-            <div className="flex items-center justify-between text-[9px] font-mono">
-              <span className="text-text-muted">CURRENT</span>
-              <span className="text-status-supported-text font-semibold">2026</span>
-            </div>
-            <div className="text-xs font-mono font-medium text-status-supported-text truncate">
-              $100 – $5,000 / mo
-            </div>
-          </div>
-        </div>
-
-        {/* Transition Progress Bar */}
-        <div className="w-full bg-surface-raised h-1 rounded-sm overflow-hidden flex">
-          <div className="bg-status-outdated-text w-1/2 h-full" title="Historical Active" />
-          <div className="bg-status-supported-text w-1/2 h-full" title="Current Policy" />
+          <p className="font-sans text-[11px] text-text-secondary">
+            Basic and Pro developer tiers
+          </p>
         </div>
       </div>
 
-      {/* Footer Metadata */}
-      <div className="flex items-center justify-between text-[9px] font-mono text-text-muted pt-1 border-t border-border-subtle/50">
-        <span>CHANGE: RESTRUCTURED_TIERING</span>
-        <span className="px-1.5 py-0.2 rounded bg-surface-raised border border-border-subtle text-text-muted">
-          ILLUSTRATIVE FIXTURE
-        </span>
+      {/* Clear Explanatory Statement */}
+      <div className="rounded bg-surface-raised/40 border border-border-subtle/40 p-3">
+        <p className="font-serif italic text-xs sm:text-sm text-text-primary/90 leading-relaxed">
+          &ldquo;An assertion factual in 2021 was superseded on June 1, 2023. Flagged outdated for queries evaluated after that transition date.&rdquo;
+        </p>
+      </div>
+
+      {/* Restrained Footnote */}
+      <div className="pt-2 border-t border-border-subtle/40 flex items-center justify-between text-[10px] font-mono text-text-muted">
+        <span>POLICY TRANSITION VERIFIED</span>
+        <span>ILLUSTRATIVE FIXTURE</span>
       </div>
     </div>
   );

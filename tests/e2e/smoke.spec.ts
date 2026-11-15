@@ -21,7 +21,10 @@ test.describe('Root Application Landing Page & Visual Review', () => {
 
     const heading = page.locator('h1');
     await expect(heading).toBeVisible();
-    await expect(heading).toContainText('Clarity, even as facts change.');
+    await expect(heading).toContainText('Every claim has a story.');
+
+    const signature = page.getByText('Clarity, even as facts change.');
+    await expect(signature).toBeVisible();
 
     const description = page.getByText(/Check AI-generated answers against current web sources/i);
     await expect(description).toBeVisible();
