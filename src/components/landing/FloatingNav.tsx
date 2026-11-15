@@ -15,21 +15,23 @@ export function FloatingNav() {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Detect whether page has scrolled past initial threshold
-      setScrolled(currentScrollY > 30);
+      // When scrollY <= 50, we are at the top of the page (round dock style)
+      // When scrollY > 50, we are scrolled into the document
+      const isPastTop = currentScrollY > 50;
+      setScrolled(isPastTop);
 
-      // Smart Auto-Hiding (Scroll-Direction Aware / Headroom Header):
-      // Scrolls out of view on scroll-down; smoothly slides back into view on scroll-up
-      if (currentScrollY > 80) {
+      // Smart Auto-Hiding ("Headroom" / Scroll-Direction-Aware Header):
+      // Scrolls out of view on scroll-down; slides back into view on scroll-up
+      if (currentScrollY > 90) {
         if (currentScrollY > lastScrollY.current + 8) {
-          // Scrolling down -> hide navbar to maximize cinematic viewport
+          // Scrolling down -> hide navbar to maximize reading and video viewport
           setNavVisible(false);
         } else if (currentScrollY < lastScrollY.current - 8) {
-          // Scrolling up -> reveal navbar immediately
+          // Scrolling up -> reveal full-width covered top strip navbar
           setNavVisible(true);
         }
       } else {
-        // At top of page -> always visible
+        // At or near top -> always visible in floating dock style
         setNavVisible(true);
       }
 
@@ -42,14 +44,22 @@ export function FloatingNav() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 pointer-events-none w-full px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 transition-transform duration-300 ease-in-out ${
+      className={`fixed top-0 left-0 right-0 z-50 pointer-events-none w-full transition-all duration-300 ease-in-out ${
         navVisible ? 'translate-y-0' : '-translate-y-full'
+      } ${
+        scrolled
+          ? 'bg-surface/95 dark:bg-[#111214]/95 border-b border-border-subtle/80 backdrop-blur-xl shadow-xl py-2.5 px-4 sm:px-6 lg:px-8'
+          : 'bg-transparent border-b border-transparent shadow-none pt-4 sm:pt-6 pb-0 px-4 sm:px-6 lg:px-8'
       }`}
     >
       <div className="max-w-7xl mx-auto w-full relative flex items-center justify-center">
         
-        {/* TOP-LEFT DOCKED CONTROLS: THEME TOGGLE, DRIFTAXE REPO LINK & SAMPLE REPORT HYPERLINK */}
-        <div className="pointer-events-auto hidden md:flex flex-col items-start gap-1 absolute left-0 top-0">
+        {/* TOP-LEFT CONTROLS: THEME TOGGLE, DRIFTAXE REPO LINK & SAMPLE REPORT HYPERLINK */}
+        <div
+          className={`pointer-events-auto hidden md:flex flex-col items-start gap-1 absolute left-0 transition-all duration-300 ${
+            scrolled ? 'top-0.5' : 'top-0'
+          }`}
+        >
           {/* Pill Container: Driftaxe Repo Link + Theme Toggle */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface/85 dark:bg-[#18191C]/85 border border-border-subtle/80 backdrop-blur-md shadow-lg">
             <a
@@ -85,7 +95,7 @@ export function FloatingNav() {
           </Link>
         </div>
 
-        {/* DESKTOP SPLIT TRAPEZOIDAL NAVIGATION WITH ARCHITECTURAL REDUCED CURVINESS */}
+        {/* DESKTOP SPLIT TRAPEZOIDAL NAVIGATION */}
         <nav
           aria-label="Main Navigation"
           className="pointer-events-auto hidden lg:flex items-center justify-center transition-all duration-300"
@@ -94,7 +104,7 @@ export function FloatingNav() {
           <div
             className={`relative p-[1px] rounded-l-lg transition-all duration-300 w-[290px] xl:w-[310px] ${
               scrolled
-                ? 'bg-border-strong/90 shadow-2xl'
+                ? 'bg-border-strong/80 shadow-md'
                 : 'bg-border-subtle/80 shadow-xl'
             }`}
             style={{
@@ -104,7 +114,7 @@ export function FloatingNav() {
             <div
               className={`h-11 flex items-center justify-between pl-6 pr-9 rounded-l-lg transition-colors duration-300 ${
                 scrolled
-                  ? 'bg-surface/95 dark:bg-[#18191C]/95 backdrop-blur-xl'
+                  ? 'bg-surface/90 dark:bg-[#18191C]/90 backdrop-blur-md'
                   : 'bg-surface/85 dark:bg-[#18191C]/85 backdrop-blur-md'
               }`}
               style={{
@@ -134,8 +144,8 @@ export function FloatingNav() {
             </div>
           </div>
 
-          {/* Central Triangular Brand Anchor: Extends Above Nav Bar */}
-          <div className="relative -top-3.5 z-20 flex items-center justify-center -mx-2.5 group">
+          {/* Central Triangular Brand Anchor: Settled Slightly Lower into the Notch */}
+          <div className="relative -top-1.5 z-20 flex items-center justify-center -mx-2.5 group">
             <Link
               href="/"
               aria-label="Afterfact Home"
@@ -149,7 +159,7 @@ export function FloatingNav() {
           <div
             className={`relative p-[1px] rounded-r-lg transition-all duration-300 w-[290px] xl:w-[310px] ${
               scrolled
-                ? 'bg-border-strong/90 shadow-2xl'
+                ? 'bg-border-strong/80 shadow-md'
                 : 'bg-border-subtle/80 shadow-xl'
             }`}
             style={{
@@ -159,7 +169,7 @@ export function FloatingNav() {
             <div
               className={`h-11 flex items-center justify-between pl-9 pr-6 rounded-r-lg transition-colors duration-300 ${
                 scrolled
-                  ? 'bg-surface/95 dark:bg-[#18191C]/95 backdrop-blur-xl'
+                  ? 'bg-surface/90 dark:bg-[#18191C]/90 backdrop-blur-md'
                   : 'bg-surface/85 dark:bg-[#18191C]/85 backdrop-blur-md'
               }`}
               style={{
