@@ -93,7 +93,7 @@ export default function DesignReferencePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12 overflow-x-hidden">
+    <div className="mx-auto w-full max-w-7xl px-4 pt-28 pb-12 sm:pt-32 sm:pb-16 sm:px-6 lg:px-8 space-y-12 overflow-x-hidden">
       {/* ====================================================================
           Section A: Header & Visual Introduction
           ==================================================================== */}

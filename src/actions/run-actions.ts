@@ -83,7 +83,7 @@ export async function startPreparationAction(
   let claims: ClaimTicket[] = [];
   try {
     const { extractClaimsFromText } = await import('@/server/verify/extract-claims');
-    const outcome = await extractClaimsFromText({
+    const extractionPromise = extractClaimsFromText({
       text: parsed.data.text,
       runId: preparationId,
       revision,
@@ -95,6 +95,29 @@ export async function startPreparationAction(
           }
         : undefined,
     });
+
+    // Bound interactive UI preview latency to 1200ms before falling back to heuristics
+    const timeoutPromise = new Promise<{
+      status: 'failed';
+      tickets: [];
+      error: { code: 'TIMEOUT'; message: string; retryable: false };
+    }>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            status: 'failed',
+            tickets: [],
+            error: {
+              code: 'TIMEOUT',
+              message: 'Interactive preview timeout exceeded; falling back to heuristic parsing',
+              retryable: false,
+            },
+          }),
+        1200
+      )
+    );
+
+    const outcome = await Promise.race([extractionPromise, timeoutPromise]);
 
     if (outcome.status === 'success' && outcome.tickets.length > 0) {
       claims = outcome.tickets;
@@ -162,15 +185,17 @@ export async function startPreparationAction(
     });
   }
 
-  // 4. Attempt to persist preparation to Neon PostgreSQL
+  // 4. Attempt to persist preparation to Neon PostgreSQL (bounded latency to avoid blocking UI)
   let dbPrepId: string | undefined = undefined;
   try {
     const { PreparationService } = await import('@/server/services/prep-service');
-    const prep = await PreparationService.getOrCreatePreparation(
+    const dbPromise = PreparationService.getOrCreatePreparation(
       parsed.data.text,
       parsed.data.originalQuestion ?? undefined,
       parsed.data.context
     );
+    const dbTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 800));
+    const prep = await Promise.race([dbPromise, dbTimeout]);
     if (prep && prep.id) {
       dbPrepId = prep.id;
     }

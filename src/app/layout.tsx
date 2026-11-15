@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
-import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { FloatingNav } from '@/components/landing/FloatingNav';
 
 const geistSans = Geist({
   variable: '--font-sans',
@@ -17,8 +16,15 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+const newsreader = Newsreader({
+  variable: '--font-serif',
+  subsets: ['latin'],
+  display: 'swap',
+  style: ['normal', 'italic'],
+});
+
 export const metadata: Metadata = {
-  title: 'Afterfact — Stale-Answer Detector',
+  title: 'Afterfact — Temporal Evidence Intelligence',
   description: 'Evidence-grounded temporal fact verification for AI-generated answers',
 };
 
@@ -54,55 +60,14 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeInitializerScript }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-text-primary font-sans antialiased flex flex-col overflow-x-hidden`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} min-h-screen bg-background text-text-primary font-sans antialiased flex flex-col overflow-x-hidden selection:bg-selection`}>
         <ThemeProvider>
-          <header className="sticky top-0 z-40 w-full border-b border-border-subtle bg-background/80 backdrop-blur-md">
-            <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center gap-6">
-                <Link
-                  href="/"
-                  className="text-sm font-medium tracking-tight text-text-primary hover:text-text-secondary transition-colors"
-                >
-                  Afterfact
-                </Link>
-                <nav className="flex items-center gap-4 text-xs font-medium">
-                  <Link
-                    href="/report/demo?mode=fixture"
-                    className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
-                  >
-                    <span>Sample Report</span>
-                    <span className="hidden sm:inline-block rounded-md bg-status-outdated-bg/60 border border-status-outdated-border/40 px-1.5 py-0.5 text-[10px] text-status-outdated-text">
-                      Replay
-                    </span>
-                  </Link>
-                  <Link
-                    href="/design"
-                    className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
-                  >
-                    <span>Design Reference</span>
-                    <span className="hidden sm:inline-block rounded-md bg-surface-raised px-1.5 py-0.5 text-[10px] text-text-muted">
-                      /design
-                    </span>
-                  </Link>
-                </nav>
-              </div>
+          {/* Distinctive Floating Navigation with Rising Triangular Emblem */}
+          <FloatingNav />
 
-              <div className="flex items-center gap-3">
-                <ThemeToggle />
-              </div>
-            </div>
-          </header>
-
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col w-full">
             {children}
           </div>
-
-          <footer className="border-t border-border-subtle bg-surface/30 py-6 text-center text-xs text-text-muted">
-            <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-              <p>Afterfact — Evidence-grounded temporal fact verification</p>
-              <p className="font-mono text-[11px]">Quiet, cinematic, precise.</p>
-            </div>
-          </footer>
         </ThemeProvider>
       </body>
     </html>
