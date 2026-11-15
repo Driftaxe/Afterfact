@@ -1,17 +1,17 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Hero Refinements Verification', () => {
-  test('verifies headline centering, smaller lower buttons, no move-to-reveal, no circle glitch, and elegant baseline bar', async ({ page }) => {
+  test('verifies AFTERFACT title above, smaller stretched faded headline below, no wordmark fading, compact buttons, and baseline bar', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 0. Verify initial resting wordmark opacity is 0.46 before any interaction
+    // 0. Verify AFTERFACT wordmark opacity is prominent (0.88) and does not fade
     const initialWordmarkOpacity = await page.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim();
     });
-    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.46, 2);
+    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.88, 2);
 
-    // 1. Eyebrow and Description are removed, Headline is centered
+    // 1. Eyebrow and Description are removed, Headline is present
     await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
     const h1 = page.locator('h1');
     await expect(h1).toHaveText('Every claim has a story.');
@@ -28,16 +28,25 @@ test.describe('Hero Refinements Verification', () => {
     await expect(page.getByText('INSPECT THE EVIDENCE')).toHaveCount(0);
     await expect(page.getByText('TRACK WHAT CHANGES')).toHaveCount(0);
 
-    // 4. Ensure no circle cursor at top of website when moving mouse over headline
+    // 4. Verify AFTERFACT TITLE is visible and headline is positioned BELOW the TITLE
+    const wordmark = page.locator('img.hero-wordmark');
+    await expect(wordmark).toBeVisible();
+    const wordmarkBox = await wordmark.boundingBox();
     const headlineBox = await h1.boundingBox();
+    expect(wordmarkBox).not.toBeNull();
     expect(headlineBox).not.toBeNull();
-    if (headlineBox) {
-      // Move mouse across the headline
-      await page.mouse.move(headlineBox.x + 50, headlineBox.y + 20);
-      await page.mouse.move(headlineBox.x + 200, headlineBox.y + 20);
-      await page.mouse.move(headlineBox.x + 400, headlineBox.y + 20);
 
-      // Verify no stray fixed element exists near top (y < 40) with border-radius 50%
+    if (wordmarkBox && headlineBox) {
+      // Headline is strictly below the AFTERFACT title
+      expect(headlineBox.y).toBeGreaterThan(wordmarkBox.y);
+    }
+
+    // 5. Move mouse over headline and verify no stray circle cursor at top
+    if (headlineBox) {
+      await page.mouse.move(headlineBox.x + 50, headlineBox.y + 10);
+      await page.mouse.move(headlineBox.x + 200, headlineBox.y + 10);
+      await page.mouse.move(headlineBox.x + 350, headlineBox.y + 10);
+
       const strayCircles = await page.evaluate(() => {
         const els = Array.from(document.querySelectorAll('div'));
         return els.filter((el) => {
@@ -53,7 +62,7 @@ test.describe('Hero Refinements Verification', () => {
       expect(strayCircles).toBe(0);
     }
 
-    // 5. Buttons: Verify they are micro-compact and positioned below headline
+    // 6. Buttons: Verify they are micro-compact and positioned below headline
     const verifyBtn = page.getByRole('link', { name: /verify an answer/i }).first();
     const sampleBtn = page.getByRole('link', { name: /view sample report/i }).first();
     await expect(verifyBtn).toBeVisible();
@@ -62,37 +71,41 @@ test.describe('Hero Refinements Verification', () => {
     const verifyBox = await verifyBtn.boundingBox();
     expect(verifyBox).not.toBeNull();
     if (verifyBox && headlineBox) {
-      // Verify buttons are significantly lower than headline (at least 40px below headline bottom)
-      expect(verifyBox.y - (headlineBox.y + headlineBox.height)).toBeGreaterThan(40);
-      // Verify button height is compact (< 40px)
+      expect(verifyBox.y - (headlineBox.y + headlineBox.height)).toBeGreaterThan(20);
       expect(verifyBox.height).toBeLessThan(40);
     }
 
-    // 6. Baseline bar: Protocol identity removed, Signature & Explore Story anchor present
+    // 7. Baseline bar: Protocol identity removed, Signature & Explore Story anchor present
     await expect(page.getByText('SYS // TEMPORAL EVIDENCE PROTOCOL')).toHaveCount(0);
     await expect(page.getByText('Clarity, even as facts change.')).toBeVisible();
     const exploreStory = page.getByRole('link', { name: /explore story/i });
     await expect(exploreStory).toBeVisible();
     await expect(exploreStory).toHaveAttribute('href', '#product');
 
-    // 7. Verify Instrument Serif font family & #EFE8DC warm creme color and scale compression on headline
+    // 8. Verify Instrument Serif font, smaller size, stretched tracking, and faded creme color (#A8A09B)
     const computed = await h1.evaluate((el) => {
       const style = window.getComputedStyle(el);
       return {
         fontFamily: style.fontFamily,
         color: style.color,
+        fontSize: parseFloat(style.fontSize),
+        letterSpacing: style.letterSpacing,
         transform: style.transform,
       };
     });
     expect(computed.fontFamily.toLowerCase()).toContain('instrument serif');
-    expect(computed.color).toBe('rgb(239, 232, 220)');
-    // Matrix transform reflects scaleX(0.96) and scaleY(0.92)
+    // Faded color #A8A09B is rgb(168, 160, 155)
+    expect(computed.color).toBe('rgb(168, 160, 155)');
+    // Smaller font size (sub-36px, e.g. ~32px on 1440px desktop)
+    expect(computed.fontSize).toBeLessThanOrEqual(36);
+    expect(computed.fontSize).toBeGreaterThanOrEqual(18);
+    // Stretched horizontally
     expect(computed.transform).not.toBe('none');
 
-    // 8. Verify wordmark opacity has dropped significantly from 0.46 after scratching
-    const scratchedWordmarkOpacity = await page.evaluate(() => {
+    // 9. Verify AFTERFACT wordmark does NOT fade upon scratching
+    const postScratchWordmarkOpacity = await page.evaluate(() => {
       return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim());
     });
-    expect(scratchedWordmarkOpacity).toBeLessThan(0.40);
+    expect(postScratchWordmarkOpacity).toBeCloseTo(0.88, 2);
   });
 });

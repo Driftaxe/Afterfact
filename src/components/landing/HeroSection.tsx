@@ -11,19 +11,30 @@ export function HeroSection() {
       {/* 1. Full-Bleed Video Background with Translucent AFTERFACT Wordmark */}
       <HeroBackground />
 
-      {/* 2. Main Hero Viewport: Centered Editorial Headline Directly Over AFTERFACT Wordmark */}
-      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-10 sm:py-14 lg:py-16 z-10">
+      {/* 2. Main Hero Viewport: Central Architectural Hierarchy */}
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-6 sm:py-10 lg:py-12 z-10">
         
         {/* Subtle, Feathered Central Tonal Gradient behind Headline (Non-Panel Legibility Contrast) */}
         <div
           className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center overflow-hidden"
           aria-hidden="true"
         >
-          <div className="w-[min(960px,94vw)] h-[320px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(16,16,18,0.52)_0%,rgba(16,16,18,0.22)_48%,transparent_75%)] blur-2xl pointer-events-none" />
+          <div className="w-[min(960px,94vw)] h-[340px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(16,16,18,0.52)_0%,rgba(16,16,18,0.22)_48%,transparent_75%)] blur-2xl pointer-events-none" />
         </div>
 
-        {/* Dominant Primary Hero Headline (Instrument Serif, Scratch-to-Reveal) Centered Over AFTERFACT Wordmark */}
-        <div className="w-full max-w-4xl flex justify-center">
+        {/* 1. Primary Title: AFTERFACT Wordmark (Prominent, High-Contrast, Unfaded) */}
+        <div className="w-full max-w-4xl flex justify-center mb-3 sm:mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/media/hero/afterfact-wordmark-transparent.png"
+            alt="AFTERFACT"
+            decoding="async"
+            className="hero-wordmark w-full max-w-[min(90vw,980px)] h-auto select-none pointer-events-none drop-shadow-sm"
+          />
+        </div>
+
+        {/* 2. Subtitle: Every claim has a story. (Positioned Below the Title, Smaller, Stretched Horizontally, Faded Color) */}
+        <div className="w-full max-w-3xl flex justify-center">
           <ScratchRevealHeadline />
         </div>
 

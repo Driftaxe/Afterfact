@@ -7,6 +7,7 @@ interface HeroBackgroundProps {
   posterSrc?: string;
   wordmarkSrc?: string;
   playbackSpeed?: number;
+  showWordmark?: boolean;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export function HeroBackground({
   posterSrc = '/media/hero/afterfact-hero-poster.webp',
   wordmarkSrc = '/media/hero/afterfact-wordmark-transparent.png',
   playbackSpeed = 0.6,
+  showWordmark = false,
   className = '',
 }: HeroBackgroundProps) {
   const [videoError, setVideoError] = useState<boolean>(false);
@@ -108,15 +110,17 @@ export function HeroBackground({
       <div className="absolute inset-0 bg-gradient-to-r from-[#111214]/60 via-transparent to-[#111214]/70 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#111214] via-[#111214]/30 to-[#111214]/70 pointer-events-none" />
 
-      {/* 3. OVERSIZED AFTERFACT WORDMARK (GHOSTED EDITORIAL ELEMENT) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={wordmarkSrc}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        className="hero-wordmark pointer-events-none select-none"
-      />
+      {/* 3. OPTIONAL WORDMARK IN BACKGROUND ONLY IF EXPLICITLY ENABLED */}
+      {showWordmark && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={wordmarkSrc}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          className="hero-wordmark pointer-events-none select-none"
+        />
+      )}
 
       {/* 4. ANALOG 35MM MONOCHROMATIC FILM GRAIN TEXTURE */}
       <svg

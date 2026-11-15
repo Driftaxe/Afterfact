@@ -27,21 +27,14 @@ export function ScratchRevealHeadline({
   const pathDataRef = useRef<string>('');
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Initialize resting wordmark opacity and check prefers-reduced-motion on mount
+  // Check prefers-reduced-motion on mount
   useEffect(() => {
-    document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.46');
-
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mediaQuery.matches) {
       setIsFullyRevealed(true);
-      document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.08');
       onRevealProgress?.(1);
       onRevealComplete?.();
     }
-
-    return () => {
-      document.documentElement.style.removeProperty('--hero-wordmark-opacity');
-    };
   }, [onRevealProgress, onRevealComplete]);
 
   // Keep SVG mask dimensions synchronized with responsive headline container
@@ -64,7 +57,6 @@ export function ScratchRevealHeadline({
   // Complete the reveal smoothly
   const completeReveal = useCallback(() => {
     setIsFullyRevealed(true);
-    document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.08');
     onRevealProgress?.(1);
     onRevealComplete?.();
   }, [onRevealProgress, onRevealComplete]);
@@ -79,7 +71,7 @@ export function ScratchRevealHeadline({
     const dx = x1 - x0;
     const dy = y1 - y0;
     const dist = Math.hypot(dx, dy);
-    const steps = Math.max(Math.ceil(dist / 15), 1);
+    const steps = Math.max(Math.ceil(dist / 12), 1);
 
     for (let s = 0; s <= steps; s++) {
       const cx = x0 + (dx * s) / steps;
@@ -99,10 +91,6 @@ export function ScratchRevealHeadline({
 
     const totalCells = gridRows * gridCols;
     const ratio = Math.min(scratchedCells.current.size / totalCells, 1);
-
-    // Dynamically fade wordmark from prominent resting 0.46 down to 0.08 as letters reveal
-    const wordmarkOpacity = Math.max(0.08, 0.46 - ratio * 0.38);
-    document.documentElement.style.setProperty('--hero-wordmark-opacity', wordmarkOpacity.toFixed(3));
     onRevealProgress?.(ratio);
 
     if (ratio >= 0.85) {
@@ -133,8 +121,8 @@ export function ScratchRevealHeadline({
         const ny = dx / dist;
 
         // Dynamic non-uniformity: subtle pseudo-random bristle jitter for organic analog tooth
-        const jitterA = Math.sin(last.x * 0.17 + last.y * 0.11) * 8;
-        const jitterB = Math.cos(x * 0.13 + y * 0.19) * 8;
+        const jitterA = Math.sin(last.x * 0.17 + last.y * 0.11) * 4;
+        const jitterB = Math.cos(x * 0.13 + y * 0.19) * 4;
 
         // Primary connecting stroke
         const mainSegment = ` M ${last.x.toFixed(1)} ${last.y.toFixed(1)} L ${x.toFixed(1)} ${y.toFixed(1)}`;
@@ -145,20 +133,20 @@ export function ScratchRevealHeadline({
         pathDataRef.current += mainSegment + bristleSegment;
 
         // Stippled micro-scratch flecks along stroke edge for realistic abrasion
-        if (dist > 8) {
+        if (dist > 6) {
           const midX = (last.x + x) * 0.5 + nx * jitterA * 1.2;
           const midY = (last.y + y) * 0.5 + ny * jitterA * 1.2;
-          pathDataRef.current += ` M ${midX.toFixed(1)} ${midY.toFixed(1)} m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0`;
+          pathDataRef.current += ` M ${midX.toFixed(1)} ${midY.toFixed(1)} m -2,0 a 2,2 0 1,0 4,0 a 2,2 0 1,0 -4,0`;
         }
 
         if (pathRef.current) {
           pathRef.current.setAttribute('d', pathDataRef.current);
         }
 
-        markCells(last.x, last.y, x, y, 42);
+        markCells(last.x, last.y, x, y, 24);
       }
     } else {
-      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0`;
+      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0`;
       pathDataRef.current += startDot;
       if (pathRef.current) {
         pathRef.current.setAttribute('d', pathDataRef.current);
@@ -210,9 +198,9 @@ export function ScratchRevealHeadline({
           <defs>
             <filter id="scratch-feather" x="-30%" y="-30%" width="160%" height="160%">
               {/* Organic fractal noise adds tooth and non-uniform abrasion to stroke edges */}
-              <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" result="noise" />
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-              <feGaussianBlur in="displaced" stdDeviation="4.5" />
+              <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+              <feGaussianBlur in="displaced" stdDeviation="2.5" />
             </filter>
             <mask
               id="headline-scratch-mask"
@@ -230,7 +218,7 @@ export function ScratchRevealHeadline({
                 d=""
                 fill="none"
                 stroke="white"
-                strokeWidth="76"
+                strokeWidth="38"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#scratch-feather)"
@@ -248,7 +236,7 @@ export function ScratchRevealHeadline({
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="hero-headline font-serif text-[clamp(56px,5.5vw,94px)] font-normal tracking-[-0.04em] text-[#EFE8DC] text-center leading-[1.0] drop-shadow-sm origin-center scale-x-[0.96] scale-y-[0.92]">
+        <h1 className="hero-headline font-serif text-[clamp(20px,2.4vw,32px)] font-normal tracking-[0.18em] text-[#A8A09B] text-center leading-[1.2] drop-shadow-sm origin-center scale-x-[1.08] scale-y-[0.96] whitespace-normal sm:whitespace-nowrap">
           Every claim has a story.
         </h1>
       </div>
