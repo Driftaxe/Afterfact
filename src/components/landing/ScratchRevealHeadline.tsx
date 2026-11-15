@@ -32,7 +32,7 @@ export function ScratchRevealHeadline({
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mediaQuery.matches) {
       setIsFullyRevealed(true);
-      document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.15');
+      document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.10');
       onRevealProgress?.(1);
       onRevealComplete?.();
     }
@@ -58,7 +58,7 @@ export function ScratchRevealHeadline({
   // Complete the reveal smoothly
   const completeReveal = useCallback(() => {
     setIsFullyRevealed(true);
-    document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.15');
+    document.documentElement.style.setProperty('--hero-wordmark-opacity', '0.10');
     onRevealProgress?.(1);
     onRevealComplete?.();
   }, [onRevealProgress, onRevealComplete]);
@@ -94,8 +94,8 @@ export function ScratchRevealHeadline({
     const totalCells = gridRows * gridCols;
     const ratio = Math.min(scratchedCells.current.size / totalCells, 1);
 
-    // Dynamically fade wordmark from 0.30 down to 0.15
-    const wordmarkOpacity = 0.30 - ratio * 0.15;
+    // Dynamically fade wordmark from 0.22 down to 0.10 as letters reveal
+    const wordmarkOpacity = 0.22 - ratio * 0.12;
     document.documentElement.style.setProperty('--hero-wordmark-opacity', wordmarkOpacity.toFixed(3));
     onRevealProgress?.(ratio);
 
@@ -149,10 +149,10 @@ export function ScratchRevealHeadline({
           pathRef.current.setAttribute('d', pathDataRef.current);
         }
 
-        markCells(last.x, last.y, x, y, 32);
+        markCells(last.x, last.y, x, y, 42);
       }
     } else {
-      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0`;
+      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0`;
       pathDataRef.current += startDot;
       if (pathRef.current) {
         pathRef.current.setAttribute('d', pathDataRef.current);
@@ -224,7 +224,7 @@ export function ScratchRevealHeadline({
                 d=""
                 fill="none"
                 stroke="white"
-                strokeWidth="54"
+                strokeWidth="76"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#scratch-feather)"
@@ -242,7 +242,7 @@ export function ScratchRevealHeadline({
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="font-rubik text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] font-medium tracking-[-0.015em] text-[var(--af-ivory)] text-center leading-[1.2] drop-shadow-sm">
+        <h1 className="hero-headline font-serif text-[clamp(64px,6.2vw,104px)] font-normal tracking-[-0.035em] text-[#E8DED4] text-center leading-[1.05] drop-shadow-sm">
           Every claim has a story.
         </h1>
       </div>

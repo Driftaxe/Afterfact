@@ -187,7 +187,16 @@ body {
   --hero-video-sepia: 0.08;
   --hero-overlay-strength: 0.45;
   --hero-grain-opacity: 0.06;
-  --hero-wordmark-opacity: 0.24;
+  --hero-wordmark-opacity: 0.22;
+}
+
+.hero-headline {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(64px, 6.2vw, 104px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: #E8DED4;
 }
 
 .hero-video {

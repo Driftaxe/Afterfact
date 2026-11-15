@@ -12,9 +12,17 @@ export function HeroSection() {
       <HeroBackground />
 
       {/* 2. Main Hero Viewport: Centered Editorial Headline Directly Over AFTERFACT Wordmark */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-10 sm:py-14 lg:py-16 z-10">
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-10 sm:py-14 lg:py-16 z-10">
         
-        {/* Dominant Primary Hero Headline (Scratch-to-Reveal) Centered Over AFTERFACT Wordmark */}
+        {/* Subtle, Feathered Central Tonal Gradient behind Headline (Non-Panel Legibility Contrast) */}
+        <div
+          className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center overflow-hidden"
+          aria-hidden="true"
+        >
+          <div className="w-[min(960px,94vw)] h-[320px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(16,16,18,0.52)_0%,rgba(16,16,18,0.22)_48%,transparent_75%)] blur-2xl pointer-events-none" />
+        </div>
+
+        {/* Dominant Primary Hero Headline (Instrument Serif, Scratch-to-Reveal) Centered Over AFTERFACT Wordmark */}
         <div className="w-full max-w-4xl flex justify-center">
           <ScratchRevealHeadline />
         </div>

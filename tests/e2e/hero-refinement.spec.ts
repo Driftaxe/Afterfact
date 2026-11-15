@@ -68,5 +68,16 @@ test.describe('Hero Refinements Verification', () => {
     const exploreStory = page.getByRole('link', { name: /explore story/i });
     await expect(exploreStory).toBeVisible();
     await expect(exploreStory).toHaveAttribute('href', '#product');
+
+    // 7. Verify Instrument Serif font family & #E8DED4 warm ivory color on headline
+    const computed = await h1.evaluate((el) => {
+      const style = window.getComputedStyle(el);
+      return {
+        fontFamily: style.fontFamily,
+        color: style.color,
+      };
+    });
+    expect(computed.fontFamily.toLowerCase()).toContain('instrument serif');
+    expect(computed.color).toBe('rgb(232, 222, 212)');
   });
 });
