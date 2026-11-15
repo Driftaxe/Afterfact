@@ -127,8 +127,8 @@ export function ScratchRevealHeadline({
         const ny = dx / dist;
 
         // Dynamic non-uniformity: subtle pseudo-random bristle jitter for organic analog tooth
-        const jitterA = (Math.sin(last.x * 0.17 + last.y * 0.11) * 14);
-        const jitterB = (Math.cos(x * 0.13 + y * 0.19) * 14);
+        const jitterA = Math.sin(last.x * 0.17 + last.y * 0.11) * 8;
+        const jitterB = Math.cos(x * 0.13 + y * 0.19) * 8;
 
         // Primary connecting stroke
         const mainSegment = ` M ${last.x.toFixed(1)} ${last.y.toFixed(1)} L ${x.toFixed(1)} ${y.toFixed(1)}`;
@@ -139,20 +139,20 @@ export function ScratchRevealHeadline({
         pathDataRef.current += mainSegment + bristleSegment;
 
         // Stippled micro-scratch flecks along stroke edge for realistic abrasion
-        if (dist > 10) {
-          const midX = (last.x + x) * 0.5 + nx * jitterA * 1.3;
-          const midY = (last.y + y) * 0.5 + ny * jitterA * 1.3;
-          pathDataRef.current += ` M ${midX.toFixed(1)} ${midY.toFixed(1)} m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0`;
+        if (dist > 8) {
+          const midX = (last.x + x) * 0.5 + nx * jitterA * 1.2;
+          const midY = (last.y + y) * 0.5 + ny * jitterA * 1.2;
+          pathDataRef.current += ` M ${midX.toFixed(1)} ${midY.toFixed(1)} m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0`;
         }
 
         if (pathRef.current) {
           pathRef.current.setAttribute('d', pathDataRef.current);
         }
 
-        markCells(last.x, last.y, x, y, 48);
+        markCells(last.x, last.y, x, y, 32);
       }
     } else {
-      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0`;
+      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0`;
       pathDataRef.current += startDot;
       if (pathRef.current) {
         pathRef.current.setAttribute('d', pathDataRef.current);
@@ -224,7 +224,7 @@ export function ScratchRevealHeadline({
                 d=""
                 fill="none"
                 stroke="white"
-                strokeWidth="80"
+                strokeWidth="54"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#scratch-feather)"
@@ -242,7 +242,7 @@ export function ScratchRevealHeadline({
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="font-serif text-[clamp(4.25rem,7.5vw,6.25rem)] font-normal tracking-tight text-[var(--af-ivory)] text-center leading-[1.04] drop-shadow-sm">
+        <h1 className="font-sans text-[clamp(1.75rem,3.75vw,2.85rem)] font-light tracking-[-0.015em] text-[var(--af-ivory)] text-center leading-[1.2] drop-shadow-sm">
           Every claim has a story.
         </h1>
       </div>

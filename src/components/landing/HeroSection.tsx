@@ -20,7 +20,7 @@ export function HeroSection() {
         </div>
 
         {/* Refined Micro Actions (Moved Lower & Compact) */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-10 sm:mt-14 lg:mt-16">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8 sm:mt-10 lg:mt-12">
           <Link
             href="/app"
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-sm bg-[var(--af-ivory)] hover:bg-[#F2ECE6] text-[var(--af-obsidian)] font-sans font-medium text-[10px] sm:text-[11px] tracking-wide transition-all shadow-xs hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
