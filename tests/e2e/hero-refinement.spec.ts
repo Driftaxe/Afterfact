@@ -5,11 +5,11 @@ test.describe('Hero Refinements Verification', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 0. Verify AFTERFACT wordmark opacity is at initial fade (0.46) and remains constant
+    // 0. Verify AFTERFACT wordmark opacity is more faded (0.24) and remains constant
     const initialWordmarkOpacity = await page.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim();
     });
-    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.46, 2);
+    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.24, 2);
 
     // 1. Eyebrow and Description are removed, Headline is present
     await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
@@ -28,7 +28,7 @@ test.describe('Hero Refinements Verification', () => {
     await expect(page.getByText('INSPECT THE EVIDENCE')).toHaveCount(0);
     await expect(page.getByText('TRACK WHAT CHANGES')).toHaveCount(0);
 
-    // 4. Verify AFTERFACT TITLE is visible, oversized, and headline is positioned BELOW the TITLE
+    // 4. Verify AFTERFACT TITLE is visible, slightly larger, and headline is positioned in the bottom strip
     const wordmark = page.locator('img.hero-wordmark');
     await expect(wordmark).toBeVisible();
     const wordmarkBox = await wordmark.boundingBox();
@@ -37,13 +37,13 @@ test.describe('Hero Refinements Verification', () => {
     expect(headlineBox).not.toBeNull();
 
     if (wordmarkBox && headlineBox) {
-      // Headline is strictly below the AFTERFACT title
-      expect(headlineBox.y).toBeGreaterThan(wordmarkBox.y);
-      // Wordmark is oversized (> 1000px on 1440px viewport)
-      expect(wordmarkBox.width).toBeGreaterThan(1000);
+      // Headline is in bottom strip, strictly below title
+      expect(headlineBox.y).toBeGreaterThan(wordmarkBox.y + wordmarkBox.height);
+      // Wordmark is slightly larger (> 1100px on 1440px viewport)
+      expect(wordmarkBox.width).toBeGreaterThan(1100);
     }
 
-    // 5. Move mouse over headline and verify no stray circle cursor at top
+    // 5. Move mouse over headline in the strip and verify no stray circle cursor at top
     if (headlineBox) {
       await page.mouse.move(headlineBox.x + 50, headlineBox.y + 10);
       await page.mouse.move(headlineBox.x + 200, headlineBox.y + 10);
@@ -64,7 +64,7 @@ test.describe('Hero Refinements Verification', () => {
       expect(strayCircles).toBe(0);
     }
 
-    // 6. Buttons: Verify they are micro-compact and positioned below headline
+    // 6. Buttons: Verify they are micro-compact and positioned between title and bottom strip headline
     const verifyBtn = page.getByRole('link', { name: /verify an answer/i }).first();
     const sampleBtn = page.getByRole('link', { name: /view sample report/i }).first();
     await expect(verifyBtn).toBeVisible();
@@ -72,19 +72,18 @@ test.describe('Hero Refinements Verification', () => {
 
     const verifyBox = await verifyBtn.boundingBox();
     expect(verifyBox).not.toBeNull();
-    if (verifyBox && headlineBox) {
-      expect(verifyBox.y - (headlineBox.y + headlineBox.height)).toBeGreaterThan(20);
+    if (verifyBox && headlineBox && wordmarkBox) {
+      expect(verifyBox.y).toBeGreaterThan(wordmarkBox.y);
+      expect(headlineBox.y).toBeGreaterThan(verifyBox.y + verifyBox.height);
       expect(verifyBox.height).toBeLessThan(40);
     }
 
-    // 7. Baseline bar: Protocol identity removed, Signature & Explore Story anchor present
+    // 7. Strip: Baseline line & explore story removed; headline is housed in strip
     await expect(page.getByText('SYS // TEMPORAL EVIDENCE PROTOCOL')).toHaveCount(0);
-    await expect(page.getByText('Clarity, even as facts change.')).toBeVisible();
-    const exploreStory = page.getByRole('link', { name: /explore story/i });
-    await expect(exploreStory).toBeVisible();
-    await expect(exploreStory).toHaveAttribute('href', '#product');
+    await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /explore story/i })).toHaveCount(0);
 
-    // 8. Verify Instrument Serif font, smaller size, stretched tracking, and faded creme color (#A8A09B)
+    // 8. Verify Instrument Serif font, horizontally compressed, and faded creme color (#A8A09B)
     const computed = await h1.evaluate((el) => {
       const style = window.getComputedStyle(el);
       return {
@@ -98,16 +97,16 @@ test.describe('Hero Refinements Verification', () => {
     expect(computed.fontFamily.toLowerCase()).toContain('instrument serif');
     // Faded color #A8A09B is rgb(168, 160, 155)
     expect(computed.color).toBe('rgb(168, 160, 155)');
-    // Smaller font size (sub-36px, e.g. ~32px on 1440px desktop)
-    expect(computed.fontSize).toBeLessThanOrEqual(36);
-    expect(computed.fontSize).toBeGreaterThanOrEqual(18);
-    // Stretched horizontally
+    // Strip-proportional font size (sub-24px, e.g. ~20px on 1440px desktop)
+    expect(computed.fontSize).toBeLessThanOrEqual(24);
+    expect(computed.fontSize).toBeGreaterThanOrEqual(14);
+    // Compressed horizontally
     expect(computed.transform).not.toBe('none');
 
-    // 9. Verify AFTERFACT wordmark fade remains constant at 0.46 upon scratching
+    // 9. Verify AFTERFACT wordmark fade remains constant at 0.24 upon scratching
     const postScratchWordmarkOpacity = await page.evaluate(() => {
       return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim());
     });
-    expect(postScratchWordmarkOpacity).toBeCloseTo(0.46, 2);
+    expect(postScratchWordmarkOpacity).toBeCloseTo(0.24, 2);
   });
 });

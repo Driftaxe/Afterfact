@@ -187,17 +187,17 @@ body {
   --hero-video-sepia: 0.08;
   --hero-overlay-strength: 0.45;
   --hero-grain-opacity: 0.06;
-  --hero-wordmark-opacity: 0.46;
+  --hero-wordmark-opacity: 0.24;
 }
 
 .hero-headline {
   font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
   font-weight: 400;
-  font-size: clamp(20px, 2.4vw, 32px);
-  line-height: 1.2;
-  letter-spacing: 0.18em;
+  font-size: clamp(15px, 1.4vw, 20px);
+  line-height: 1.25;
+  letter-spacing: 0.06em;
   color: #A8A09B;
-  transform: scaleX(1.08) scaleY(0.96);
+  transform: scaleX(0.96) scaleY(0.98);
   transform-origin: center center;
 }
 
@@ -218,24 +218,26 @@ body {
   pointer-events: none;
   background:
     linear-gradient(
-      90deg,
-      rgba(16, 16, 18, 0.52) 0%,
-      rgba(16, 16, 18, 0.20) 48%,
-      rgba(16, 16, 18, 0.54) 100%
+      180deg,
+      rgba(16, 16, 18, 0.85) 0%,
+      rgba(16, 16, 18, 0.30) 25%,
+      rgba(16, 16, 18, 0.15) 50%,
+      rgba(16, 16, 18, 0.55) 78%,
+      rgba(16, 16, 18, 0.95) 100%
     ),
     linear-gradient(
-      0deg,
-      rgba(16, 16, 18, 0.72) 0%,
-      rgba(41, 39, 42, 0.12) 48%,
-      rgba(16, 16, 18, 0.38) 100%
+      90deg,
+      rgba(16, 16, 18, 0.52) 0%,
+      rgba(16, 16, 18, 0.15) 48%,
+      rgba(16, 16, 18, 0.54) 100%
     );
 }
 
 .hero-wordmark {
   position: relative;
-  width: min(92vw, 1500px);
+  width: min(96vw, 1750px);
   height: auto;
-  opacity: var(--hero-wordmark-opacity, 0.46);
+  opacity: var(--hero-wordmark-opacity, 0.24);
   pointer-events: none;
   user-select: none;
   z-index: 1;
@@ -247,7 +249,7 @@ body {
 
 @media (max-width: 768px) {
   .hero-wordmark {
-    width: min(95vw, 650px);
-    opacity: 0.38;
+    width: min(98vw, 750px);
+    opacity: 0.22;
   }
 }

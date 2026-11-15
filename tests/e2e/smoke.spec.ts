@@ -23,8 +23,8 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await expect(heading).toBeVisible();
     await expect(heading).toContainText('Every claim has a story.');
 
-    const signature = page.getByText('Clarity, even as facts change.');
-    await expect(signature).toBeVisible();
+    // Editorial baseline removed per refinement spec
+    await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
 
     const verifyCta = page.getByRole('link', { name: /verify an answer/i }).first();
     await expect(verifyCta).toBeVisible();
