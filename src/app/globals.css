@@ -175,6 +175,7 @@ body {
   --hero-video-saturation: 0.30;
   --hero-overlay-strength: 0.42;
   --hero-grain-opacity: 0.055;
+  --hero-wordmark-opacity: 0.45;
 }
 
 .hero-video {
@@ -204,4 +205,28 @@ body {
       transparent 48%,
       rgba(10, 10, 12, 0.25) 100%
     );
+}
+
+.hero-wordmark {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 1500px);
+  height: auto;
+  opacity: var(--hero-wordmark-opacity, 0.45);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  transition: opacity 300ms ease;
+}
+
+@media (max-width: 768px) {
+  .hero-wordmark {
+    width: min(95vw, 650px);
+    top: 40%;
+    opacity: 0.25;
+  }
 }

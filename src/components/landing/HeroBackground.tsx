@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 interface HeroBackgroundProps {
   videoSrc?: string;
   posterSrc?: string;
+  wordmarkSrc?: string;
   playbackSpeed?: number;
   className?: string;
 }
@@ -12,6 +13,7 @@ interface HeroBackgroundProps {
 export function HeroBackground({
   videoSrc = '/media/hero/afterfact-hero.mp4',
   posterSrc = '/media/hero/afterfact-hero-poster.webp',
+  wordmarkSrc = '/media/hero/afterfact-wordmark-transparent.png',
   playbackSpeed = 0.6,
   className = '',
 }: HeroBackgroundProps) {
@@ -106,7 +108,17 @@ export function HeroBackground({
       <div className="absolute inset-0 bg-gradient-to-r from-[#111214]/60 via-transparent to-[#111214]/70 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#111214] via-[#111214]/30 to-[#111214]/70 pointer-events-none" />
 
-      {/* 3. ANALOG 35MM MONOCHROMATIC FILM GRAIN TEXTURE */}
+      {/* 3. OVERSIZED AFTERFACT WORDMARK (GHOSTED EDITORIAL ELEMENT) */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={wordmarkSrc}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        className="hero-wordmark pointer-events-none select-none"
+      />
+
+      {/* 4. ANALOG 35MM MONOCHROMATIC FILM GRAIN TEXTURE */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"
         style={{ opacity: 'var(--hero-grain-opacity, 0.055)' }}
