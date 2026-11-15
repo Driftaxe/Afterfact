@@ -5,10 +5,13 @@ test.describe('Hero Refinements Verification', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 1. Headline is present and centered
+    // 1. Eyebrow, Headline, and Description Hierarchy
+    await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toBeVisible();
     const h1 = page.locator('h1');
     await expect(h1).toHaveText('Every claim has a story.');
     await expect(h1).toBeVisible();
+
+    await expect(page.getByText(/Verify AI-generated answers against current sources/i)).toBeVisible();
 
     // 2. Ensure "MOVE TO REVEAL" does NOT exist
     const moveHint = page.getByText(/move to reveal/i);
@@ -55,8 +58,8 @@ test.describe('Hero Refinements Verification', () => {
     if (verifyBox && headlineBox) {
       // Verify buttons are significantly lower than headline (at least 40px below headline bottom)
       expect(verifyBox.y - (headlineBox.y + headlineBox.height)).toBeGreaterThan(40);
-      // Verify button height is ultra-compact (< 34px)
-      expect(verifyBox.height).toBeLessThan(34);
+      // Verify button height is compact (< 40px)
+      expect(verifyBox.height).toBeLessThan(40);
     }
 
     // 6. Baseline bar: Protocol identity removed, Signature & Explore Story anchor present

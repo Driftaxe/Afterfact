@@ -79,22 +79,22 @@ export function FloatingNav() {
                 clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 24px) 100%, 0% 100%)',
               }}
             >
-              <div className="flex items-center justify-between w-full text-[11px] xl:text-xs font-sans font-medium tracking-[0.14em] uppercase text-text-secondary">
+              <div className="flex items-center justify-between w-full text-xs font-sans font-medium tracking-[0.08em] uppercase text-[var(--af-silver)]">
                 <a
                   href="#product"
-                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   PRODUCT
                 </a>
                 <a
                   href="#how-it-works"
-                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   HOW IT WORKS
                 </a>
                 <a
                   href="#evidence"
-                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   EVIDENCE
                 </a>
@@ -134,10 +134,10 @@ export function FloatingNav() {
                 clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 24px 100%)',
               }}
             >
-              <div className="flex items-center justify-between w-full text-[11px] xl:text-xs font-sans font-medium tracking-[0.14em] uppercase text-text-secondary">
+              <div className="flex items-center justify-between w-full text-xs font-sans font-medium tracking-[0.08em] uppercase text-[var(--af-silver)]">
                 <a
                   href="#architecture"
-                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   ARCHITECTURE
                 </a>
@@ -147,10 +147,10 @@ export function FloatingNav() {
 
                 <Link
                   href="/app"
-                  className="text-text-primary hover:text-accent font-semibold transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="text-[var(--af-ivory)] hover:text-white font-medium transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   <span>GET STARTED</span>
-                  <span aria-hidden="true">→</span>
+                  <span aria-hidden="true" className="text-xs">→</span>
                 </Link>
               </div>
             </div>

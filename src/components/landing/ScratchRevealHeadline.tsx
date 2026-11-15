@@ -118,16 +118,41 @@ export function ScratchRevealHeadline({
 
     const last = lastPointRef.current;
     if (last) {
-      // Append stroke segment to SVG mask path directly without React re-render
-      const newSegment = ` M ${last.x.toFixed(1)} ${last.y.toFixed(1)} L ${x.toFixed(1)} ${y.toFixed(1)}`;
-      pathDataRef.current += newSegment;
-      if (pathRef.current) {
-        pathRef.current.setAttribute('d', pathDataRef.current);
+      const dx = x - last.x;
+      const dy = y - last.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 0.5) {
+        const nx = -dy / dist;
+        const ny = dx / dist;
+
+        // Dynamic non-uniformity: subtle pseudo-random bristle jitter for organic analog tooth
+        const jitterA = (Math.sin(last.x * 0.17 + last.y * 0.11) * 14);
+        const jitterB = (Math.cos(x * 0.13 + y * 0.19) * 14);
+
+        // Primary connecting stroke
+        const mainSegment = ` M ${last.x.toFixed(1)} ${last.y.toFixed(1)} L ${x.toFixed(1)} ${y.toFixed(1)}`;
+        
+        // Secondary offset bristle for non-uniform tooth
+        const bristleSegment = ` M ${(last.x + nx * jitterA).toFixed(1)} ${(last.y + ny * jitterA).toFixed(1)} L ${(x + nx * jitterB).toFixed(1)} ${(y + ny * jitterB).toFixed(1)}`;
+
+        pathDataRef.current += mainSegment + bristleSegment;
+
+        // Stippled micro-scratch flecks along stroke edge for realistic abrasion
+        if (dist > 10) {
+          const midX = (last.x + x) * 0.5 + nx * jitterA * 1.3;
+          const midY = (last.y + y) * 0.5 + ny * jitterA * 1.3;
+          pathDataRef.current += ` M ${midX.toFixed(1)} ${midY.toFixed(1)} m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0`;
+        }
+
+        if (pathRef.current) {
+          pathRef.current.setAttribute('d', pathDataRef.current);
+        }
+
+        markCells(last.x, last.y, x, y, 48);
       }
-      // Brush diameter ~90px (radius ~45px)
-      markCells(last.x, last.y, x, y, 45);
     } else {
-      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -0.1,0 a 0.1,0.1 0 1,0 0.2,0 a 0.1,0.1 0 1,0 -0.2,0`;
+      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0`;
       pathDataRef.current += startDot;
       if (pathRef.current) {
         pathRef.current.setAttribute('d', pathDataRef.current);
@@ -177,8 +202,11 @@ export function ScratchRevealHeadline({
           aria-hidden="true"
         >
           <defs>
-            <filter id="scratch-feather" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="7" />
+            <filter id="scratch-feather" x="-30%" y="-30%" width="160%" height="160%">
+              {/* Organic fractal noise adds tooth and non-uniform abrasion to stroke edges */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+              <feGaussianBlur in="displaced" stdDeviation="4.5" />
             </filter>
             <mask
               id="headline-scratch-mask"
@@ -190,13 +218,13 @@ export function ScratchRevealHeadline({
             >
               {/* Black background conceals text */}
               <rect width="100%" height="100%" fill="black" />
-              {/* White accumulating path reveals text */}
+              {/* White accumulating path reveals text with non-uniform brush */}
               <path
                 ref={pathRef}
                 d=""
                 fill="none"
                 stroke="white"
-                strokeWidth="90"
+                strokeWidth="80"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#scratch-feather)"
@@ -214,7 +242,7 @@ export function ScratchRevealHeadline({
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[5.5rem] font-normal tracking-tight text-text-primary text-center leading-[1.06] drop-shadow-sm">
+        <h1 className="font-serif text-[clamp(4.25rem,7.5vw,6.25rem)] font-normal tracking-tight text-[var(--af-ivory)] text-center leading-[1.04] drop-shadow-sm">
           Every claim has a story.
         </h1>
       </div>

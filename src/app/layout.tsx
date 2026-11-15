@@ -1,25 +1,28 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
+import { Instrument_Serif, Manrope, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { FloatingNav } from '@/components/landing/FloatingNav';
 
-const geistSans = Geist({
+const manrope = Manrope({
   variable: '--font-sans',
   subsets: ['latin'],
   display: 'swap',
+  weight: ['400', '500', '600', '700'],
 });
 
-const geistMono = Geist_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   variable: '--font-mono',
   subsets: ['latin'],
   display: 'swap',
+  weight: ['400', '500', '600'],
 });
 
-const newsreader = Newsreader({
+const instrumentSerif = Instrument_Serif({
   variable: '--font-serif',
   subsets: ['latin'],
   display: 'swap',
+  weight: '400',
   style: ['normal', 'italic'],
 });
 
@@ -60,7 +63,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeInitializerScript }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} min-h-screen bg-background text-text-primary font-sans antialiased flex flex-col overflow-x-hidden selection:bg-selection`}>
+      <body className={`${manrope.variable} ${ibmPlexMono.variable} ${instrumentSerif.variable} min-h-screen bg-background text-text-primary font-sans antialiased flex flex-col overflow-x-hidden selection:bg-selection`}>
         <ThemeProvider>
           {/* Distinctive Floating Navigation with Rising Triangular Emblem */}
           <FloatingNav />
