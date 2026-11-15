@@ -20,10 +20,11 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     expect(response?.status()).toBe(200);
 
     const heading = page.locator('h1');
-    await expect(heading).toBeVisible();
-    await expect(heading).toContainText('Every claim has a story.');
+    await expect(heading).toBeAttached();
+    await expect(heading).toContainText('Afterfact');
 
-    // Signature was replaced by the Every claim line in the strip
+    // Temporal verification strip replaces the old static signatures
+    await expect(page.getByText('Pluto is the ninth planet in our solar system.')).toBeVisible();
     await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
 
     const verifyCta = page.getByRole('link', { name: /verify an answer/i }).first();

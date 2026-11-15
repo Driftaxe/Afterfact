@@ -3,13 +3,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { HeroBackground } from './HeroBackground';
-import { ScratchRevealHeadline } from './ScratchRevealHeadline';
+import { TemporalRevealStrip } from './TemporalRevealStrip';
 
 export function HeroSection() {
   return (
     <section className="relative min-h-screen flex flex-col justify-between pt-28 sm:pt-32 lg:pt-36 pb-0 overflow-hidden">
       {/* 1. Full-Bleed Video Background with Seamless Lower Transition */}
       <HeroBackground />
+
+      {/* Accessible semantic heading for SEO & screen-readers */}
+      <h1 className="sr-only">
+        Afterfact — Verification of AI-generated assertions against temporal ground truth
+      </h1>
 
       {/* 2. Main Hero Viewport: Central Architectural Hierarchy */}
       <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col items-center justify-center text-center py-10 sm:py-16 lg:py-20 z-10">
@@ -56,15 +61,10 @@ export function HeroSection() {
 
       </div>
 
-      {/* 3. Architectural Editorial Baseline Bar: Interactive Claim Reveal Strip */}
+      {/* 3. Architectural Editorial Baseline Bar: Interactive Temporal Verification Strip */}
       <div className="w-full border-t border-[var(--af-border)]/50 bg-[var(--af-obsidian)]/80 backdrop-blur-md z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
-          <div className="flex items-center justify-start text-xs">
-            {/* Left: Every claim has a story (Interactive Scratch Effect, Horizontally Compressed) */}
-            <div className="flex items-center">
-              <ScratchRevealHeadline />
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3">
+          <TemporalRevealStrip />
         </div>
       </div>
     </section>

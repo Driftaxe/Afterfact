@@ -1,46 +1,34 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Hero Refinements Verification', () => {
-  test('verifies more faded larger AFTERFACT title, claim headline moved to bottom strip with horizontal compression, removal of clarity and explore story, and constant fade', async ({ page }) => {
+  test('verifies faded oversized AFTERFACT title, interactive temporal verification strip with magnifying lens, Pluto/UK pairs, dragging reveal, and completion state', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 0. Verify AFTERFACT wordmark opacity is more faded (0.24) and remains constant
+    // 0. Verify AFTERFACT wordmark opacity is at 0.24 and constant
     const initialWordmarkOpacity = await page.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim();
     });
     expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.24, 2);
 
-    // 1. Eyebrow and Description are removed, Headline is present
+    // 1. Eyebrows and discarded demo sections removed
     await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
-    const h1 = page.locator('h1');
-    await expect(h1).toHaveText('Every claim has a story.');
-    await expect(h1).toBeVisible();
-
     await expect(page.getByText(/Verify AI-generated answers against current sources/i)).toHaveCount(0);
-
-    // 2. Ensure "MOVE TO REVEAL" does NOT exist
-    const moveHint = page.getByText(/move to reveal/i);
-    await expect(moveHint).toHaveCount(0);
-
-    // 3. Ensure "01 // TRACE THE CLAIM" and "03 // TRACK WHAT CHANGES" are removed
+    await expect(page.getByText(/move to reveal/i)).toHaveCount(0);
     await expect(page.getByText('TRACE THE CLAIM')).toHaveCount(0);
     await expect(page.getByText('INSPECT THE EVIDENCE')).toHaveCount(0);
     await expect(page.getByText('TRACK WHAT CHANGES')).toHaveCount(0);
 
-    // 4. Verify AFTERFACT TITLE is visible, slightly larger (> 1200px on 1440px viewport)
+    // 2. Verify AFTERFACT TITLE is visible and oversized (> 1200px on 1440px viewport)
     const wordmark = page.locator('img.hero-wordmark');
     await expect(wordmark).toBeVisible();
     const wordmarkBox = await wordmark.boundingBox();
-    const headlineBox = await h1.boundingBox();
     expect(wordmarkBox).not.toBeNull();
-    expect(headlineBox).not.toBeNull();
-
     if (wordmarkBox) {
       expect(wordmarkBox.width).toBeGreaterThan(1200);
     }
 
-    // 5. Verify Buttons are positioned in central hero below the title
+    // 3. Verify Buttons are positioned in central hero below the title
     const verifyBtn = page.getByRole('link', { name: /verify an answer/i }).first();
     const sampleBtn = page.getByRole('link', { name: /view sample report/i }).first();
     await expect(verifyBtn).toBeVisible();
@@ -53,55 +41,62 @@ test.describe('Hero Refinements Verification', () => {
       expect(verifyBox.height).toBeLessThan(40);
     }
 
-    // 6. Verify "Every claim has a story." is moved to the bottom strip (below the buttons)
-    if (headlineBox && verifyBox) {
-      expect(headlineBox.y).toBeGreaterThan(verifyBox.y);
+    // 4. Verify Temporal Verification Strip in the bottom hero area
+    // Initial Demonstration Pair 01: Pluto
+    const plutoOriginal = page.getByText('Pluto is the ninth planet in our solar system.');
+    await expect(plutoOriginal).toBeVisible();
+    await expect(page.getByText('Before August 2006')).toBeVisible();
+
+    // Verification lens exists
+    const lens = page.locator('.group\\/lens');
+    await expect(lens).toBeVisible();
+
+    // 5. Drag the lens across the sentence to reveal the corrected assertion
+    const track = page.locator('.group\\/track');
+    const trackBox = await track.boundingBox();
+    expect(trackBox).not.toBeNull();
+
+    if (trackBox) {
+      // Simulate precision drag from start to end of track
+      await page.mouse.move(trackBox.x + 10, trackBox.y + trackBox.height / 2);
+      await page.mouse.down();
+      for (let offset = 20; offset <= trackBox.width; offset += 40) {
+        await page.mouse.move(trackBox.x + offset, trackBox.y + trackBox.height / 2);
+      }
+      await page.mouse.up();
+
+      // Upon completion: Corrected text becomes visible, CORRECTED badge & effective date appear
+      const plutoCorrected = page.getByText('Pluto is classified as a dwarf planet.');
+      await expect(plutoCorrected).toBeVisible();
+      await expect(page.getByText('CORRECTED')).toBeVisible();
+      await expect(page.getByText('August 2006')).toBeVisible();
     }
 
-    // 7. Verify "Clarity, even as facts change." and "EXPLORE STORY" are removed from strip
+    // 6. Test Switching between Demonstration Pairs: Switch to 02 / TEMPORAL CHANGE (UK)
+    const ukBtn = page.getByRole('button', { name: /TEMPORAL CHANGE/i });
+    await expect(ukBtn).toBeVisible();
+    await ukBtn.click();
+
+    // Verify Pair 02 assertions
+    const ukOriginal = page.getByText('The United Kingdom is a member of the European Union.');
+    await expect(ukOriginal).toBeVisible();
+    await expect(page.getByText('Before 31 January 2020')).toBeVisible();
+
+    // Reveal UK assertion via keyboard interaction (accessible Space/Enter key)
+    await page.keyboard.press('Enter');
+    const ukCorrected = page.getByText('The United Kingdom left the European Union on 31 January 2020.');
+    await expect(ukCorrected).toBeVisible();
+    await expect(page.getByText('CORRECTED')).toBeVisible();
+    await expect(page.getByText('31 January 2020', { exact: true })).toBeVisible();
+
+    // 7. Verify removed elements stay removed
     await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
     await expect(page.getByRole('link', { name: /explore story/i })).toHaveCount(0);
 
-    // 8. Move mouse over headline in the strip and verify no stray circle cursor at top
-    if (headlineBox) {
-      await page.mouse.move(headlineBox.x + 30, headlineBox.y + 10);
-      await page.mouse.move(headlineBox.x + 100, headlineBox.y + 10);
-
-      const strayCircles = await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('div'));
-        return els.filter((el) => {
-          const rect = el.getBoundingClientRect();
-          const style = window.getComputedStyle(el);
-          return (
-            style.borderRadius.includes('9999px') ||
-            style.borderRadius.includes('50%') ||
-            el.className.includes('rounded-full')
-          ) && rect.top >= 0 && rect.top < 40 && rect.width > 15 && rect.width < 40 && style.position === 'fixed';
-        }).length;
-      });
-      expect(strayCircles).toBe(0);
-    }
-
-    // 9. Verify Instrument Serif font, compressed size, scaleX(0.94), and color
-    const computed = await h1.evaluate((el) => {
-      const style = window.getComputedStyle(el);
-      return {
-        fontFamily: style.fontFamily,
-        color: style.color,
-        fontSize: parseFloat(style.fontSize),
-        transform: style.transform,
-      };
-    });
-    expect(computed.fontFamily.toLowerCase()).toContain('instrument serif');
-    expect(computed.color).toBe('rgb(168, 160, 155)');
-    expect(computed.fontSize).toBeLessThanOrEqual(20);
-    expect(computed.fontSize).toBeGreaterThanOrEqual(13);
-    expect(computed.transform).not.toBe('none');
-
-    // 10. Verify AFTERFACT wordmark fade remains constant at 0.24 upon scratching
-    const postScratchWordmarkOpacity = await page.evaluate(() => {
+    // 8. Wordmark opacity remains steady at 0.24
+    const postInspectionWordmarkOpacity = await page.evaluate(() => {
       return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim());
     });
-    expect(postScratchWordmarkOpacity).toBeCloseTo(0.24, 2);
+    expect(postInspectionWordmarkOpacity).toBeCloseTo(0.24, 2);
   });
 });
