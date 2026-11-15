@@ -13,23 +13,41 @@ export function HeroBackground({
   posterSrc = '/media/hero/afterfact-hero-poster.webp',
   className = '',
 }: HeroBackgroundProps) {
-  const [videoLoaded, setVideoLoaded] = useState<boolean>(false);
   const [videoError, setVideoError] = useState<boolean>(false);
-  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    // Check user preference for reduced motion
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mediaQuery.matches);
+    const video = videoRef.current;
+    if (!video) return;
 
-    const handleMotionChange = (e: MediaQueryListEvent) => {
-      setReducedMotion(e.matches);
+    // Enforce properties required for strict browser autoplay policies
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+
+    const attemptPlay = () => {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Fallback if browser requires interaction
+        });
+      }
     };
 
-    mediaQuery.addEventListener('change', handleMotionChange);
-    return () => mediaQuery.removeEventListener('change', handleMotionChange);
-  }, []);
+    if (video.readyState >= 2) {
+      attemptPlay();
+    } else {
+      video.addEventListener('canplay', attemptPlay, { once: true });
+      video.addEventListener('loadeddata', attemptPlay, { once: true });
+    }
+
+    attemptPlay();
+
+    return () => {
+      video.removeEventListener('canplay', attemptPlay);
+      video.removeEventListener('loadeddata', attemptPlay);
+    };
+  }, [videoSrc]);
 
   return (
     <div
@@ -37,34 +55,33 @@ export function HeroBackground({
       aria-hidden="true"
     >
       {/* 1. NATIVE HTML VIDEO ELEMENT WITH DYNAMIC COLOR GRADING */}
-      {!reducedMotion && !videoError && (
+      {!videoError ? (
         <video
           ref={videoRef}
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
           poster={posterSrc}
-          onLoadedData={() => setVideoLoaded(true)}
+          src={videoSrc}
           onError={() => setVideoError(true)}
-          className={`hero-video absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-            videoLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="hero-video absolute inset-0 w-full h-full object-cover"
         >
           <source src={videoSrc} type="video/mp4" />
         </video>
-      )}
-
-      {/* STATIC POSTER FALLBACK (WHEN REDUCED MOTION IS ENABLED OR VIDEO FAILS) */}
-      {(reducedMotion || videoError || !videoLoaded) && posterSrc && (
-        <div
-          className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-700"
-          style={{
-            backgroundImage: `url(${posterSrc})`,
-            filter: 'brightness(var(--hero-video-brightness, 0.68)) contrast(var(--hero-video-contrast, 0.94)) saturate(var(--hero-video-saturation, 0.30))',
-          }}
-        />
+      ) : (
+        /* STATIC POSTER FALLBACK ONLY ON VIDEO ERROR */
+        posterSrc && (
+          <div
+            className="absolute inset-0 w-full h-full bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${posterSrc})`,
+              filter:
+                'brightness(var(--hero-video-brightness, 0.68)) contrast(var(--hero-video-contrast, 0.94)) saturate(var(--hero-video-saturation, 0.30))',
+            }}
+          />
+        )
       )}
 
       {/* 2. DEDICATED DARK CINEMATIC OVERLAY */}
