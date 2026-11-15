@@ -84,6 +84,15 @@ const config: Config = {
           '"Courier New"',
           'monospace',
         ],
+        serif: [
+          'var(--font-serif)',
+          'Newsreader',
+          'Georgia',
+          'Cambria',
+          '"Times New Roman"',
+          'Times',
+          'serif',
+        ],
       },
       borderRadius: {
         sm: '4px',

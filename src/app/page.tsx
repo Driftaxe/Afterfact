@@ -1,22 +1,35 @@
 import React from 'react';
-import { InputComposer } from '@/components/composer/InputComposer';
+import { HeroSection } from '@/components/landing/HeroSection';
+import { IntroductionSection } from '@/components/landing/IntroductionSection';
+import { PipelineSection } from '@/components/landing/PipelineSection';
+import { EvidenceSection } from '@/components/landing/EvidenceSection';
+import { TemporalSection } from '@/components/landing/TemporalSection';
+import { WorkspaceSection } from '@/components/landing/WorkspaceSection';
+import { Footer } from '@/components/landing/Footer';
 
 export default function Home() {
   return (
-    <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-      <div className="w-full max-w-3xl mx-auto space-y-8">
-        <div className="text-center space-y-3">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-normal tracking-heading text-text-primary">
-            Clarity, even as facts change.
-          </h1>
-          <p className="text-sm sm:text-base text-text-secondary leading-[1.6] max-w-lg mx-auto">
-            Check AI-generated answers against current web sources to detect outdated,
-            contradicted, or unverified claims.
-          </p>
-        </div>
+    <main className="w-full overflow-x-hidden">
+      {/* Cinematic Editorial Hero with Asymmetric Floating Cards & Story Rail */}
+      <HeroSection />
 
-        <InputComposer showSampleLink={true} />
-      </div>
+      {/* Section A: Institutional Product Introduction & Split Architecture Manifesto */}
+      <IntroductionSection />
+
+      {/* Section B: How Verification Works — 5-Stage Persisted DAG Pipeline */}
+      <PipelineSection />
+
+      {/* Section C: Evidence Intelligence & Provenance Graph Invariants */}
+      <EvidenceSection />
+
+      {/* Section D: Temporal Intelligence & Case Study Verdict Taxonomy */}
+      <TemporalSection />
+
+      {/* Section E: Interactive Verification Workspace hosting InputComposer */}
+      <WorkspaceSection />
+
+      {/* Editorial Institutional Footer */}
+      <Footer />
     </main>
   );
 }

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { db } from '@/server/db/client';
 import { Prisma } from '@prisma/client';
 import { EventService } from '@/server/services/event-service';
+import type { ClaimTicket } from '@/lib/contracts/claim-ticket';
 
 // ==========================================
 // 1. Existing Primitives & Backward Compatibility
@@ -196,13 +197,26 @@ export async function createRunAndInitializeDag(params: {
   mode?: string;
   context?: Record<string, unknown>;
   idempotencyKey?: string;
+  initialClaims?: ClaimTicket[];
 }) {
   return await db.$transaction(async (tx) => {
+    // If prepId is provided, verify it exists in DB to avoid FK constraint violations
+    let validatedPrepId: string | undefined = undefined;
+    if (params.prepId) {
+      const existingPrep = await tx.preparation.findUnique({
+        where: { id: params.prepId },
+        select: { id: true },
+      });
+      if (existingPrep) {
+        validatedPrepId = existingPrep.id;
+      }
+    }
+
     const run = await tx.verificationRun.create({
       data: {
         ownerHash: params.ownerHash,
         inputHash: params.inputHash,
-        prepId: params.prepId,
+        prepId: validatedPrepId,
         mode: params.mode ?? 'paste',
         text: params.text,
         question: params.question,
@@ -215,6 +229,24 @@ export async function createRunAndInitializeDag(params: {
 
     const rootNodeId = `node_root_${run.id}`;
     const finalizeNodeId = `node_finalize_${run.id}`;
+
+    // Seed initial user-confirmed claims into DB if provided
+    if (params.initialClaims && params.initialClaims.length > 0) {
+      for (let i = 0; i < params.initialClaims.length; i++) {
+        const ticket = params.initialClaims[i];
+        await tx.claim.create({
+          data: {
+            runId: run.id,
+            ordinal: i,
+            text: ticket.originalStatement,
+            normalizedText: ticket.normalizedProposition,
+            spec: ticket as unknown as Prisma.InputJsonValue,
+            state: 'pending',
+            status: 'PENDING',
+          },
+        });
+      }
+    }
 
     const rootNode = await tx.dagNode.create({
       data: {

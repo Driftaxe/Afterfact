@@ -35,6 +35,7 @@ const preparationStore = new Map<
     text?: string;
     mode?: string;
     context?: Record<string, unknown>;
+    prepId?: string;
   }
 >();
 
@@ -73,64 +74,134 @@ export async function startPreparationAction(
   // Simulate minimal async processing latency
   await new Promise((resolve) => setTimeout(resolve, 30));
 
-  // TODO(B04b): Replace mock with PreparationService / DagService
+  // 1. Compute deterministic input hash & preparation snapshot identity
   const inputHash = createHash('sha256').update(parsed.data.text, 'utf8').digest('hex');
   const preparationId = `prep_${inputHash.slice(0, 16)}`;
   const revision = 1;
 
-  // Split input text into atomic candidate sentences (up to 3 for preparation preview)
-  const rawSentences = parsed.data.text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .slice(0, 3);
-
-  const sentences = rawSentences.length > 0 ? rawSentences : [parsed.data.text.trim()];
-
-  const claims: ClaimTicket[] = sentences.map((sentence, idx) => {
-    const claimId = `clm_prep_${idx + 1}`;
-    const startIdx = parsed.data.text.indexOf(sentence);
-    const sourceSpan = startIdx >= 0 ? { start: startIdx, end: startIdx + sentence.length } : null;
-
-    const verificationContext: VerificationProperty[] = [];
-    if (parsed.data.context?.jurisdiction) {
-      verificationContext.push({
-        key: 'jurisdiction',
-        label: 'Geographic Jurisdiction',
-        propertyType: 'string',
-        value: parsed.data.context.jurisdiction,
-        origin: 'user_target_context',
-        status: 'confirmed',
-        applicability: 'claim_level',
-      });
-    }
-    if (parsed.data.context?.targetDate) {
-      verificationContext.push({
-        key: 'targetDate',
-        label: 'Target Evaluation Date',
-        propertyType: 'date',
-        value: parsed.data.context.targetDate,
-        origin: 'user_target_context',
-        status: 'confirmed',
-        applicability: 'run_level',
-      });
-    }
-
-    return {
-      ticketId: `tkt_${claimId}_r${revision}`,
-      claimId,
-      runId: `run_${inputHash.slice(0, 12)}`,
-      inputHash,
+  // 2. Invoke backend AI extraction helper
+  let claims: ClaimTicket[] = [];
+  try {
+    const { extractClaimsFromText } = await import('@/server/verify/extract-claims');
+    const extractionPromise = extractClaimsFromText({
+      text: parsed.data.text,
+      runId: preparationId,
       revision,
-      originalStatement: sentence,
-      sourceSpan,
-      normalizedProposition: sentence,
-      domain: 'generic',
-      targetTime: parsed.data.context?.targetDate ?? '2026-11-12',
-      verificationContext,
-      missingMaterialContext: [],
-    };
-  });
+      contextOverrides: parsed.data.context
+        ? {
+            targetDate: parsed.data.context.targetDate,
+            jurisdiction: parsed.data.context.jurisdiction,
+            currency: parsed.data.context.currency,
+          }
+        : undefined,
+    });
+
+    // Bound interactive UI preview latency to 1200ms before falling back to heuristics
+    const timeoutPromise = new Promise<{
+      status: 'failed';
+      tickets: [];
+      error: { code: 'TIMEOUT'; message: string; retryable: false };
+    }>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            status: 'failed',
+            tickets: [],
+            error: {
+              code: 'TIMEOUT',
+              message: 'Interactive preview timeout exceeded; falling back to heuristic parsing',
+              retryable: false,
+            },
+          }),
+        1200
+      )
+    );
+
+    const outcome = await Promise.race([extractionPromise, timeoutPromise]);
+
+    if (outcome.status === 'success' && outcome.tickets.length > 0) {
+      claims = outcome.tickets;
+    } else if (outcome.status === 'failed') {
+      const errDetail = outcome.error ? `[${outcome.error.code}] ${outcome.error.message}` : 'Unknown extraction failure';
+      console.warn(`[startPreparationAction] AI extraction error: ${errDetail}`);
+    }
+  } catch (err) {
+    console.warn('[startPreparationAction] extractClaimsFromText call threw:', err);
+  }
+
+  // 3. Resilient fallback if model gateway is unreachable or returned no claims
+  if (claims.length === 0) {
+    const rawSentences = parsed.data.text
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .slice(0, 3);
+
+    const sentences = rawSentences.length > 0 ? rawSentences : [parsed.data.text.trim()];
+
+    claims = sentences.map((sentence, idx) => {
+      const claimId = `clm_prep_${idx + 1}`;
+      const startIdx = parsed.data.text.indexOf(sentence);
+      const sourceSpan = startIdx >= 0 ? { start: startIdx, end: startIdx + sentence.length } : null;
+
+      const verificationContext: VerificationProperty[] = [];
+      if (parsed.data.context?.jurisdiction) {
+        verificationContext.push({
+          key: 'jurisdiction',
+          label: 'Geographic Jurisdiction',
+          propertyType: 'string',
+          value: parsed.data.context.jurisdiction,
+          origin: 'user_target_context',
+          status: 'confirmed',
+          applicability: 'claim_level',
+        });
+      }
+      if (parsed.data.context?.targetDate) {
+        verificationContext.push({
+          key: 'targetDate',
+          label: 'Target Evaluation Date',
+          propertyType: 'date',
+          value: parsed.data.context.targetDate,
+          origin: 'user_target_context',
+          status: 'confirmed',
+          applicability: 'run_level',
+        });
+      }
+
+      return {
+        ticketId: `tkt_${claimId}_r${revision}`,
+        claimId,
+        runId: `run_${inputHash.slice(0, 12)}`,
+        inputHash,
+        revision,
+        originalStatement: sentence,
+        sourceSpan,
+        normalizedProposition: sentence,
+        domain: 'generic',
+        targetTime: parsed.data.context?.targetDate ?? '2026-11-12',
+        verificationContext,
+        missingMaterialContext: [],
+      };
+    });
+  }
+
+  // 4. Attempt to persist preparation to Neon PostgreSQL (bounded latency to avoid blocking UI)
+  let dbPrepId: string | undefined = undefined;
+  try {
+    const { PreparationService } = await import('@/server/services/prep-service');
+    const dbPromise = PreparationService.getOrCreatePreparation(
+      parsed.data.text,
+      parsed.data.originalQuestion ?? undefined,
+      parsed.data.context
+    );
+    const dbTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 800));
+    const prep = await Promise.race([dbPromise, dbTimeout]);
+    if (prep && prep.id) {
+      dbPrepId = prep.id;
+    }
+  } catch {
+    // Graceful offline/test fallback
+  }
 
   // Register preparation revision in store for revision binding checks
   preparationStore.set(preparationId, {
@@ -139,19 +210,8 @@ export async function startPreparationAction(
     text: parsed.data.text,
     mode: parsed.data.mode,
     context: parsed.data.context as Record<string, unknown> | undefined,
+    prepId: dbPrepId,
   });
-
-  // Attempt to persist preparation to Neon PostgreSQL
-  try {
-    const { PreparationService } = await import('@/server/services/prep-service');
-    await PreparationService.getOrCreatePreparation(
-      parsed.data.text,
-      parsed.data.originalQuestion ?? undefined,
-      parsed.data.context
-    );
-  } catch {
-    // Graceful offline/test fallback
-  }
 
   const result: StartPreparationActionResult = {
     preparationId,
@@ -241,11 +301,11 @@ export async function confirmPreparationAction(
     const { run, rootNode } = await createRunAndInitializeDag({
       ownerHash,
       inputHash: parsed.data.inputHash,
-      // prepId intentionally omitted: the in-memory prep_xxx ID is not a real
-      // DB CUID from the preparations table (FK constraint would reject it).
+      prepId: stored?.prepId,
       text: sourceText,
       mode: stored?.mode || 'paste',
       context: stored?.context,
+      initialClaims: parsed.data.confirmedClaims,
     });
 
     realRunId = run.id;
