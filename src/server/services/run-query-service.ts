@@ -140,15 +140,11 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       verdict:
         decRecord && typeof decRecord.verdict === 'string'
           ? decRecord.verdict
-          : isAssessed
-            ? 'supported'
-            : undefined,
+          : undefined,
       score:
         decRecord && typeof decRecord.score === 'number'
           ? decRecord.score
-          : isAssessed
-            ? 100
-            : null,
+          : null,
       scoreReason:
         decRecord && typeof decRecord.scoreReason === 'string'
           ? decRecord.scoreReason

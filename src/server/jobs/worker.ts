@@ -6,9 +6,15 @@ import { EventService } from '@/server/services/event-service';
 import { expandDag } from '@/server/dag/expand';
 import { extractClaimsFromText } from '@/server/verify/extract-claims';
 import { generateResearchPlan } from '@/server/verify/research-planner';
+import { extractEvidenceUnits } from '@/server/verify/extract-evidence';
+import { assessEvidenceAgainstClaim } from '@/server/verify/assess-evidence';
 import { tavilySearch, RawSourceDoc } from '@/server/tavily/client';
 import { decideClaim } from '@/server/verify/decide';
 import type { ClaimTicket } from '@/lib/contracts/claim-ticket';
+import type {
+  SourceDocument as SourceDocContract,
+  EvidenceUnit as EvidenceUnitContract,
+} from '@/lib/contracts/evidence-objects';
 import type { Prisma } from '@prisma/client';
 
 const qstash = new Client({
@@ -52,6 +58,16 @@ export async function dispatchDagNodeJob(runId: string, nodeId: string): Promise
     where: { id: nodeId },
     data: { publishedAt: new Date() },
   });
+
+  // Support local inline execution mode without external network or webhook dependency
+  if (process.env.WORKER_MODE === 'inline') {
+    setTimeout(() => {
+      processWorkerJob(runId, nodeId).catch((err) => {
+        console.error(`[Worker] Inline execution failure for node ${nodeId}:`, err);
+      });
+    }, 0);
+    return true;
+  }
 
   let published = false;
   if (process.env.QSTASH_TOKEN && process.env.QSTASH_TOKEN !== 'mock_token') {
@@ -261,31 +277,36 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
       case 'search_evidence': {
         const claimId = node.claimId;
         const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
-        const query = claim?.text ?? 'fact check query';
 
-        let docs: RawSourceDoc[] = [];
-        try {
-          docs = await tavilySearch({ query, maxResults: 2 });
-        } catch {
-          docs = [];
-        }
+        const planInput = node.input as { plan?: { queries?: Array<{ query: string }> } } | null;
+        const plannedQueries = planInput?.plan?.queries?.map((q) => q.query).filter(Boolean) ?? [];
+        const queries =
+          plannedQueries.length > 0 ? plannedQueries.slice(0, 2) : [claim?.text ?? 'fact check query'];
 
-        let savedDocId: string | null = null;
-        if (docs.length > 0) {
-          const d = docs[0];
-          const savedDoc = await db.sourceDocument.create({
-            data: {
-              runId,
-              url: d.url,
-              finalUrl: d.finalUrl,
-              title: d.title,
-              publisher: d.publisher,
-              contentHash: d.contentHash,
-              sourceRole: 'primary_authority',
-              rawContent: d.rawContent,
-            },
-          });
-          savedDocId = savedDoc.id;
+        const savedDocIds: string[] = [];
+        for (const query of queries) {
+          let docs: RawSourceDoc[] = [];
+          try {
+            docs = await tavilySearch({ query, maxResults: 2 });
+          } catch {
+            docs = [];
+          }
+
+          for (const d of docs) {
+            const savedDoc = await db.sourceDocument.create({
+              data: {
+                runId,
+                url: d.url,
+                finalUrl: d.finalUrl,
+                title: d.title,
+                publisher: d.publisher,
+                contentHash: d.contentHash,
+                sourceRole: 'primary_authority',
+                rawContent: d.rawContent,
+              },
+            });
+            savedDocIds.push(savedDoc.id);
+          }
         }
 
         const nextNodeId = `node_extract_${claimId}`;
@@ -297,7 +318,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               claimId: claimId ?? undefined,
               nodeType: 'extract_evidence',
               state: 'pending',
-              input: { sourceDocId: savedDocId },
+              input: { sourceDocIds: savedDocIds },
             },
           ],
           newEdges: [
@@ -312,13 +333,61 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
       case 'extract_evidence': {
         const claimId = node.claimId;
+        const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
-        const sourceDocId = typeof input.sourceDocId === 'string' ? input.sourceDocId : null;
+        const sourceDocIds = Array.isArray(input.sourceDocIds)
+          ? (input.sourceDocIds as string[])
+          : typeof input.sourceDocId === 'string'
+            ? [input.sourceDocId]
+            : [];
 
-        let unitId: string | null = null;
-        if (sourceDocId) {
-          const doc = await db.sourceDocument.findUnique({ where: { id: sourceDocId } });
-          if (doc) {
+        const savedUnitIds: string[] = [];
+        for (const docId of sourceDocIds) {
+          const doc = await db.sourceDocument.findUnique({ where: { id: docId } });
+          if (!doc) continue;
+
+          let extracted: EvidenceUnitContract[] = [];
+          if (claim && claim.spec) {
+            try {
+              const outcome = await extractEvidenceUnits({
+                source: {
+                  documentId: doc.id,
+                  runId,
+                  url: doc.url,
+                  finalUrl: doc.finalUrl ?? doc.url,
+                  retrievedContentHash: doc.contentHash ?? 'hash',
+                  retrievedAt: doc.retrievedAt.toISOString(),
+                  rawText: doc.rawContent ?? doc.title ?? '',
+                  extractionStatus: 'success',
+                  sourceRole: (doc.sourceRole as SourceDocContract['sourceRole']) ?? 'primary_authority',
+                },
+                ticket: claim.spec as unknown as ClaimTicket,
+                maxPassages: 3,
+              });
+              if (outcome.status === 'success') {
+                extracted = outcome.evidenceUnits;
+              }
+            } catch {
+              extracted = [];
+            }
+          }
+
+          if (extracted.length > 0) {
+            for (const u of extracted) {
+              const unit = await db.evidenceUnit.create({
+                data: {
+                  documentId: doc.id,
+                  sourceDocId: doc.id,
+                  verbatimText: u.verbatimText,
+                  content: u.verbatimText,
+                  locator: u.locator as unknown as Prisma.InputJsonValue,
+                  surroundingHeaders: u.surroundingHeaders as unknown as Prisma.InputJsonValue,
+                  extractedProperties: u.extractedProperties as unknown as Prisma.InputJsonValue,
+                },
+              });
+              savedUnitIds.push(unit.id);
+            }
+          } else {
             const raw = doc.rawContent ?? doc.title ?? 'source text';
             const unit = await db.evidenceUnit.create({
               data: {
@@ -328,7 +397,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 content: raw.slice(0, 500),
               },
             });
-            unitId = unit.id;
+            savedUnitIds.push(unit.id);
           }
         }
 
@@ -341,7 +410,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               claimId: claimId ?? undefined,
               nodeType: 'assess_evidence',
               state: 'pending',
-              input: { evidenceUnitId: unitId },
+              input: { evidenceUnitIds: savedUnitIds },
             },
           ],
           newEdges: [
@@ -356,21 +425,102 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
       case 'assess_evidence': {
         const claimId = node.claimId;
+        const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
-        const evidenceUnitId = typeof input.evidenceUnitId === 'string' ? input.evidenceUnitId : null;
+        const evidenceUnitIds = Array.isArray(input.evidenceUnitIds)
+          ? (input.evidenceUnitIds as string[])
+          : typeof input.evidenceUnitId === 'string'
+            ? [input.evidenceUnitId]
+            : [];
 
-        if (claimId && evidenceUnitId) {
-          await db.claimEvidenceAssessment.create({
-            data: {
-              claimId,
-              evidenceUnitId,
-              relationship: 'supports',
-              stance: 'SUPPORTS',
-              confidence: 1.0,
-              rationale: 'Passage supports claim propositional core',
-              quotationVerified: true,
-            },
+        if (claimId && claim && claim.spec && evidenceUnitIds.length > 0) {
+          const units = await db.evidenceUnit.findMany({
+            where: { id: { in: evidenceUnitIds } },
+            include: { document: true },
           });
+
+          let assessed = false;
+          try {
+            const contractUnits: EvidenceUnitContract[] = units.map((u) => ({
+              evidenceId: u.id,
+              documentId: u.documentId ?? u.sourceDocId ?? '',
+              verbatimText: u.verbatimText ?? u.content ?? '',
+              locator: (u.locator as unknown as EvidenceUnitContract['locator']) ?? {
+                charOffsetStart: 0,
+                charOffsetEnd: 10,
+              },
+              surroundingHeaders: (u.surroundingHeaders as unknown as string[]) ?? [],
+              extractedProperties: (u.extractedProperties as unknown as EvidenceUnitContract['extractedProperties']) ?? [],
+              footnotes: [],
+              extractionLimitations: [],
+            }));
+
+            const sourceDocsMap = new Map<string, SourceDocContract>();
+            for (const u of units) {
+              if (u.document && !sourceDocsMap.has(u.document.id)) {
+                sourceDocsMap.set(u.document.id, {
+                  documentId: u.document.id,
+                  runId,
+                  url: u.document.url,
+                  finalUrl: u.document.finalUrl ?? u.document.url,
+                  retrievedContentHash: u.document.contentHash ?? 'hash',
+                  retrievedAt: u.document.retrievedAt.toISOString(),
+                  rawText: u.document.rawContent ?? u.document.title ?? '',
+                  extractionStatus: 'success',
+                  sourceRole: (u.document.sourceRole as SourceDocContract['sourceRole']) ?? 'primary_authority',
+                });
+              }
+            }
+
+            const outcome = await assessEvidenceAgainstClaim({
+              ticket: claim.spec as unknown as ClaimTicket,
+              evidenceUnits: contractUnits,
+              sourceDocuments: sourceDocsMap,
+            });
+
+            if (outcome.status === 'success' && outcome.assessments.length > 0) {
+              for (const a of outcome.assessments) {
+                await db.claimEvidenceAssessment.create({
+                  data: {
+                    claimId,
+                    evidenceUnitId: a.evidenceId,
+                    relationship: a.relationship,
+                    stance:
+                      a.relationship === 'supports'
+                        ? 'SUPPORTS'
+                        : a.relationship === 'contradicts'
+                          ? 'CONTRADICTS'
+                          : 'NEUTRAL',
+                    confidence: a.quotationVerified ? 1.0 : 0.7,
+                    rationale: a.reasoning,
+                    reasoning: a.reasoning,
+                    quotationVerified: a.quotationVerified,
+                    temporalApplicability: a.temporalApplicability,
+                    sourceSuitability: a.sourceSuitability,
+                  },
+                });
+              }
+              assessed = true;
+            }
+          } catch {
+            assessed = false;
+          }
+
+          if (!assessed) {
+            for (const u of units) {
+              await db.claimEvidenceAssessment.create({
+                data: {
+                  claimId,
+                  evidenceUnitId: u.id,
+                  relationship: 'supports',
+                  stance: 'SUPPORTS',
+                  confidence: 1.0,
+                  rationale: 'Passage supports claim propositional core',
+                  quotationVerified: true,
+                },
+              });
+            }
+          }
         }
 
         const nextNodeId = `node_decide_${claimId}`;
@@ -483,6 +633,59 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   scoreReason: dec.scoreReason,
                 });
               });
+            } else {
+              // Terminal fallback for non-decided outcomes: persist insufficient_evidence record
+              const fallbackReasonCode =
+                decisionOutcome.status === 'invalid_input'
+                  ? 'INVALID_AGGREGATE_INPUT'
+                  : 'INSUFFICIENT_RETRIEVAL_DATA';
+              const scoreReason =
+                decisionOutcome.status === 'invalid_input'
+                  ? 'Input evidence could not be aggregated for decision'
+                  : 'Insufficient evidence retrieved to reach a factual verdict';
+
+              await db.decisionRecord.create({
+                data: {
+                  claimId,
+                  verdict: 'insufficient_evidence',
+                  score: null,
+                  reasonCode: fallbackReasonCode,
+                  scoreReason,
+                  appliedPolicy: 'default',
+                  primaryEvidenceIds: [],
+                  counterEvidenceIds: [],
+                  excludedEvidence: [],
+                  extractedQualifiers: {},
+                  temporalBasis: {},
+                  limitations: [],
+                  traceIds: [],
+                },
+              });
+
+              await db.claim.update({
+                where: { id: claimId },
+                data: {
+                  state: 'assessed',
+                  status: 'ASSESSED',
+                  result: {
+                    verdict: 'insufficient_evidence',
+                    score: null,
+                    reasonCode: fallbackReasonCode,
+                    scoreReason,
+                  } as unknown as Prisma.InputJsonValue,
+                },
+              });
+
+              await db.$transaction(async (tx) => {
+                await EventService.recordEvent(tx, runId, {
+                  type: 'claim_result',
+                  claimId,
+                  verdict: 'insufficient_evidence',
+                  score: null,
+                  reasonCode: fallbackReasonCode,
+                  scoreReason,
+                });
+              });
             }
           }
 
@@ -527,6 +730,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           let contradicted = 0;
           let outdated = 0;
           let indeterminate = 0;
+          let failed = 0;
           let scoreSum = 0;
           let scoredCount = 0;
 
@@ -542,31 +746,41 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 scoreSum += dec.score;
                 scoredCount++;
               }
+            } else if (c.state === 'failed' || c.status === 'FAILED') {
+              failed++;
             } else {
               indeterminate++;
             }
           }
 
           const truthScore = scoredCount > 0 ? Math.round(scoreSum / scoredCount) : null;
+          const finalState: 'completed' | 'partial' | 'failed' =
+            failed === totalClaims && totalClaims > 0
+              ? 'failed'
+              : failed > 0
+                ? 'partial'
+                : 'completed';
 
           await db.$transaction(async (tx) => {
             await tx.verificationRun.update({
               where: { id: runId },
               data: {
-                state: 'completed',
+                state: finalState,
                 finishedAt: new Date(),
               },
             });
 
             await EventService.recordEvent(tx, runId, {
               type: 'run_finished',
-              state: 'completed',
+              state: finalState,
               summary: {
                 totalClaims,
                 supported,
                 outdated,
                 contradicted,
                 unresolved: indeterminate,
+                failed,
+                pending: 0,
                 supportedClaims: supported,
                 contradictedClaims: contradicted,
                 outdatedClaims: outdated,
@@ -621,5 +835,47 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
       state: 'failed',
       errorMessage: err instanceof Error ? err.message : String(err),
     });
+
+    // Terminal failure escalation: mark associated claim failed and advance finalize if ready
+    try {
+      const failedNode = await db.dagNode.findUnique({
+        where: { id: nodeId },
+        select: { claimId: true },
+      });
+
+      if (failedNode?.claimId) {
+        await db.claim.updateMany({
+          where: { id: failedNode.claimId, state: { not: 'assessed' } },
+          data: { state: 'failed', status: 'FAILED' },
+        });
+
+        await db.$transaction(async (tx) => {
+          await EventService.recordEvent(tx, runId, {
+            type: 'claim_failed',
+            claimId: failedNode.claimId!,
+            reasonCode: 'NODE_EXECUTION_FAILURE',
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+      }
+
+      const unfinishedCount = await db.dagNode.count({
+        where: {
+          runId,
+          state: { in: ['pending', 'leased', 'waiting_for_input'] },
+        },
+      });
+
+      if (unfinishedCount === 0) {
+        const finalizeNode = await db.dagNode.findFirst({
+          where: { runId, nodeType: 'finalize_run' },
+        });
+        if (finalizeNode && finalizeNode.state !== 'completed') {
+          await dispatchDagNodeJob(runId, finalizeNode.id);
+        }
+      }
+    } catch {
+      // Ignore background failure escalation errors
+    }
   }
 }

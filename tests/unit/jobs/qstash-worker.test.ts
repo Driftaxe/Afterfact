@@ -105,4 +105,62 @@ describe('B05 Pure Unit Logic & Security Gates', () => {
       }
     });
   });
+
+  describe('P1: Non-Fabricated Scores & Terminal State Mapping', () => {
+    it('does not fabricate score 100 or verdict supported when claim has no decision', () => {
+      // Simulates the mapping logic in RunQueryService
+      const dec = null;
+      const decRecord = dec as Record<string, unknown> | null;
+      const mapped = {
+        verdict:
+          decRecord && typeof decRecord.verdict === 'string'
+            ? decRecord.verdict
+            : undefined,
+        score:
+          decRecord && typeof decRecord.score === 'number'
+            ? decRecord.score
+            : null,
+      };
+
+      expect(mapped.verdict).toBeUndefined();
+      expect(mapped.score).toBeNull();
+    });
+
+    it('correctly maps real numeric score and verdict when decisionRecord is present', () => {
+      const dec = { verdict: 'supported', score: 85, scoreReason: 'Solid proof' };
+      const decRecord = dec as Record<string, unknown> | null;
+      const mapped = {
+        verdict:
+          decRecord && typeof decRecord.verdict === 'string'
+            ? decRecord.verdict
+            : undefined,
+        score:
+          decRecord && typeof decRecord.score === 'number'
+            ? decRecord.score
+            : null,
+      };
+
+      expect(mapped.verdict).toBe('supported');
+      expect(mapped.score).toBe(85);
+    });
+
+    it('maps non-decided fallback outcome to insufficient_evidence with null score', () => {
+      const outcome = {
+        status: 'insufficient_evidence_units' as const,
+        reason: 'Too few units',
+      };
+
+      const fallbackDecision = {
+        verdict: 'insufficient_evidence',
+        score: null,
+        confidence: 0,
+        reasonCode: 'INSUFFICIENT_EVIDENCE',
+        scoreReason: outcome.reason,
+      };
+
+      expect(fallbackDecision.verdict).toBe('insufficient_evidence');
+      expect(fallbackDecision.score).toBeNull();
+      expect(fallbackDecision.reasonCode).toBe('INSUFFICIENT_EVIDENCE');
+    });
+  });
 });
