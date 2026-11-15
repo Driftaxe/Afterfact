@@ -5,6 +5,12 @@ test.describe('Hero Refinements Verification', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
+    // 0. Verify initial resting wordmark opacity is 0.46 before any interaction
+    const initialWordmarkOpacity = await page.evaluate(() => {
+      return getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim();
+    });
+    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.46, 2);
+
     // 1. Eyebrow and Description are removed, Headline is centered
     await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
     const h1 = page.locator('h1');
@@ -69,15 +75,24 @@ test.describe('Hero Refinements Verification', () => {
     await expect(exploreStory).toBeVisible();
     await expect(exploreStory).toHaveAttribute('href', '#product');
 
-    // 7. Verify Instrument Serif font family & #E8DED4 warm ivory color on headline
+    // 7. Verify Instrument Serif font family & #EFE8DC warm creme color and scale compression on headline
     const computed = await h1.evaluate((el) => {
       const style = window.getComputedStyle(el);
       return {
         fontFamily: style.fontFamily,
         color: style.color,
+        transform: style.transform,
       };
     });
     expect(computed.fontFamily.toLowerCase()).toContain('instrument serif');
-    expect(computed.color).toBe('rgb(232, 222, 212)');
+    expect(computed.color).toBe('rgb(239, 232, 220)');
+    // Matrix transform reflects scaleX(0.96) and scaleY(0.92)
+    expect(computed.transform).not.toBe('none');
+
+    // 8. Verify wordmark opacity has dropped significantly from 0.46 after scratching
+    const scratchedWordmarkOpacity = await page.evaluate(() => {
+      return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim());
+    });
+    expect(scratchedWordmarkOpacity).toBeLessThan(0.40);
   });
 });
