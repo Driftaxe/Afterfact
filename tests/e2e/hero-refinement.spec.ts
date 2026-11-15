@@ -5,13 +5,13 @@ test.describe('Hero Refinements Verification', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 1. Eyebrow, Headline, and Description Hierarchy
-    await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toBeVisible();
+    // 1. Eyebrow and Description are removed, Headline is centered
+    await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
     const h1 = page.locator('h1');
     await expect(h1).toHaveText('Every claim has a story.');
     await expect(h1).toBeVisible();
 
-    await expect(page.getByText(/Verify AI-generated answers against current sources/i)).toBeVisible();
+    await expect(page.getByText(/Verify AI-generated answers against current sources/i)).toHaveCount(0);
 
     // 2. Ensure "MOVE TO REVEAL" does NOT exist
     const moveHint = page.getByText(/move to reveal/i);

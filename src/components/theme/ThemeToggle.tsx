@@ -26,7 +26,7 @@ export function ThemeToggle({
 
   const baseStyles =
     variant === 'ghost'
-      ? 'inline-flex items-center justify-center rounded-md p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-raised/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent'
+      ? 'inline-flex items-center justify-center rounded-md p-1 border-0 bg-transparent shadow-none text-[var(--af-silver)] hover:text-[var(--af-ivory)] hover:bg-[var(--af-graphite)]/40 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent'
       : 'inline-flex items-center justify-center gap-2 rounded-md border border-border-subtle bg-surface px-3 py-1.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-raised hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
 
   return (
