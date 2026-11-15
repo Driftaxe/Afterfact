@@ -42,22 +42,30 @@ test.describe('Hero Refinements Verification', () => {
     }
 
     // 4. Verify Temporal Verification Strip in the bottom hero area
-    // Initial Demonstration Pair 01: Pluto
-    const plutoOriginal = page.getByText('Pluto is the ninth planet in our solar system.');
-    await expect(plutoOriginal).toBeVisible();
-    await expect(page.getByText('Before August 2006')).toBeVisible();
+    // Verify Demo: and mode switcher buttons are removed
+    await expect(page.getByText(/^DEMO:/i)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /TEMPORAL CHANGE/i })).toHaveCount(0);
 
-    // Verification lens exists
+    // Initial randomly selected pair (Pluto or UK) assertion is visible
+    const isPluto = await page.getByText('Pluto is the ninth planet in our solar system.').count() > 0;
+    const initialText = isPluto
+      ? 'Pluto is the ninth planet in our solar system.'
+      : 'The United Kingdom is a member of the European Union.';
+    await expect(page.getByText(initialText)).toBeVisible();
+
+    // Verification lens exists with enlarged triangular logo
     const lens = page.locator('.group\\/lens');
     await expect(lens).toBeVisible();
+    const lensSvg = lens.locator('svg[viewBox="0 0 60 64"]');
+    await expect(lensSvg).toBeVisible();
+    expect(await lensSvg.getAttribute('width')).toBe('24');
 
-    // 5. Drag the lens across the sentence to reveal the corrected assertion
+    // 5. Drag the lens across the sentence to undercut the claim and reveal the corrected assertion after it
     const track = page.locator('.group\\/track');
     const trackBox = await track.boundingBox();
     expect(trackBox).not.toBeNull();
 
     if (trackBox) {
-      // Simulate precision drag from start to end of track
       await page.mouse.move(trackBox.x + 10, trackBox.y + trackBox.height / 2);
       await page.mouse.down();
       for (let offset = 20; offset <= trackBox.width; offset += 40) {
@@ -65,29 +73,28 @@ test.describe('Hero Refinements Verification', () => {
       }
       await page.mouse.up();
 
-      // Upon completion: Corrected text becomes visible, CORRECTED badge & effective date appear
-      const plutoCorrected = page.getByText('Pluto is classified as a dwarf planet.');
-      await expect(plutoCorrected).toBeVisible();
+      // Upon completion: Corrected text appears AFTER undercut, CORRECTED badge & effective date appear
+      const expectedCorrected = isPluto
+        ? 'Pluto is classified as a dwarf planet.'
+        : 'The United Kingdom left the European Union on 31 January 2020.';
+      const expectedDate = isPluto ? 'August 2006' : '31 January 2020';
+
+      await expect(page.getByText(expectedCorrected)).toBeVisible();
       await expect(page.getByText('CORRECTED')).toBeVisible();
-      await expect(page.getByText('August 2006')).toBeVisible();
+      await expect(page.getByText(expectedDate, { exact: true })).toBeVisible();
     }
 
-    // 6. Test Switching between Demonstration Pairs: Switch to 02 / TEMPORAL CHANGE (UK)
-    const ukBtn = page.getByRole('button', { name: /TEMPORAL CHANGE/i });
-    await expect(ukBtn).toBeVisible();
-    await ukBtn.click();
+    // 6. Test Navbar Navigation from /app back to Landing Sections (Verifying bug fix)
+    const getStartedLink = page.getByRole('link', { name: /get started/i }).first();
+    await getStartedLink.click();
+    await expect(page).toHaveURL(/\/app/);
 
-    // Verify Pair 02 assertions
-    const ukOriginal = page.getByText('The United Kingdom is a member of the European Union.');
-    await expect(ukOriginal).toBeVisible();
-    await expect(page.getByText('Before 31 January 2020')).toBeVisible();
-
-    // Reveal UK assertion via keyboard interaction (accessible Space/Enter key)
-    await page.keyboard.press('Enter');
-    const ukCorrected = page.getByText('The United Kingdom left the European Union on 31 January 2020.');
-    await expect(ukCorrected).toBeVisible();
-    await expect(page.getByText('CORRECTED')).toBeVisible();
-    await expect(page.getByText('31 January 2020', { exact: true })).toBeVisible();
+    // On /app, click PRODUCT navbar link and verify it navigates back to landing page section
+    const productLink = page.getByRole('link', { name: 'PRODUCT' }).first();
+    await expect(productLink).toBeVisible();
+    await productLink.click();
+    await expect(page).toHaveURL(/\/#product/);
+    await expect(page.locator('#product')).toBeVisible();
 
     // 7. Verify removed elements stay removed
     await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);

@@ -80,24 +80,24 @@ export function FloatingNav() {
               }}
             >
               <div className="flex items-center justify-between w-full text-xs font-sans font-medium tracking-[0.08em] uppercase text-[var(--af-silver)]">
-                <a
-                  href="#product"
+                <Link
+                  href="/#product"
                   className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   PRODUCT
-                </a>
-                <a
-                  href="#how-it-works"
+                </Link>
+                <Link
+                  href="/#how-it-works"
                   className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   HOW IT WORKS
-                </a>
-                <a
-                  href="#evidence"
+                </Link>
+                <Link
+                  href="/#evidence"
                   className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   EVIDENCE
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -135,12 +135,12 @@ export function FloatingNav() {
               }}
             >
               <div className="flex items-center justify-between w-full text-xs font-sans font-medium tracking-[0.08em] uppercase text-[var(--af-silver)]">
-                <a
-                  href="#architecture"
+                <Link
+                  href="/#architecture"
                   className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   ARCHITECTURE
-                </a>
+                </Link>
 
                 {/* Integrated Theme Toggle without extra container */}
                 <ThemeToggle variant="ghost" />
@@ -191,38 +191,38 @@ export function FloatingNav() {
       {mobileMenuOpen && (
         <div className="pointer-events-auto lg:hidden fixed inset-x-3 top-20 rounded-xl bg-surface/95 dark:bg-[#18191C]/95 border border-border-strong backdrop-blur-2xl shadow-2xl p-6 space-y-5 animate-in fade-in slide-in-from-top-4 duration-200">
           <div className="flex flex-col space-y-3.5 text-xs font-mono tracking-widest uppercase text-text-secondary">
-            <a
-              href="#product"
+            <Link
+              href="/#product"
               onClick={() => setMobileMenuOpen(false)}
               className="py-2 border-b border-border-subtle/50 hover:text-text-primary transition-colors flex justify-between items-center"
             >
               <span>01 // PRODUCT</span>
               <span>→</span>
-            </a>
-            <a
-              href="#how-it-works"
+            </Link>
+            <Link
+              href="/#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
               className="py-2 border-b border-border-subtle/50 hover:text-text-primary transition-colors flex justify-between items-center"
             >
               <span>02 // HOW IT WORKS</span>
               <span>→</span>
-            </a>
-            <a
-              href="#evidence"
+            </Link>
+            <Link
+              href="/#evidence"
               onClick={() => setMobileMenuOpen(false)}
               className="py-2 border-b border-border-subtle/50 hover:text-text-primary transition-colors flex justify-between items-center"
             >
               <span>03 // EVIDENCE</span>
               <span>→</span>
-            </a>
-            <a
-              href="#architecture"
+            </Link>
+            <Link
+              href="/#architecture"
               onClick={() => setMobileMenuOpen(false)}
               className="py-2 border-b border-border-subtle/50 hover:text-text-primary transition-colors flex justify-between items-center"
             >
               <span>04 // ARCHITECTURE</span>
               <span>→</span>
-            </a>
+            </Link>
             <Link
               href="/report/demo?mode=fixture"
               onClick={() => setMobileMenuOpen(false)}

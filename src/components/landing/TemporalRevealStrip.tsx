@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface DemonstrationPair {
   id: 'pluto' | 'uk';
-  categoryNumber: string;
   categoryLabel: string;
   originalAssertion: string;
   historicalContext: string;
@@ -16,8 +15,7 @@ export interface DemonstrationPair {
 export const DEMO_PAIRS: DemonstrationPair[] = [
   {
     id: 'pluto',
-    categoryNumber: '01',
-    categoryLabel: 'CLASSIFICATION',
+    categoryLabel: 'TEMPORAL CLASSIFICATION',
     originalAssertion: 'Pluto is the ninth planet in our solar system.',
     historicalContext: 'Before August 2006',
     correctedAssertion: 'Pluto is classified as a dwarf planet.',
@@ -26,7 +24,6 @@ export const DEMO_PAIRS: DemonstrationPair[] = [
   },
   {
     id: 'uk',
-    categoryNumber: '02',
     categoryLabel: 'TEMPORAL CHANGE',
     originalAssertion: 'The United Kingdom is a member of the European Union.',
     historicalContext: 'Before 31 January 2020',
@@ -43,49 +40,39 @@ interface TemporalRevealStripProps {
 
 export function TemporalRevealStrip({
   className = '',
-  initialPairId = 'pluto',
+  initialPairId,
 }: TemporalRevealStripProps) {
-  const [activePairId, setActivePairId] = useState<'pluto' | 'uk'>(initialPairId);
+  // Randomly select between the two demonstration examples on mount if initialPairId not explicitly set
+  const [activePairId, setActivePairId] = useState<'pluto' | 'uk'>(initialPairId || 'pluto');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [hasStartedDragging, setHasStartedDragging] = useState<boolean>(false);
-  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [undercutPercent, setUndercutPercent] = useState<number>(0);
+
+  useEffect(() => {
+    if (!initialPairId) {
+      const picked = Math.random() < 0.5 ? 'pluto' : 'uk';
+      setActivePairId(picked);
+    }
+  }, [initialPairId]);
 
   const activePair = DEMO_PAIRS.find((p) => p.id === activePairId) || DEMO_PAIRS[0];
 
-  // DOM Refs for zero-rerender pointer tracking
+  // DOM Refs for direct 60fps manipulation
   const trackRef = useRef<HTMLDivElement>(null);
   const lensRef = useRef<HTMLDivElement>(null);
-  const revealTrailRef = useRef<SVGPathElement>(null);
-  const dimTrailRef = useRef<SVGPathElement>(null);
-
-  // Interaction tracking refs
+  const strikeLineRef = useRef<HTMLSpanElement>(null);
   const isPointerDownRef = useRef<boolean>(false);
-  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const pathDataRef = useRef<string>('');
-  const maxReachedXRef = useRef<number>(0);
   const isCompletedRef = useRef<boolean>(false);
 
-  // Sync completion ref with state
   useEffect(() => {
     isCompletedRef.current = isCompleted;
-  }, [isCompleted]);
-
-  // Keep track dimensions measured
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (trackRef.current) {
-        const rect = trackRef.current.getBoundingClientRect();
-        setDimensions({
-          width: Math.max(rect.width, 180),
-          height: Math.max(rect.height, 40),
-        });
+    if (isCompleted) {
+      setUndercutPercent(100);
+      if (strikeLineRef.current) {
+        strikeLineRef.current.style.width = '100%';
       }
-    };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions, { passive: true });
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, [activePairId]);
+    }
+  }, [isCompleted]);
 
   // Check prefers-reduced-motion
   useEffect(() => {
@@ -93,6 +80,7 @@ export function TemporalRevealStrip({
     if (mediaQuery.matches) {
       setIsCompleted(true);
       isCompletedRef.current = true;
+      setUndercutPercent(100);
     }
   }, []);
 
@@ -101,130 +89,70 @@ export function TemporalRevealStrip({
     if (isCompletedRef.current) return;
     setIsCompleted(true);
     isCompletedRef.current = true;
+    setUndercutPercent(100);
 
-    // Fill entire track with reveal path if dimensions are known
-    if (dimensions.width > 0 && dimensions.height > 0) {
-      const fullSegment = `M 0 ${dimensions.height / 2} L ${dimensions.width + 20} ${dimensions.height / 2}`;
-      pathDataRef.current += fullSegment;
-      if (revealTrailRef.current) {
-        revealTrailRef.current.setAttribute('d', pathDataRef.current);
-      }
-      if (dimTrailRef.current) {
-        dimTrailRef.current.setAttribute('d', pathDataRef.current);
-      }
-      if (lensRef.current) {
-        lensRef.current.style.transform = `translate3d(${dimensions.width - 24}px, 0px, 0px)`;
-      }
+    if (strikeLineRef.current) {
+      strikeLineRef.current.style.width = '100%';
     }
-  }, [dimensions]);
+    if (trackRef.current && lensRef.current) {
+      const rect = trackRef.current.getBoundingClientRect();
+      lensRef.current.style.transform = `translate3d(${rect.width}px, -50%, 0px)`;
+    }
+  }, []);
 
-  // Switch demonstration pair
-  const switchPair = (pairId: 'pluto' | 'uk') => {
-    if (pairId === activePairId) return;
-    setActivePairId(pairId);
-    setIsCompleted(false);
-    isCompletedRef.current = false;
-    setHasStartedDragging(false);
-    pathDataRef.current = '';
-    maxReachedXRef.current = 0;
-    lastPointRef.current = null;
-
-    if (revealTrailRef.current) {
-      revealTrailRef.current.setAttribute('d', '');
-    }
-    if (dimTrailRef.current) {
-      dimTrailRef.current.setAttribute('d', '');
-    }
-    if (lensRef.current) {
-      lensRef.current.style.transform = `translate3d(0px, 0px, 0px)`;
-    }
-  };
-
-  // Direct DOM pointer movement handler (bypasses React state for 60fps smoothness)
-  const applyPointerMove = useCallback((clientX: number, _clientY?: number) => {
+  // Pointer drag calculation
+  const handlePointerMovement = useCallback((clientX: number) => {
     if (isCompletedRef.current || !trackRef.current) return;
 
     const rect = trackRef.current.getBoundingClientRect();
     const rawX = clientX - rect.left;
     const clampedX = Math.max(0, Math.min(rawX, rect.width));
-    const clampedY = rect.height / 2; // Locked to optical midline for precision guidance
+    const ratio = rect.width > 0 ? clampedX / rect.width : 0;
+    const percent = Math.min(100, Math.round(ratio * 100));
 
-    // Move lens element directly
+    // Update lens position directly without React re-render
     if (lensRef.current) {
-      lensRef.current.style.transform = `translate3d(${clampedX}px, 0px, 0px)`;
+      lensRef.current.style.transform = `translate3d(${clampedX}px, -50%, 0px)`;
     }
 
-    const last = lastPointRef.current;
-    if (last) {
-      // Append stroke segment to accumulating reveal trail
-      const segment = ` M ${last.x.toFixed(1)} ${last.y.toFixed(1)} L ${clampedX.toFixed(1)} ${clampedY.toFixed(1)}`;
-      pathDataRef.current += segment;
-
-      if (revealTrailRef.current) {
-        revealTrailRef.current.setAttribute('d', pathDataRef.current);
-      }
-      if (dimTrailRef.current) {
-        dimTrailRef.current.setAttribute('d', pathDataRef.current);
-      }
-    } else {
-      // Initial contact dot
-      const dot = ` M ${clampedX.toFixed(1)} ${clampedY.toFixed(1)} m -16,0 a 16,16 0 1,0 32,0 a 16,16 0 1,0 -32,0`;
-      pathDataRef.current += dot;
-      if (revealTrailRef.current) {
-        revealTrailRef.current.setAttribute('d', pathDataRef.current);
-      }
-      if (dimTrailRef.current) {
-        dimTrailRef.current.setAttribute('d', pathDataRef.current);
-      }
+    // Update real-time undercut strikethrough line
+    if (strikeLineRef.current) {
+      strikeLineRef.current.style.width = `${percent}%`;
     }
 
-    lastPointRef.current = { x: clampedX, y: clampedY };
-    maxReachedXRef.current = Math.max(maxReachedXRef.current, clampedX);
+    setUndercutPercent(percent);
 
-    // Completion threshold: ~85% of sentence span uncovered
-    const revealRatio = rect.width > 0 ? maxReachedXRef.current / rect.width : 0;
-    if (revealRatio >= 0.82) {
+    if (ratio >= 0.82) {
       completeInspection();
     }
   }, [completeInspection]);
 
-  // Pointer event listeners
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     isPointerDownRef.current = true;
     setHasStartedDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
-    applyPointerMove(e.clientX, e.clientY);
+    handlePointerMovement(e.clientX);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPointerDownRef.current && !e.buttons) return;
-    applyPointerMove(e.clientX, e.clientY);
+    handlePointerMovement(e.clientX);
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     isPointerDownRef.current = false;
-    lastPointRef.current = null;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
-      // Ignore if pointer capture already lost
+      // Ignore
     }
   };
 
-  // Keyboard navigation
+  // Keyboard accessibility
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       completeInspection();
-    } else if (e.key === '1') {
-      switchPair('pluto');
-    } else if (e.key === '2') {
-      switchPair('uk');
-    } else if (e.key === 'ArrowRight' && trackRef.current) {
-      const step = 45;
-      const nextX = Math.min(maxReachedXRef.current + step, dimensions.width);
-      const rect = trackRef.current.getBoundingClientRect();
-      applyPointerMove(rect.left + nextX, rect.top + dimensions.height / 2);
     }
   };
 
@@ -236,211 +164,131 @@ export function TemporalRevealStrip({
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 py-1">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 py-1">
         
-        {/* 1. DISCREET PAIR SWITCHER (01 / CLASSIFICATION  |  02 / TEMPORAL CHANGE) */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-[var(--af-silver)]/50 mr-1 hidden sm:inline">
-            DEMO:
+        {/* 1. DISCREET CLASSIFICATION METADATA (NO MODES/SWITCHER BUTTONS) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)]" aria-hidden="true" />
+          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--af-silver)]/80">
+            {activePair.categoryLabel}
           </span>
-
-          {DEMO_PAIRS.map((pair) => {
-            const isActive = pair.id === activePairId;
-            return (
-              <button
-                key={pair.id}
-                type="button"
-                onClick={() => switchPair(pair.id)}
-                className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs font-mono text-[10px] sm:text-[11px] tracking-[0.12em] uppercase transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--af-sage)] ${
-                  isActive
-                    ? 'bg-[var(--af-graphite)]/70 text-[var(--af-ivory)] border border-[rgba(232,225,218,0.22)] shadow-xs font-medium'
-                    : 'text-[var(--af-silver)]/70 hover:text-[var(--af-ivory)] border border-transparent hover:border-[rgba(232,225,218,0.1)]'
-                }`}
-                aria-pressed={isActive}
-              >
-                <span className={`text-[9px] ${isActive ? 'text-[var(--af-sage)]' : 'text-[var(--af-silver)]/50'}`}>
-                  {pair.categoryNumber}
-                </span>
-                <span>/</span>
-                <span>{pair.categoryLabel}</span>
-              </button>
-            );
-          })}
         </div>
 
-        {/* 2. THE CENTRAL INTERACTIVE SENTENCE INSPECTION TRACK */}
-        <div className="relative flex-1 flex items-center justify-start md:justify-center overflow-visible px-2 sm:px-4 py-1.5">
+        {/* 2. THE CENTRAL INTERACTIVE SENTENCE TRACK: OUTDATED UNDERCUT & CORRECTED FOLLOWING */}
+        <div className="relative flex-1 flex items-center justify-start lg:justify-center overflow-visible px-2 sm:px-4 py-1">
           <div
-            ref={trackRef}
+            className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 cursor-grab active:cursor-grabbing group/track"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="relative inline-block cursor-grab active:cursor-grabbing touch-pan-y py-1 group/track max-w-full"
             style={{ touchAction: 'pan-y' }}
-            title="Drag the verification lens across the sentence to reveal the corrected assertion"
+            title="Drag the verification lens across the assertion to undercut and reveal the corrected fact"
           >
-            {/* SVG MASKS ACCUMULATION DEFINITION */}
-            {dimensions.width > 0 && (
-              <svg
-                width={dimensions.width}
-                height={dimensions.height}
-                className="absolute inset-0 pointer-events-none -z-20 overflow-hidden"
-                style={{ width: dimensions.width, height: dimensions.height }}
-                aria-hidden="true"
-              >
-                <defs>
-                  <filter id={`lens-feather-${activePair.id}`} x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3.5" />
-                  </filter>
-
-                  {/* Mask A: Conceals corrected text until lens paths reveal it */}
-                  <mask
-                    id={`lens-reveal-mask-${activePair.id}`}
-                    maskUnits="userSpaceOnUse"
-                    x="0"
-                    y="0"
-                    width={dimensions.width}
-                    height={dimensions.height}
-                  >
-                    <rect width="100%" height="100%" fill={isCompleted ? 'white' : 'black'} />
-                    {!isCompleted && (
-                      <path
-                        ref={revealTrailRef}
-                        d=""
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="54"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        filter={`url(#lens-feather-${activePair.id})`}
-                      />
-                    )}
-                  </mask>
-
-                  {/* Mask B: Conceals/dims original text under lens as correction emerges */}
-                  <mask
-                    id={`lens-dim-mask-${activePair.id}`}
-                    maskUnits="userSpaceOnUse"
-                    x="0"
-                    y="0"
-                    width={dimensions.width}
-                    height={dimensions.height}
-                  >
-                    <rect width="100%" height="100%" fill="white" />
-                    {!isCompleted && (
-                      <path
-                        ref={dimTrailRef}
-                        d=""
-                        fill="none"
-                        stroke="rgba(0,0,0,0.85)"
-                        strokeWidth="54"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        filter={`url(#lens-feather-${activePair.id})`}
-                      />
-                    )}
-                  </mask>
-                </defs>
-              </svg>
-            )}
-
-            {/* LAYER 1: ORIGINAL ASSERTION (MUTED SILVER, CROSS-FADED AS REVEALED) */}
-            <div
-              className="transition-opacity duration-300"
-              style={{
-                mask: isCompleted ? 'none' : `url(#lens-dim-mask-${activePair.id})`,
-                WebkitMask: isCompleted ? 'none' : `url(#lens-dim-mask-${activePair.id})`,
-              }}
-            >
+            {/* THE OUTDATED CLAIM (BEING UNDERCUT / STRUCK THROUGH BY LENS) */}
+            <div ref={trackRef} className="relative inline-block py-1 pr-2">
               <span
-                className={`font-serif text-[clamp(13px,1.25vw,16px)] tracking-[0.01em] transition-all duration-300 block ${
+                className={`font-serif text-[clamp(13px,1.25vw,16px)] tracking-[0.01em] transition-colors duration-300 ${
                   isCompleted
-                    ? 'line-through text-[var(--af-silver)]/35 opacity-40 scale-x-[0.96] origin-left'
-                    : 'text-[var(--af-silver)] opacity-85 scale-x-[0.96] origin-left'
+                    ? 'text-[var(--af-silver)]/40'
+                    : undercutPercent > 20
+                    ? 'text-[var(--af-silver)]/70'
+                    : 'text-[var(--af-silver)]'
                 }`}
               >
                 {activePair.originalAssertion}
               </span>
+
+              {/* REAL-TIME UNDERCUT STRIKETHROUGH LINE */}
+              <span
+                ref={strikeLineRef}
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#998980] transition-[width] duration-75 pointer-events-none"
+                style={{ width: `${undercutPercent}%` }}
+                aria-hidden="true"
+              />
+
+              {/* THE CUSTOM DRAGGABLE VERIFICATION LENS (WITH ENLARGED LOGO) */}
+              {!isCompleted && (
+                <div
+                  ref={lensRef}
+                  className="absolute top-1/2 -translate-y-1/2 -left-6 pointer-events-none z-30 transition-transform duration-75 ease-out"
+                  style={{ willChange: 'transform' }}
+                >
+                  <div className="relative group/lens">
+                    {/* Optical Circular Body: 48px - 52px */}
+                    <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-full border border-[rgba(232,225,218,0.5)] bg-white/[0.04] backdrop-blur-[2px] shadow-[0_4px_18px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.25)] flex items-center justify-center">
+                      
+                      {/* Restrained Optical Specular Arc (Top-Left Highlight) */}
+                      <svg
+                        viewBox="0 0 52 52"
+                        className="absolute inset-0 w-full h-full pointer-events-none"
+                        fill="none"
+                      >
+                        <path
+                          d="M 10 20 A 20 20 0 0 1 28 8"
+                          stroke="rgba(255,255,255,0.35)"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+
+                      {/* ENLARGED PROMINENT ARCHITECTURAL TRIANGULAR 'A' LOGO */}
+                      <svg
+                        width="24"
+                        height="26"
+                        viewBox="0 0 60 64"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="opacity-95 text-[var(--af-ivory)] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+                        aria-hidden="true"
+                      >
+                        {/* Outer Triangle Body */}
+                        <path
+                          d="M30 4.2 L56.5 55.8 C57.1 57.0 56.2 58.5 54.8 58.5 L5.2 58.5 C3.8 58.5 2.9 57.0 3.5 55.8 L30 4.2 Z"
+                          fill="#18191D"
+                          stroke="rgba(232,225,218,0.75)"
+                          strokeWidth="2.5"
+                          strokeLinejoin="round"
+                        />
+                        {/* Inner Precision Capital A */}
+                        <path
+                          d="M30 20.5 L22.2 46.5 H26.2 L28.1 39.8 H31.9 L33.8 46.5 H37.8 L30 20.5 Z M30 27.8 L31.2 36.2 H28.8 L30 27.8 Z"
+                          fill="#FFFFFF"
+                          fillRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+
+                    {/* Precision Loupe Grip Pin */}
+                    <div className="absolute -bottom-1 -right-0.5 w-1.5 h-3.5 rounded-full bg-gradient-to-b from-[#AAA1A6] to-[#2B292C] border border-white/20 shadow-xs rotate-[-35deg]" />
+
+                    {/* Gentle interaction hint when not yet dragged */}
+                    {!hasStartedDragging && (
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none opacity-60 text-[8px] font-mono uppercase tracking-[0.18em] text-[var(--af-silver)]">
+                        Drag to verify →
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* LAYER 2: CORRECTED ASSERTION (WARM IVORY, UNVEILED UNDERNEATH) */}
+            {/* THE CORRECTED ASSERTION (APPEARS AFTER THE UNDERCUT — ZERO OVERLAP) */}
             <div
-              className="absolute inset-0 pointer-events-none transition-opacity duration-300 flex items-center"
-              style={{
-                mask: isCompleted ? 'none' : `url(#lens-reveal-mask-${activePair.id})`,
-                WebkitMask: isCompleted ? 'none' : `url(#lens-reveal-mask-${activePair.id})`,
-              }}
-              aria-hidden={!isCompleted}
+              className={`flex items-center gap-2 transition-all duration-300 ${
+                isCompleted || undercutPercent > 40
+                  ? 'opacity-100 translate-x-0'
+                  : 'opacity-0 translate-x-2 pointer-events-none'
+              }`}
             >
-              <span className="font-serif text-[clamp(13px,1.25vw,16px)] tracking-[0.01em] text-[var(--af-ivory)] font-normal drop-shadow-sm scale-x-[0.96] origin-left whitespace-nowrap">
+              <span className="text-[var(--af-silver)]/50 text-sm hidden sm:inline" aria-hidden="true">
+                →
+              </span>
+              <span className="font-serif text-[clamp(13px,1.25vw,16px)] tracking-[0.01em] text-[var(--af-ivory)] font-normal drop-shadow-sm">
                 {activePair.correctedAssertion}
               </span>
             </div>
 
-            {/* THE CUSTOM DRAGGABLE VERIFICATION LENS */}
-            {!isCompleted && (
-              <div
-                ref={lensRef}
-                className="absolute top-1/2 -translate-y-1/2 -left-5 pointer-events-none z-30 transition-transform duration-75 ease-out"
-                style={{ willChange: 'transform' }}
-              >
-                <div className="relative group/lens">
-                  {/* Optical Circular Body */}
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border border-[rgba(232,225,218,0.42)] bg-white/[0.04] backdrop-blur-[2px] shadow-[0_4px_16px_rgba(0,0,0,0.65),inset_0_1px_1.5px_rgba(255,255,255,0.22)] flex items-center justify-center">
-                    
-                    {/* Restrained Optical Specular Arc (Top-Left Highlight) */}
-                    <svg
-                      viewBox="0 0 44 44"
-                      className="absolute inset-0 w-full h-full pointer-events-none"
-                      fill="none"
-                    >
-                      <path
-                        d="M 9 17 A 16 16 0 0 1 23 7"
-                        stroke="rgba(255,255,255,0.32)"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-
-                    {/* Miniature Architectural Triangular 'A' Emblem in Centre */}
-                    <svg
-                      width="15"
-                      height="16"
-                      viewBox="0 0 60 64"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="opacity-80 text-[var(--af-ivory)] filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                    >
-                      {/* Outer Triangle Body */}
-                      <path
-                        d="M30 4.2 L56.5 55.8 C57.1 57.0 56.2 58.5 54.8 58.5 L5.2 58.5 C3.8 58.5 2.9 57.0 3.5 55.8 L30 4.2 Z"
-                        fill="#1C1D21"
-                        stroke="rgba(232,225,218,0.6)"
-                        strokeWidth="2.5"
-                        strokeLinejoin="round"
-                      />
-                      {/* Inner Precision Capital A */}
-                      <path
-                        d="M30 20.5 L22.2 46.5 H26.2 L28.1 39.8 H31.9 L33.8 46.5 H37.8 L30 20.5 Z M30 27.8 L31.2 36.2 H28.8 L30 27.8 Z"
-                        fill="#FFFFFF"
-                        fillRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Minimal Precision Loupe Grip Pin (At 45-degree bottom angle) */}
-                  <div className="absolute -bottom-1 -right-0.5 w-1.5 h-3 rounded-full bg-gradient-to-b from-[#AAA1A6] to-[#38363A] border border-white/20 shadow-xs rotate-[-35deg]" />
-
-                  {/* Gentle interaction hint when not yet dragged */}
-                  {!hasStartedDragging && (
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none opacity-60 text-[8px] font-mono uppercase tracking-[0.18em] text-[var(--af-silver)]">
-                      Drag to verify →
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
