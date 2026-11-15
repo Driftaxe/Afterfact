@@ -142,10 +142,8 @@ export function FloatingNav() {
                   ARCHITECTURE
                 </a>
 
-                {/* Integrated Theme Toggle */}
-                <div className="flex items-center">
-                  <ThemeToggle />
-                </div>
+                {/* Integrated Theme Toggle without extra container */}
+                <ThemeToggle variant="ghost" />
 
                 <Link
                   href="/app"
@@ -169,7 +167,7 @@ export function FloatingNav() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <ThemeToggle variant="ghost" />
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

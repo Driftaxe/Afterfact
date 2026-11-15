@@ -225,20 +225,20 @@ export function ScratchRevealHeadline({
 
       {/* 2. THE ACTUAL HEADLINE H1 WITH MASK APPLIED */}
       <div
-        className="transition-opacity duration-500"
+        className="transition-opacity duration-500 text-center"
         style={{
           mask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl xl:text-[5.25rem] font-normal tracking-tight text-text-primary leading-[1.05] drop-shadow-sm">
+        <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[5.5rem] font-normal tracking-tight text-text-primary text-center leading-[1.06] drop-shadow-sm">
           Every claim has a story.
         </h1>
       </div>
 
       {/* 3. RESTRAINED MOVE TO REVEAL HINT (FADES AWAY ONCE SCRATCHING BEGINS) */}
       {!isFullyRevealed && !hasStartedScratching && (
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 pointer-events-none flex items-center gap-2 text-text-muted/70 animate-pulse">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-2 text-text-muted/70 animate-pulse">
           <div className="w-4 h-4 rounded-full border border-accent/40 flex items-center justify-center text-[9px] text-accent">
             ✦
           </div>
