@@ -26,8 +26,8 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     const signature = page.getByText('Clarity, even as facts change.');
     await expect(signature).toBeVisible();
 
-    const description = page.getByText(/Check AI-generated answers against current web sources/i);
-    await expect(description).toBeVisible();
+    const verifyCta = page.getByRole('link', { name: 'Verify an answer' }).first();
+    await expect(verifyCta).toBeVisible();
 
     const textarea = page.locator('#answer-input');
     await expect(textarea).toBeVisible();

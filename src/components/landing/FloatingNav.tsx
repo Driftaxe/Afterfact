@@ -157,12 +157,10 @@ export function FloatingNav() {
         {/* TOP-RIGHT CONTROLS: THEME TOGGLE DOCKED OUTSIDE NAVBAR ON RIGHT SIDE */}
         <div
           className={`pointer-events-auto hidden lg:flex items-center absolute right-0 transition-all duration-300 ${
-            scrolled ? 'top-0.5' : 'top-0'
+            scrolled ? 'top-1' : 'top-1'
           }`}
         >
-          <div className="flex items-center p-1.5 rounded-lg bg-surface/85 dark:bg-[#18191C]/85 border border-border-subtle/80 backdrop-blur-md shadow-lg">
-            <ThemeToggle />
-          </div>
+          <ThemeToggle />
         </div>
 
         {/* MOBILE COMPACT FLOATING NAVIGATION BAR */}
