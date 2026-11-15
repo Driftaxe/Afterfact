@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Instrument_Serif, Manrope, IBM_Plex_Mono } from 'next/font/google';
+import { Instrument_Serif, Manrope, IBM_Plex_Mono, Rubik } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { FloatingNav } from '@/components/landing/FloatingNav';
@@ -24,6 +24,13 @@ const instrumentSerif = Instrument_Serif({
   display: 'swap',
   weight: '400',
   style: ['normal', 'italic'],
+});
+
+const rubik = Rubik({
+  variable: '--font-rubik',
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -63,7 +70,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeInitializerScript }}
         />
       </head>
-      <body className={`${manrope.variable} ${ibmPlexMono.variable} ${instrumentSerif.variable} min-h-screen bg-background text-text-primary font-sans antialiased flex flex-col overflow-x-hidden selection:bg-selection`}>
+      <body className={`${manrope.variable} ${ibmPlexMono.variable} ${instrumentSerif.variable} ${rubik.variable} min-h-screen bg-background text-text-primary font-sans antialiased flex flex-col overflow-x-hidden selection:bg-selection`}>
         <ThemeProvider>
           {/* Distinctive Floating Navigation with Rising Triangular Emblem */}
           <FloatingNav />

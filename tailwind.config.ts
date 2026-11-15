@@ -77,6 +77,11 @@ const config: Config = {
         normal: '0em',
       },
       fontFamily: {
+        rubik: [
+          'var(--font-rubik)',
+          'Rubik',
+          'sans-serif',
+        ],
         sans: [
           'var(--font-sans)',
           'Manrope',
