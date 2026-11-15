@@ -18,17 +18,17 @@ export function FloatingNav() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pointer-events-none w-full px-3 sm:px-6 pt-4 sm:pt-6 transition-all duration-300">
-      <div className="max-w-7xl mx-auto flex items-center justify-center">
+    <header className="fixed top-0 left-0 right-0 z-50 pointer-events-none w-full px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 transition-all duration-300">
+      <div className="max-w-7xl mx-auto w-full relative flex items-center justify-center">
         
-        {/* DESKTOP SPLIT TRAPEZOIDAL NAVIGATION WITH CENTRAL TRIANGULAR EMBLEM */}
+        {/* DESKTOP SPLIT TRAPEZOIDAL NAVIGATION WITH PRECISELY CENTERED GEOMETRY */}
         <nav
           aria-label="Main Navigation"
           className="pointer-events-auto hidden lg:flex items-center justify-center transition-all duration-300"
         >
           {/* Left Trapezoidal Pod: Outer Rounded, Inner Diagonal Following Triangle Slope */}
           <div
-            className={`relative p-[1px] rounded-l-full transition-all duration-300 ${
+            className={`relative p-[1px] rounded-l-full transition-all duration-300 w-[330px] xl:w-[350px] ${
               scrolled
                 ? 'bg-border-strong/90 shadow-2xl'
                 : 'bg-border-subtle/80 shadow-xl'
@@ -38,16 +38,16 @@ export function FloatingNav() {
             }}
           >
             <div
-              className={`h-12 flex items-center pl-8 pr-10 rounded-l-full transition-colors duration-300 ${
+              className={`h-12 flex items-center justify-between pl-8 pr-10 rounded-l-full transition-colors duration-300 ${
                 scrolled
                   ? 'bg-surface/95 dark:bg-[#18191C]/95 backdrop-blur-xl'
-                  : 'bg-surface/80 dark:bg-[#18191C]/80 backdrop-blur-md'
+                  : 'bg-surface/85 dark:bg-[#18191C]/85 backdrop-blur-md'
               }`}
               style={{
                 clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 22px) 100%, 0% 100%)',
               }}
             >
-              <div className="flex items-center gap-7 text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
+              <div className="flex items-center justify-between w-full text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
                 <a
                   href="#product"
                   className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
@@ -70,8 +70,8 @@ export function FloatingNav() {
             </div>
           </div>
 
-          {/* Central Triangular Brand Anchor: Extends Above Nav Bar */}
-          <div className="relative -top-3.5 z-20 flex items-center justify-center -mx-2 group">
+          {/* Central Triangular Brand Anchor: Perfectly Centered Between Symmetrical Pods */}
+          <div className="relative -top-3.5 z-20 flex items-center justify-center -mx-2.5 group">
             <Link
               href="/"
               aria-label="Afterfact Home"
@@ -83,7 +83,7 @@ export function FloatingNav() {
 
           {/* Right Trapezoidal Pod: Inner Diagonal Following Triangle Slope, Outer Rounded */}
           <div
-            className={`relative p-[1px] rounded-r-full transition-all duration-300 ${
+            className={`relative p-[1px] rounded-r-full transition-all duration-300 w-[330px] xl:w-[350px] ${
               scrolled
                 ? 'bg-border-strong/90 shadow-2xl'
                 : 'bg-border-subtle/80 shadow-xl'
@@ -93,16 +93,16 @@ export function FloatingNav() {
             }}
           >
             <div
-              className={`h-12 flex items-center pl-10 pr-6 rounded-r-full transition-colors duration-300 ${
+              className={`h-12 flex items-center justify-between pl-10 pr-8 rounded-r-full transition-colors duration-300 ${
                 scrolled
                   ? 'bg-surface/95 dark:bg-[#18191C]/95 backdrop-blur-xl'
-                  : 'bg-surface/80 dark:bg-[#18191C]/80 backdrop-blur-md'
+                  : 'bg-surface/85 dark:bg-[#18191C]/85 backdrop-blur-md'
               }`}
               style={{
                 clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 22px 100%)',
               }}
             >
-              <div className="flex items-center gap-6 text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
+              <div className="flex items-center justify-between w-full text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
                 <a
                   href="#architecture"
                   className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
@@ -125,15 +125,31 @@ export function FloatingNav() {
                   <span>GET STARTED</span>
                   <span aria-hidden="true">→</span>
                 </Link>
-
-                {/* Discreetly integrated theme toggle */}
-                <div className="pl-2 border-l border-border-subtle/70">
-                  <ThemeToggle />
-                </div>
               </div>
             </div>
           </div>
         </nav>
+
+        {/* DOCKED OUT CONTROLS: THEME TOGGLE & DEVELOPER REPOSITORY DETAILS */}
+        <div className="pointer-events-auto hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-surface/85 dark:bg-[#18191C]/85 border border-border-subtle/80 backdrop-blur-md shadow-lg absolute right-0 top-0">
+          <a
+            href="https://github.com/Driftaxe/Afterfact"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub Repository by Driftaxe"
+            className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase text-text-secondary hover:text-text-primary transition-colors px-2 py-0.5 rounded bg-surface-raised/70 border border-border-subtle/50"
+          >
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+              <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+            </svg>
+            <span>DRIFTAXE</span>
+            <span className="text-text-muted text-[9px]">↗</span>
+          </a>
+
+          <div className="pl-1 border-l border-border-subtle/70">
+            <ThemeToggle />
+          </div>
+        </div>
 
         {/* MOBILE COMPACT FLOATING NAVIGATION BAR */}
         <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-4 py-2.5 rounded-full bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle backdrop-blur-xl shadow-xl">
@@ -145,6 +161,17 @@ export function FloatingNav() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <a
+              href="https://github.com/Driftaxe/Afterfact"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub Repository"
+              className="p-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+              </svg>
+            </a>
             <ThemeToggle />
             <button
               type="button"
