@@ -206,16 +206,9 @@ export function ScratchRevealHeadline({
         </svg>
       )}
 
-      {/* 2. BASE GHOSTED HEADLINE (SUBTLY VISIBLE UNDERNEATH, NO AWKWARD BLANK VOID) */}
-      <div className="text-center select-none" aria-hidden="true">
-        <span className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[5.5rem] font-normal tracking-tight text-text-muted/25 dark:text-[#9A9AA0]/20 text-center leading-[1.06] block">
-          Every claim has a story.
-        </span>
-      </div>
-
-      {/* 3. FOREGROUND ILLUMINATED HEADLINE (REVEALED BY SCRATCH MASK) */}
+      {/* 2. THE HEADLINE H1 WITH MASK APPLIED (COMPLETELY INVISIBLE AT FIRST UNTIL SCRATCHED) */}
       <div
-        className="absolute inset-0 transition-opacity duration-300 text-center pointer-events-none"
+        className="transition-opacity duration-500 text-center"
         style={{
           mask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',

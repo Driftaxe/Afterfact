@@ -44,7 +44,7 @@ test.describe('Hero Refinements Verification', () => {
       expect(strayCircles).toBe(0);
     }
 
-    // 5. Buttons: Verify they are smaller and positioned below headline
+    // 5. Buttons: Verify they are micro-compact and positioned below headline
     const verifyBtn = page.getByRole('link', { name: /verify an answer/i }).first();
     const sampleBtn = page.getByRole('link', { name: /view sample report/i }).first();
     await expect(verifyBtn).toBeVisible();
@@ -53,14 +53,14 @@ test.describe('Hero Refinements Verification', () => {
     const verifyBox = await verifyBtn.boundingBox();
     expect(verifyBox).not.toBeNull();
     if (verifyBox && headlineBox) {
-      // Verify buttons are significantly lower than headline (at least 60px below headline bottom)
+      // Verify buttons are significantly lower than headline (at least 40px below headline bottom)
       expect(verifyBox.y - (headlineBox.y + headlineBox.height)).toBeGreaterThan(40);
-      // Verify button height is compact (< 45px, compared to old bulky 52px)
-      expect(verifyBox.height).toBeLessThan(42);
+      // Verify button height is ultra-compact (< 34px)
+      expect(verifyBox.height).toBeLessThan(34);
     }
 
-    // 6. Baseline bar: Protocol identity, Signature & Explore Story anchor
-    await expect(page.getByText('SYS // TEMPORAL EVIDENCE PROTOCOL')).toBeVisible();
+    // 6. Baseline bar: Protocol identity removed, Signature & Explore Story anchor present
+    await expect(page.getByText('SYS // TEMPORAL EVIDENCE PROTOCOL')).toHaveCount(0);
     await expect(page.getByText('Clarity, even as facts change.')).toBeVisible();
     const exploreStory = page.getByRole('link', { name: /explore story/i });
     await expect(exploreStory).toBeVisible();
