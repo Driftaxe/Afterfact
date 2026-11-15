@@ -12,85 +12,65 @@ export function HeroSection() {
       <HeroBackground />
 
       {/* 2. Main Hero Viewport: Centered Editorial Headline Directly Over AFTERFACT Wordmark */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-12 sm:py-16 lg:py-20 z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-10 sm:py-14 lg:py-16 z-10">
         
         {/* Dominant Primary Hero Headline (Scratch-to-Reveal) Centered Over AFTERFACT Wordmark */}
         <div className="w-full max-w-4xl flex justify-center">
           <ScratchRevealHeadline />
         </div>
 
-        {/* Centered Dual Actions */}
-        <div className="flex flex-wrap items-center justify-center gap-3.5 pt-8 sm:pt-10">
+        {/* Refined, Compact Dual Actions (Moved Lower & Proportioned) */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-12 sm:mt-16 lg:mt-20">
           <Link
             href="/app"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md bg-btn-primary text-btn-primary-text hover:bg-btn-primary-hover font-sans font-medium text-xs sm:text-sm tracking-wider uppercase transition-all shadow-lg hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-4.5 sm:py-2 rounded-md bg-btn-primary text-btn-primary-text hover:bg-btn-primary-hover font-mono font-medium text-[11px] tracking-[0.14em] uppercase transition-all shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
           >
             <span>VERIFY AN ANSWER</span>
-            <span className="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
+            <span className="text-xs transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
           </Link>
 
           <Link
             href="/report/demo?mode=fixture"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-surface/90 border border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary text-xs sm:text-sm font-sans tracking-wide transition-all shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2 rounded-md bg-surface/90 border border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary text-[11px] font-sans tracking-wide transition-all shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             <span>View sample report</span>
-            <span className="text-[9px] font-mono px-1 py-0.2 rounded-sm bg-status-outdated-bg border border-status-outdated-border text-status-outdated-text">
+            <span className="text-[8px] font-mono px-1 py-0.2 rounded-xs bg-status-outdated-bg border border-status-outdated-border text-status-outdated-text">
               Replay
             </span>
           </Link>
         </div>
 
-        {/* Small Brand Signature Centered Underneath */}
-        <div className="pt-6 sm:pt-8">
-          <p className="font-serif italic text-xs sm:text-sm text-text-muted/80 tracking-wide">
-            Clarity, even as facts change.
-          </p>
-        </div>
-
       </div>
 
-      {/* 3. Bottom Hero Story Rail: 3 Numbered Visual Story Panels */}
-      <div className="w-full border-t border-border-subtle bg-surface/60 dark:bg-[#18191C]/60 backdrop-blur-sm z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 divide-y md:divide-y-0 md:divide-x divide-border-subtle">
+      {/* 3. Architectural Editorial Baseline Bar: Protocol Identity, Signature & Quiet Exploration */}
+      <div className="w-full border-t border-border-subtle/80 bg-surface/30 dark:bg-[#111214]/40 backdrop-blur-md z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             
-            {/* Story 01: TRACE THE CLAIM */}
-            <div className="pt-3 md:pt-0 md:pr-6 space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold text-accent">01 //</span>
-                <h3 className="text-xs font-sans font-semibold tracking-widest uppercase text-text-primary">
-                  TRACE THE CLAIM
-                </h3>
-              </div>
-              <p className="text-xs font-sans text-text-secondary leading-relaxed pl-5 font-light">
-                Understand exactly which statements are being verified with character-grounded extraction.
-              </p>
+            {/* Left: Protocol Specification */}
+            <div className="flex items-center gap-2.5 text-[10px] font-mono tracking-[0.2em] uppercase text-text-muted">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-supported-text animate-pulse" aria-hidden="true" />
+              <span>SYS // TEMPORAL EVIDENCE PROTOCOL</span>
             </div>
 
-            {/* Story 02: INSPECT THE EVIDENCE */}
-            <div className="pt-3 md:pt-0 md:px-6 space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold text-accent">02 //</span>
-                <h3 className="text-xs font-sans font-semibold tracking-widest uppercase text-text-primary">
-                  INSPECT THE EVIDENCE
-                </h3>
-              </div>
-              <p className="text-xs font-sans text-text-secondary leading-relaxed pl-5 font-light">
-                Follow every claim back to its supporting primary source material and verbatim quotes.
+            {/* Center: Brand Signature */}
+            <div className="flex items-center gap-2 text-text-muted/80">
+              <span className="w-4 h-[1px] bg-border-subtle hidden md:inline-block" aria-hidden="true" />
+              <p className="font-serif italic text-xs tracking-wide">
+                Clarity, even as facts change.
               </p>
+              <span className="w-4 h-[1px] bg-border-subtle hidden md:inline-block" aria-hidden="true" />
             </div>
 
-            {/* Story 03: TRACK WHAT CHANGES */}
-            <div className="pt-3 md:pt-0 md:pl-6 space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold text-accent">03 //</span>
-                <h3 className="text-xs font-sans font-semibold tracking-widest uppercase text-text-primary">
-                  TRACK WHAT CHANGES
-                </h3>
-              </div>
-              <p className="text-xs font-sans text-text-secondary leading-relaxed pl-5 font-light">
-                See how facts evolve over time, identify effective dates, and inspect surgical claim corrections.
-              </p>
+            {/* Right: Exploration Affordance */}
+            <div className="flex items-center">
+              <a
+                href="#product"
+                className="group inline-flex items-center gap-1.5 text-[10px] font-mono tracking-[0.2em] uppercase text-text-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm py-0.5"
+              >
+                <span>EXPLORE STORY</span>
+                <span className="transition-transform group-hover:translate-y-0.5 font-sans" aria-hidden="true">↓</span>
+              </a>
             </div>
 
           </div>

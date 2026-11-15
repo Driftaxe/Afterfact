@@ -15,11 +15,9 @@ export function ScratchRevealHeadline({
 }: ScratchRevealHeadlineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const cursorRef = useRef<HTMLDivElement>(null);
 
   const [isFullyRevealed, setIsFullyRevealed] = useState<boolean>(false);
   const [hasStartedScratching, setHasStartedScratching] = useState<boolean>(false);
-  const [isHovering, setIsHovering] = useState<boolean>(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   // Grid tracking for reveal percentage (24 columns x 6 rows = 144 cells)
@@ -114,11 +112,6 @@ export function ScratchRevealHeadline({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Update custom coin cursor position
-    if (cursorRef.current) {
-      cursorRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    }
-
     if (!hasStartedScratching) {
       setHasStartedScratching(true);
     }
@@ -131,8 +124,8 @@ export function ScratchRevealHeadline({
       if (pathRef.current) {
         pathRef.current.setAttribute('d', pathDataRef.current);
       }
-      // Brush diameter ~80px (radius ~40px)
-      markCells(last.x, last.y, x, y, 40);
+      // Brush diameter ~90px (radius ~45px)
+      markCells(last.x, last.y, x, y, 45);
     } else {
       const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -0.1,0 a 0.1,0.1 0 1,0 0.2,0 a 0.1,0.1 0 1,0 -0.2,0`;
       pathDataRef.current += startDot;
@@ -144,15 +137,8 @@ export function ScratchRevealHeadline({
     lastPointRef.current = { x, y };
   };
 
-  const handlePointerEnter = () => {
-    if (!isFullyRevealed) {
-      setIsHovering(true);
-    }
-  };
-
   const handlePointerLeave = () => {
     lastPointRef.current = null;
-    setIsHovering(false);
   };
 
   // Keyboard accessibility
@@ -167,10 +153,9 @@ export function ScratchRevealHeadline({
     <div
       ref={containerRef}
       onPointerMove={handlePointerMove}
-      onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onClick={() => {
-        // Tap to reveal on touch devices
+        // Tap to reveal on touch devices or quick click
         if (!isFullyRevealed) {
           completeReveal();
         }
@@ -179,9 +164,7 @@ export function ScratchRevealHeadline({
       tabIndex={isFullyRevealed ? -1 : 0}
       role="region"
       aria-label="Interactive headline reveal. Move cursor or press Enter to reveal."
-      className={`relative select-none outline-none group cursor-default ${
-        !isFullyRevealed && isHovering ? 'lg:cursor-none' : ''
-      } ${className}`}
+      className={`relative select-none outline-none group cursor-default ${className}`}
       style={{ touchAction: 'pan-y' }}
     >
       {/* 1. SVG ACCUMULATING WHITE MASK DEFINITION */}
@@ -213,7 +196,7 @@ export function ScratchRevealHeadline({
                 d=""
                 fill="none"
                 stroke="white"
-                strokeWidth="85"
+                strokeWidth="90"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#scratch-feather)"
@@ -223,9 +206,16 @@ export function ScratchRevealHeadline({
         </svg>
       )}
 
-      {/* 2. THE ACTUAL HEADLINE H1 WITH MASK APPLIED */}
+      {/* 2. BASE GHOSTED HEADLINE (SUBTLY VISIBLE UNDERNEATH, NO AWKWARD BLANK VOID) */}
+      <div className="text-center select-none" aria-hidden="true">
+        <span className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[5.5rem] font-normal tracking-tight text-text-muted/25 dark:text-[#9A9AA0]/20 text-center leading-[1.06] block">
+          Every claim has a story.
+        </span>
+      </div>
+
+      {/* 3. FOREGROUND ILLUMINATED HEADLINE (REVEALED BY SCRATCH MASK) */}
       <div
-        className="transition-opacity duration-500 text-center"
+        className="absolute inset-0 transition-opacity duration-300 text-center pointer-events-none"
         style={{
           mask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
@@ -235,32 +225,6 @@ export function ScratchRevealHeadline({
           Every claim has a story.
         </h1>
       </div>
-
-      {/* 3. RESTRAINED MOVE TO REVEAL HINT (FADES AWAY ONCE SCRATCHING BEGINS) */}
-      {!isFullyRevealed && !hasStartedScratching && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-2 text-text-muted/70 animate-pulse">
-          <div className="w-4 h-4 rounded-full border border-accent/40 flex items-center justify-center text-[9px] text-accent">
-            ✦
-          </div>
-          <span className="text-[10px] font-mono tracking-widest uppercase">
-            MOVE TO REVEAL
-          </span>
-        </div>
-      )}
-
-      {/* 4. SUBTLE TACTILE COIN SCRATCH CURSOR (ONLY ACTIVE OVER UNREVEALED HEADLINE) */}
-      {!isFullyRevealed && isHovering && (
-        <div
-          ref={cursorRef}
-          className="hidden lg:block pointer-events-none fixed -top-3.5 -left-3.5 w-7 h-7 rounded-full border border-[#DEDBD6]/70 bg-[#DEDBD6]/10 shadow-[0_0_12px_rgba(222,219,214,0.2)] backdrop-blur-[1px] z-50 transition-opacity duration-150"
-          style={{ willChange: 'transform' }}
-          aria-hidden="true"
-        >
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="w-1 h-1 rounded-full bg-[#DEDBD6]" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
