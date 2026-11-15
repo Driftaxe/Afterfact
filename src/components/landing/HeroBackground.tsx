@@ -5,12 +5,14 @@ import React, { useState, useEffect, useRef } from 'react';
 interface HeroBackgroundProps {
   videoSrc?: string;
   posterSrc?: string;
+  playbackSpeed?: number;
   className?: string;
 }
 
 export function HeroBackground({
   videoSrc = '/media/hero/afterfact-hero.mp4',
   posterSrc = '/media/hero/afterfact-hero-poster.webp',
+  playbackSpeed = 0.6,
   className = '',
 }: HeroBackgroundProps) {
   const [videoError, setVideoError] = useState<boolean>(false);
@@ -25,7 +27,17 @@ export function HeroBackground({
     video.defaultMuted = true;
     video.playsInline = true;
 
+    // Set cinematic slow-motion playback speed
+    const applySpeed = () => {
+      if (video) {
+        video.playbackRate = playbackSpeed;
+      }
+    };
+
+    applySpeed();
+
     const attemptPlay = () => {
+      applySpeed();
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -41,13 +53,16 @@ export function HeroBackground({
       video.addEventListener('loadeddata', attemptPlay, { once: true });
     }
 
+    video.addEventListener('play', applySpeed);
+
     attemptPlay();
 
     return () => {
       video.removeEventListener('canplay', attemptPlay);
       video.removeEventListener('loadeddata', attemptPlay);
+      video.removeEventListener('play', applySpeed);
     };
-  }, [videoSrc]);
+  }, [videoSrc, playbackSpeed]);
 
   return (
     <div
