@@ -41,17 +41,28 @@ test.describe('Hero Refinements Verification', () => {
       expect(verifyBox.height).toBeLessThan(40);
     }
 
-    // 4. Verify Temporal Verification Strip in the bottom hero area
+    // 4. Verify Temporal Verification Strip is below the initial 100vh viewport fold
     // Verify Demo: and mode switcher buttons are removed
     await expect(page.getByText(/^DEMO:/i)).toHaveCount(0);
     await expect(page.getByRole('button', { name: /TEMPORAL CHANGE/i })).toHaveCount(0);
 
+    const track = page.locator('.group\\/track');
+    // Verify it is positioned below the initial viewport fold (>= 900px on 900px viewport)
+    const initialTrackBox = await track.boundingBox();
+    expect(initialTrackBox).not.toBeNull();
+    if (initialTrackBox) {
+      expect(initialTrackBox.y).toBeGreaterThanOrEqual(850);
+    }
+
+    // Scroll into view to interact with it
+    await track.scrollIntoViewIfNeeded();
+
     // Initial randomly selected pair (Pluto or UK) assertion is visible
-    const isPluto = await page.getByText('Pluto is the ninth planet in our solar system.').count() > 0;
-    const initialText = isPluto
-      ? 'Pluto is the ninth planet in our solar system.'
-      : 'The United Kingdom is a member of the European Union.';
-    await expect(page.getByText(initialText)).toBeVisible();
+    const isPluto = await page.getByText('the ninth planet in our solar system.').count() > 0;
+    const initialWrongPart = isPluto
+      ? 'the ninth planet in our solar system.'
+      : 'is a member of the European Union.';
+    await expect(page.getByText(initialWrongPart)).toBeVisible();
 
     // Verification lens exists with enlarged triangular logo
     const lens = page.locator('.group\\/lens');
@@ -61,22 +72,21 @@ test.describe('Hero Refinements Verification', () => {
     expect(await lensSvg.getAttribute('width')).toBe('24');
 
     // 5. Drag the lens across the sentence to undercut the claim and reveal the corrected assertion after it
-    const track = page.locator('.group\\/track');
     const trackBox = await track.boundingBox();
     expect(trackBox).not.toBeNull();
 
     if (trackBox) {
-      await page.mouse.move(trackBox.x + 10, trackBox.y + trackBox.height / 2);
+      await page.mouse.move(trackBox.x + 5, trackBox.y + trackBox.height / 2);
       await page.mouse.down();
-      for (let offset = 20; offset <= trackBox.width; offset += 40) {
+      for (let offset = 20; offset <= trackBox.width + 20; offset += 30) {
         await page.mouse.move(trackBox.x + offset, trackBox.y + trackBox.height / 2);
       }
       await page.mouse.up();
 
       // Upon completion: Corrected text appears AFTER undercut, CORRECTED badge & effective date appear
       const expectedCorrected = isPluto
-        ? 'Pluto is classified as a dwarf planet.'
-        : 'The United Kingdom left the European Union on 31 January 2020.';
+        ? 'classified as a dwarf planet.'
+        : 'left the European Union on 31 January 2020.';
       const expectedDate = isPluto ? 'August 2006' : '31 January 2020';
 
       await expect(page.getByText(expectedCorrected)).toBeVisible();
@@ -85,6 +95,10 @@ test.describe('Hero Refinements Verification', () => {
     }
 
     // 6. Test Navbar Navigation from /app back to Landing Sections (Verifying bug fix)
+    // Scroll back to top so navbar headroom reveals the header
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+
     const getStartedLink = page.getByRole('link', { name: /get started/i }).first();
     await getStartedLink.click();
     await expect(page).toHaveURL(/\/app/);

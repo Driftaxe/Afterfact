@@ -5,9 +5,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 export interface DemonstrationPair {
   id: 'pluto' | 'uk';
   categoryLabel: string;
-  originalAssertion: string;
+  prefix: string;
+  wrongPart: string;
+  correctedPart: string;
   historicalContext: string;
-  correctedAssertion: string;
   classificationContext: string;
   effectiveDate: string;
 }
@@ -16,18 +17,20 @@ export const DEMO_PAIRS: DemonstrationPair[] = [
   {
     id: 'pluto',
     categoryLabel: 'TEMPORAL CLASSIFICATION',
-    originalAssertion: 'Pluto is the ninth planet in our solar system.',
+    prefix: 'Pluto is ',
+    wrongPart: 'the ninth planet in our solar system.',
+    correctedPart: 'classified as a dwarf planet.',
     historicalContext: 'Before August 2006',
-    correctedAssertion: 'Pluto is classified as a dwarf planet.',
     classificationContext: 'IAU Classification, 2006',
     effectiveDate: 'August 2006',
   },
   {
     id: 'uk',
     categoryLabel: 'TEMPORAL CHANGE',
-    originalAssertion: 'The United Kingdom is a member of the European Union.',
+    prefix: 'The United Kingdom ',
+    wrongPart: 'is a member of the European Union.',
+    correctedPart: 'left the European Union on 31 January 2020.',
     historicalContext: 'Before 31 January 2020',
-    correctedAssertion: 'The United Kingdom left the European Union on 31 January 2020.',
     classificationContext: 'EU Withdrawal Agreement',
     effectiveDate: '31 January 2020',
   },
@@ -58,9 +61,10 @@ export function TemporalRevealStrip({
   const activePair = DEMO_PAIRS.find((p) => p.id === activePairId) || DEMO_PAIRS[0];
 
   // DOM Refs for direct 60fps manipulation
-  const trackRef = useRef<HTMLDivElement>(null);
+  const wrongTrackRef = useRef<HTMLSpanElement>(null);
   const lensRef = useRef<HTMLDivElement>(null);
   const strikeLineRef = useRef<HTMLSpanElement>(null);
+  const correctedSpanRef = useRef<HTMLSpanElement>(null);
   const isPointerDownRef = useRef<boolean>(false);
   const isCompletedRef = useRef<boolean>(false);
 
@@ -70,6 +74,10 @@ export function TemporalRevealStrip({
       setUndercutPercent(100);
       if (strikeLineRef.current) {
         strikeLineRef.current.style.width = '100%';
+      }
+      if (correctedSpanRef.current) {
+        correctedSpanRef.current.style.clipPath = 'none';
+        correctedSpanRef.current.style.opacity = '1';
       }
     }
   }, [isCompleted]);
@@ -94,30 +102,41 @@ export function TemporalRevealStrip({
     if (strikeLineRef.current) {
       strikeLineRef.current.style.width = '100%';
     }
-    if (trackRef.current && lensRef.current) {
-      const rect = trackRef.current.getBoundingClientRect();
+    if (correctedSpanRef.current) {
+      correctedSpanRef.current.style.clipPath = 'none';
+      correctedSpanRef.current.style.opacity = '1';
+    }
+    if (wrongTrackRef.current && lensRef.current) {
+      const rect = wrongTrackRef.current.getBoundingClientRect();
       lensRef.current.style.transform = `translate3d(${rect.width}px, -50%, 0px)`;
     }
   }, []);
 
-  // Pointer drag calculation
+  // Pointer drag calculation: only covers the specific wrong part
   const handlePointerMovement = useCallback((clientX: number) => {
-    if (isCompletedRef.current || !trackRef.current) return;
+    if (isCompletedRef.current || !wrongTrackRef.current) return;
 
-    const rect = trackRef.current.getBoundingClientRect();
+    const rect = wrongTrackRef.current.getBoundingClientRect();
     const rawX = clientX - rect.left;
     const clampedX = Math.max(0, Math.min(rawX, rect.width));
     const ratio = rect.width > 0 ? clampedX / rect.width : 0;
     const percent = Math.min(100, Math.round(ratio * 100));
 
-    // Update lens position directly without React re-render
+    // Update lens position directly over the wrong part
     if (lensRef.current) {
       lensRef.current.style.transform = `translate3d(${clampedX}px, -50%, 0px)`;
     }
 
-    // Update real-time undercut strikethrough line
+    // Update real-time undercut strikethrough line on the wrong part
     if (strikeLineRef.current) {
       strikeLineRef.current.style.width = `${percent}%`;
+    }
+
+    // Reveal the corrected words live as the glass drags (live clip-path following progress)
+    if (correctedSpanRef.current) {
+      const revealCut = Math.max(0, 100 - percent * 1.25);
+      correctedSpanRef.current.style.clipPath = `inset(0 ${revealCut}% 0 0)`;
+      correctedSpanRef.current.style.opacity = percent > 5 ? '1' : '0';
     }
 
     setUndercutPercent(percent);
@@ -127,19 +146,19 @@ export function TemporalRevealStrip({
     }
   }, [completeInspection]);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
     isPointerDownRef.current = true;
     setHasStartedDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
     handlePointerMovement(e.clientX);
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLSpanElement>) => {
     if (!isPointerDownRef.current && !e.buttons) return;
     handlePointerMovement(e.clientX);
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLSpanElement>) => {
     isPointerDownRef.current = false;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -166,7 +185,7 @@ export function TemporalRevealStrip({
     >
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 py-1">
         
-        {/* 1. DISCREET CLASSIFICATION METADATA (NO MODES/SWITCHER BUTTONS) */}
+        {/* 1. DISCREET CLASSIFICATION METADATA */}
         <div className="flex items-center gap-2 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)]" aria-hidden="true" />
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--af-silver)]/80">
@@ -174,35 +193,43 @@ export function TemporalRevealStrip({
           </span>
         </div>
 
-        {/* 2. THE CENTRAL INTERACTIVE SENTENCE TRACK: OUTDATED UNDERCUT & CORRECTED FOLLOWING */}
+        {/* 2. THE CENTRAL INTERACTIVE SENTENCE TRACK: LIVE UNDERCUT ON WRONG PART ONLY */}
         <div className="relative flex-1 flex items-center justify-start lg:justify-center overflow-visible px-2 sm:px-4 py-1">
-          <div
-            className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 cursor-grab active:cursor-grabbing group/track"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            style={{ touchAction: 'pan-y' }}
-            title="Drag the verification lens across the assertion to undercut and reveal the corrected fact"
-          >
-            {/* THE OUTDATED CLAIM (BEING UNDERCUT / STRUCK THROUGH BY LENS) */}
-            <div ref={trackRef} className="relative inline-block py-1 pr-2">
+          <div className="flex flex-wrap items-center gap-1.5 font-serif text-[clamp(13px,1.25vw,16px)]">
+            
+            {/* TRUE PREFIX (UNTOUCHED) */}
+            <span className="text-[var(--af-silver)]">
+              {activePair.prefix}
+            </span>
+
+            {/* THE SPECIFIC WRONG PART (ONLY THIS PORTION GETS UNDERCUT LIVE) */}
+            <span
+              ref={wrongTrackRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              className="relative inline-block cursor-grab active:cursor-grabbing py-0.5 px-0.5 group/track"
+              style={{ touchAction: 'pan-y' }}
+              title="Drag the verification lens across the outdated words to undercut them and reveal the ground truth live"
+            >
+              {/* Outdated words */}
               <span
-                className={`font-serif text-[clamp(13px,1.25vw,16px)] tracking-[0.01em] transition-colors duration-300 ${
+                className={`transition-colors duration-200 ${
                   isCompleted
                     ? 'text-[var(--af-silver)]/40'
-                    : undercutPercent > 20
-                    ? 'text-[var(--af-silver)]/70'
+                    : undercutPercent > 25
+                    ? 'text-[var(--af-silver)]/65'
                     : 'text-[var(--af-silver)]'
                 }`}
               >
-                {activePair.originalAssertion}
+                {activePair.wrongPart}
               </span>
 
               {/* REAL-TIME UNDERCUT STRIKETHROUGH LINE */}
               <span
                 ref={strikeLineRef}
-                className="absolute left-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#998980] transition-[width] duration-75 pointer-events-none"
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#9E8E84] transition-[width] duration-75 pointer-events-none"
                 style={{ width: `${undercutPercent}%` }}
                 aria-hidden="true"
               />
@@ -271,23 +298,24 @@ export function TemporalRevealStrip({
                   </div>
                 </div>
               )}
-            </div>
+            </span>
 
-            {/* THE CORRECTED ASSERTION (APPEARS AFTER THE UNDERCUT — ZERO OVERLAP) */}
-            <div
-              className={`flex items-center gap-2 transition-all duration-300 ${
-                isCompleted || undercutPercent > 40
-                  ? 'opacity-100 translate-x-0'
-                  : 'opacity-0 translate-x-2 pointer-events-none'
-              }`}
+            {/* THE CORRECTED WORDS (APPEAR LIVE AS GLASS DRAGS — AFTER UNDERCUT, ZERO OVERLAP) */}
+            <span
+              ref={correctedSpanRef}
+              className="inline-flex items-center gap-1.5 overflow-hidden transition-opacity duration-150"
+              style={{
+                opacity: isCompleted ? 1 : undercutPercent > 5 ? 1 : 0,
+                clipPath: isCompleted ? 'none' : `inset(0 ${Math.max(0, 100 - undercutPercent * 1.25)}% 0 0)`,
+              }}
             >
-              <span className="text-[var(--af-silver)]/50 text-sm hidden sm:inline" aria-hidden="true">
+              <span className="text-[var(--af-silver)]/50 text-sm" aria-hidden="true">
                 →
               </span>
-              <span className="font-serif text-[clamp(13px,1.25vw,16px)] tracking-[0.01em] text-[var(--af-ivory)] font-normal drop-shadow-sm">
-                {activePair.correctedAssertion}
+              <span className="text-[var(--af-ivory)] font-normal drop-shadow-sm whitespace-nowrap">
+                {activePair.correctedPart}
               </span>
-            </div>
+            </span>
 
           </div>
         </div>

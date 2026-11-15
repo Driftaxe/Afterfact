@@ -23,8 +23,9 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await expect(heading).toBeAttached();
     await expect(heading).toContainText('Afterfact');
 
-    // Temporal verification strip replaces the old static signatures
-    await expect(page.getByText('Pluto is the ninth planet in our solar system.')).toBeVisible();
+    // Temporal verification strip replaces the old static signatures and is attached below the hero fold
+    const stripTrack = page.locator('.group\\/track');
+    await expect(stripTrack).toBeAttached();
     await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
 
     const verifyCta = page.getByRole('link', { name: /verify an answer/i }).first();
