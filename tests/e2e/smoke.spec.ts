@@ -26,7 +26,7 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     const signature = page.getByText('Clarity, even as facts change.');
     await expect(signature).toBeVisible();
 
-    const verifyCta = page.getByRole('link', { name: 'Verify an answer' }).first();
+    const verifyCta = page.getByRole('link', { name: /verify an answer/i }).first();
     await expect(verifyCta).toBeVisible();
 
     const textarea = page.locator('#answer-input');

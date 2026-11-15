@@ -113,7 +113,7 @@ export function FloatingNav() {
             </Link>
           </div>
 
-          {/* Right Trapezoidal Pod: Angled Inner Edge, Clean Dual Items */}
+          {/* Right Trapezoidal Pod: Angled Inner Edge, Integrated Theme Toggle */}
           <div
             className={`relative p-[1px] rounded-r-lg transition-all duration-300 w-[320px] xl:w-[350px] ${
               scrolled
@@ -142,6 +142,11 @@ export function FloatingNav() {
                   ARCHITECTURE
                 </a>
 
+                {/* Integrated Theme Toggle */}
+                <div className="flex items-center">
+                  <ThemeToggle />
+                </div>
+
                 <Link
                   href="/app"
                   className="text-text-primary hover:text-accent font-semibold transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
@@ -153,15 +158,6 @@ export function FloatingNav() {
             </div>
           </div>
         </nav>
-
-        {/* TOP-RIGHT CONTROLS: THEME TOGGLE DOCKED OUTSIDE NAVBAR ON RIGHT SIDE */}
-        <div
-          className={`pointer-events-auto hidden lg:flex items-center absolute right-0 transition-all duration-300 ${
-            scrolled ? 'top-1' : 'top-1'
-          }`}
-        >
-          <ThemeToggle />
-        </div>
 
         {/* MOBILE COMPACT FLOATING NAVIGATION BAR */}
         <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle backdrop-blur-xl shadow-xl">
