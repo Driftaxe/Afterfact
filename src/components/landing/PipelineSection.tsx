@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 
 const PIPELINE_STAGES = [
@@ -14,7 +16,7 @@ const PIPELINE_STAGES = [
     title: 'RESEARCH & RETRIEVAL',
     category: 'PROVENANCE',
     description:
-      'Formulates targeted search queries aimed at primary authorities (official documentation, regulatory registries, verified press releases) using budgeted live Tavily endpoints.',
+      'Formulates targeted search queries aimed at primary authorities (official documentation, regulatory registries, verified press releases) using budgeted live retrieval endpoints.',
     badge: 'tavilySearch',
   },
   {
@@ -36,7 +38,7 @@ const PIPELINE_STAGES = [
   {
     step: '05',
     title: 'DECISION & REPORTING',
-    category: 'DETERMINISTIC SCORE',
+    category: 'SCORE FENCING',
     description:
       'Rules-based policy engine applies score fencing and derives transitions. Assembles a permanent, cryptographically auditable report with surgical claim-by-claim corrections.',
     badge: 'decideClaim',
@@ -45,14 +47,14 @@ const PIPELINE_STAGES = [
 
 export function PipelineSection() {
   return (
-    <section id="how-it-works" className="py-24 sm:py-32 border-b border-border-subtle bg-surface/30 relative">
+    <section id="how-it-works" className="scroll-mt-20 sm:scroll-mt-24 py-16 sm:py-24 border-b border-border-subtle bg-surface/30 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl space-y-4 mb-16 sm:mb-20">
           <div className="text-[11px] font-mono tracking-[0.2em] uppercase text-accent">
-            02 // PERSISTED DAG PIPELINE
+            03 // HOW IT WORKS
           </div>
-          <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-text-primary leading-[1.1]">
+          <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-normal tracking-heading text-text-primary leading-tight">
             How verification works.
           </h2>
           <p className="text-sm sm:text-base text-text-secondary leading-relaxed font-light">
@@ -62,18 +64,18 @@ export function PipelineSection() {
         </div>
 
         {/* Sequential 5-Stage Step Rail */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-3">
           {PIPELINE_STAGES.map((stage) => (
             <div
               key={stage.step}
-              className="rounded-2xl bg-surface border border-border-subtle hover:border-border-strong p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-4 group"
+              className="rounded-lg bg-surface border border-border-subtle hover:border-border-strong p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-4 group"
             >
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xl sm:text-2xl font-light text-text-primary group-hover:text-accent transition-colors">
+                <div className="flex items-start justify-between">
+                  <span className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-accent">
                     {stage.step}
                   </span>
-                  <span className="text-[9px] font-mono tracking-widest uppercase text-text-muted px-2 py-0.5 rounded bg-surface-raised border border-border-subtle">
+                  <span className="text-[9px] font-mono tracking-widest uppercase text-text-muted px-2 py-0.5 rounded-sm bg-surface-raised border border-border-subtle">
                     {stage.category}
                   </span>
                 </div>

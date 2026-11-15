@@ -3,48 +3,59 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   Afterfact Semantic Design Tokens
+   Afterfact Editorial Tokens (V4 Design System)
    Theme: Quiet, cinematic, precise.
-   Primary: Dark (Smoky charcoal, graphite surfaces, warm ivory text, lavender-gray accent)
-   Secondary: Light (Warm paper, clean off-white surfaces, charcoal text, dusty-plum accent)
    ========================================================================== */
+:root {
+  --af-obsidian: #101012;
+  --af-graphite: #29272A;
+  --af-ivory: #E8E1DA;
+  --af-silver: #AAA1A6;
+  --af-mauve: #887987;
+  --af-sage: #A4C8B2;
+
+  --af-text-primary: #E8E1DA;
+  --af-text-secondary: #AAA1A6;
+
+  --af-border: rgba(232, 225, 218, 0.12);
+}
 
 :root,
 [data-theme="dark"],
 .dark {
   color-scheme: dark;
 
-  /* Surfaces & Canvas — Refined dark charcoal */
-  --color-background: #111214;
-  --color-surface: #18191C;
-  --color-surface-raised: #202125;
+  /* Surfaces & Canvas — Refined dark obsidian & graphite */
+  --color-background: var(--af-obsidian);
+  --color-surface: #171619;
+  --color-surface-raised: var(--af-graphite);
 
   /* Typography */
-  --color-text-primary: #E7E5E2;
-  --color-text-secondary: #AAA8A5;
-  --color-text-muted: #85858D;
+  --color-text-primary: var(--af-text-primary);
+  --color-text-secondary: var(--af-text-secondary);
+  --color-text-muted: var(--af-mauve);
 
   /* Borders & Dividers */
-  --color-border-subtle: #2B2D32;
-  --color-border-strong: #3A3C44;
+  --color-border-subtle: var(--af-border);
+  --color-border-strong: rgba(232, 225, 218, 0.22);
 
-  /* Primary Button (Neutral and soft, not purple) */
-  --color-btn-primary-bg: #DEDBD6;
-  --color-btn-primary-text: #191A1D;
-  --color-btn-primary-hover: #ECEAE6;
+  /* Primary Button (Warm Ivory / Obsidian) */
+  --color-btn-primary-bg: var(--af-ivory);
+  --color-btn-primary-text: var(--af-obsidian);
+  --color-btn-primary-hover: #F2ECE6;
 
-  /* Accent & Interaction (Restrained secondary accent) */
-  --color-accent: #B5AEBD;
-  --color-accent-hover: #C5BFCC;
-  --color-accent-foreground: #111214;
-  --color-focus-ring: #DEDBD6;
-  --color-selection: rgba(222, 219, 214, 0.2);
-  --color-overlay: rgba(17, 18, 20, 0.85);
+  /* Accent & Interaction (Muted Mauve) */
+  --color-accent: var(--af-mauve);
+  --color-accent-hover: #9E8E9D;
+  --color-accent-foreground: var(--af-obsidian);
+  --color-focus-ring: var(--af-ivory);
+  --color-selection: rgba(232, 225, 218, 0.18);
+  --color-overlay: rgba(16, 16, 18, 0.85);
 
   /* Verification Status Tokens (Muted, Accessible, Distinct) */
-  --status-supported-bg: #192720;
-  --status-supported-text: #9CD7B4;
-  --status-supported-border: #2A4234;
+  --status-supported-bg: #16241D;
+  --status-supported-text: var(--af-sage);
+  --status-supported-border: #243E30;
 
   --status-outdated-bg: #282115;
   --status-outdated-text: #E8C07A;
@@ -59,7 +70,7 @@
   --status-unresolved-border: #36373D;
 
   --status-checking-bg: #1F2128;
-  --status-checking-text: #B5AEBD;
+  --status-checking-text: var(--af-mauve);
   --status-checking-border: #353742;
 
   /* Backward Compatibility Aliases for initial scaffold */
@@ -72,53 +83,53 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Surfaces & Canvas */
-  --color-background: #F7F5F0;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #EDE8DF;
+  /* Surfaces & Canvas — 2-3 shades darker off-white / grayish stone (no pure white) */
+  --color-background: #E5E2DC;
+  --color-surface: #EDEAE4;
+  --color-surface-raised: #DDD9D2;
 
-  /* Typography */
-  --color-text-primary: #1A1B1E;
-  --color-text-secondary: #5A5854;
-  --color-text-muted: #787570;
+  /* Typography — Calibrated crisp dark carbon & deep charcoal for the grayish background */
+  --color-text-primary: #111215;
+  --color-text-secondary: #3D3B38;
+  --color-text-muted: #5C5955;
 
   /* Borders & Dividers */
-  --color-border-subtle: #E8E3DA;
-  --color-border-strong: #DCD6CB;
+  --color-border-subtle: #D1CCC3;
+  --color-border-strong: #BCB6AB;
 
   /* Primary Button */
-  --color-btn-primary-bg: #1A1B1E;
-  --color-btn-primary-text: #FFFFFF;
-  --color-btn-primary-hover: #2B2D32;
+  --color-btn-primary-bg: #18191C;
+  --color-btn-primary-text: #F0EDE8;
+  --color-btn-primary-hover: #26272B;
 
   /* Accent & Interaction */
-  --color-accent: #5C4E68;
-  --color-accent-hover: #4D4058;
+  --color-accent: #4F4359;
+  --color-accent-hover: #3E3446;
   --color-accent-foreground: #FFFFFF;
-  --color-focus-ring: #1A1B1E;
-  --color-selection: rgba(92, 78, 104, 0.18);
-  --color-overlay: rgba(30, 28, 33, 0.5);
+  --color-focus-ring: #18191C;
+  --color-selection: rgba(79, 67, 89, 0.18);
+  --color-overlay: rgba(22, 21, 25, 0.6);
 
   /* Verification Status Tokens (Muted, Accessible, Distinct) */
-  --status-supported-bg: #EDF5F0;
-  --status-supported-text: #22583B;
-  --status-supported-border: #C2DEC9;
+  --status-supported-bg: #DCE8DF;
+  --status-supported-text: #19462E;
+  --status-supported-border: #B2D1BD;
 
-  --status-outdated-bg: #FBF5EA;
-  --status-outdated-text: #764F0E;
-  --status-outdated-border: #EAD6B0;
+  --status-outdated-bg: #EFE6D6;
+  --status-outdated-text: #674208;
+  --status-outdated-border: #D8C3A0;
 
-  --status-contradicted-bg: #FAF0F1;
-  --status-contradicted-text: #832C37;
-  --status-contradicted-border: #EBC8CD;
+  --status-contradicted-bg: #EDE0E2;
+  --status-contradicted-text: #721C28;
+  --status-contradicted-border: #D4B5BA;
 
-  --status-unresolved-bg: #F2F0EC;
-  --status-unresolved-text: #4A4844;
-  --status-unresolved-border: #D4D0C8;
+  --status-unresolved-bg: #DCD8D3;
+  --status-unresolved-text: #353331;
+  --status-unresolved-border: #BEB9B2;
 
-  --status-checking-bg: #F3F0F6;
-  --status-checking-text: #544660;
-  --status-checking-border: #D7CFDF;
+  --status-checking-bg: #E1DEE6;
+  --status-checking-text: #483A54;
+  --status-checking-border: #C6BFCE;
 
   /* Backward Compatibility Aliases for initial scaffold */
   --color-ink: var(--color-text-primary);
@@ -163,5 +174,80 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Hero Cinematic Video & Analog Film Grading
+   ========================================================================== */
+:root {
+  --hero-video-brightness: 0.65;
+  --hero-video-contrast: 0.98;
+  --hero-video-saturation: 0.28;
+  --hero-video-sepia: 0.08;
+  --hero-overlay-strength: 0.45;
+  --hero-grain-opacity: 0.06;
+  --hero-wordmark-opacity: 0.24;
+}
+
+.hero-headline {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(14px, 1.3vw, 17px);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: #A8A09B;
+  transform: scaleX(0.94);
+  transform-origin: left center;
+}
+
+.hero-video {
+  filter:
+    brightness(var(--hero-video-brightness, 0.65))
+    contrast(var(--hero-video-contrast, 0.98))
+    saturate(var(--hero-video-saturation, 0.28))
+    sepia(var(--hero-video-sepia, 0.08));
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-video-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(16, 16, 18, 0.52) 0%,
+      rgba(16, 16, 18, 0.20) 48%,
+      rgba(16, 16, 18, 0.54) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(16, 16, 18, 0.72) 0%,
+      rgba(41, 39, 42, 0.12) 48%,
+      rgba(16, 16, 18, 0.38) 100%
+    );
+}
+
+.hero-wordmark {
+  position: relative;
+  width: min(96vw, 1600px);
+  height: auto;
+  opacity: var(--hero-wordmark-opacity, 0.24);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  filter: sepia(0.06) brightness(0.92);
+  transition: opacity 300ms ease;
+}
+
+@media (max-width: 768px) {
+  .hero-wordmark {
+    width: min(98vw, 720px);
+    opacity: 0.22;
   }
 }

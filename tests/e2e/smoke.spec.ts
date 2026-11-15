@@ -20,11 +20,16 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     expect(response?.status()).toBe(200);
 
     const heading = page.locator('h1');
-    await expect(heading).toBeVisible();
-    await expect(heading).toContainText('Clarity, even as facts change.');
+    await expect(heading).toBeAttached();
+    await expect(heading).toContainText('Afterfact');
 
-    const description = page.getByText(/Check AI-generated answers against current web sources/i);
-    await expect(description).toBeVisible();
+    // Temporal verification strip replaces the old static signatures and is attached below the hero fold
+    const stripTrack = page.locator('.group\\/track');
+    await expect(stripTrack).toBeAttached();
+    await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
+
+    const verifyCta = page.getByRole('link', { name: /verify an answer/i }).first();
+    await expect(verifyCta).toBeVisible();
 
     const textarea = page.locator('#answer-input');
     await expect(textarea).toBeVisible();

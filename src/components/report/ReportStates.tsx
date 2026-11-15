@@ -77,7 +77,7 @@ export function ReportEmptyClaimsState({ answerText, onBack }: ReportEmptyClaims
           </Button>
         ) : (
           <Link
-            href="/"
+            href="/app"
             className="inline-flex items-center justify-center h-10 px-5 rounded-[9px] bg-btn-primary text-btn-primary-text text-sm font-medium hover:bg-btn-primary-hover transition-colors"
           >
             Return to Composer
@@ -114,7 +114,7 @@ export function ReportErrorState({
 
       <div className="flex items-center justify-center gap-3 pt-2">
         <Link
-          href="/"
+          href="/app"
           className="inline-flex items-center justify-center h-10 px-4 rounded-[9px] border border-border-subtle bg-surface text-text-secondary hover:text-text-primary text-sm font-medium transition-colors"
         >
           Return to Input

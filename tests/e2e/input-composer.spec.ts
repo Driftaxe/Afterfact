@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('C02 Input Composer Interactive Experience (/)', () => {
+test.describe('C02 Input Composer Interactive Experience (/app)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     await page.waitForLoadState('networkidle');
   });
 

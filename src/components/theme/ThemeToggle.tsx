@@ -6,9 +6,14 @@ import { useTheme } from './ThemeProvider';
 interface ThemeToggleProps {
   className?: string;
   showLabel?: boolean;
+  variant?: 'default' | 'ghost';
 }
 
-export function ThemeToggle({ className = '', showLabel = false }: ThemeToggleProps) {
+export function ThemeToggle({
+  className = '',
+  showLabel = false,
+  variant = 'default',
+}: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
@@ -19,6 +24,11 @@ export function ThemeToggle({ className = '', showLabel = false }: ThemeTogglePr
   const isDark = theme === 'dark';
   const nextActionLabel = isDark ? 'Switch to light theme' : 'Switch to dark theme';
 
+  const baseStyles =
+    variant === 'ghost'
+      ? 'inline-flex items-center justify-center rounded-md p-1 border-0 bg-transparent shadow-none text-[var(--af-silver)] hover:text-[var(--af-ivory)] hover:bg-[var(--af-graphite)]/40 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent'
+      : 'inline-flex items-center justify-center gap-2 rounded-md border border-border-subtle bg-surface px-3 py-1.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-raised hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring';
+
   return (
     <button
       type="button"
@@ -26,7 +36,7 @@ export function ThemeToggle({ className = '', showLabel = false }: ThemeTogglePr
       data-hydrated={mounted ? 'true' : undefined}
       aria-label={nextActionLabel}
       title={nextActionLabel}
-      className={`inline-flex items-center justify-center gap-2 rounded-md border border-border-subtle bg-surface px-3 py-1.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-raised hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${className}`}
+      className={`${baseStyles} ${className}`.trim()}
     >
       {isDark ? (
         // Moon icon for dark mode

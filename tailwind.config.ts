@@ -10,6 +10,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Afterfact Editorial Tokens (V4 Design System)
+        af: {
+          obsidian: 'var(--af-obsidian)',
+          graphite: 'var(--af-graphite)',
+          ivory: 'var(--af-ivory)',
+          silver: 'var(--af-silver)',
+          mauve: 'var(--af-mauve)',
+          sage: 'var(--af-sage)',
+          'text-primary': 'var(--af-text-primary)',
+          'text-secondary': 'var(--af-text-secondary)',
+          border: 'var(--af-border)',
+        },
+
         // Semantic Token System
         background: 'var(--color-background)',
         surface: 'var(--color-surface)',
@@ -64,33 +77,34 @@ const config: Config = {
         normal: '0em',
       },
       fontFamily: {
+        rubik: [
+          'var(--font-rubik)',
+          'Rubik',
+          'sans-serif',
+        ],
         sans: [
           'var(--font-sans)',
+          'Manrope',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',
           'Roboto',
-          '"Helvetica Neue"',
-          'Arial',
           'sans-serif',
         ],
         mono: [
           'var(--font-mono)',
+          '"IBM Plex Mono"',
           '"SF Mono"',
           'Menlo',
           'Monaco',
           'Consolas',
-          '"Liberation Mono"',
-          '"Courier New"',
           'monospace',
         ],
         serif: [
           'var(--font-serif)',
+          '"Instrument Serif"',
           'Newsreader',
           'Georgia',
-          'Cambria',
-          '"Times New Roman"',
-          'Times',
           'serif',
         ],
       },

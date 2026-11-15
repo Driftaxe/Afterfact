@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 
 interface EmblemProps {
@@ -7,7 +9,7 @@ interface EmblemProps {
 
 export function Emblem({ className = '', size = 'md' }: EmblemProps) {
   const dimensions = {
-    sm: { width: 42, height: 44, viewBox: '0 0 60 64' },
+    sm: { width: 44, height: 46, viewBox: '0 0 60 64' },
     md: { width: 56, height: 60, viewBox: '0 0 60 64' },
     lg: { width: 72, height: 76, viewBox: '0 0 60 64' },
   }[size];
@@ -26,14 +28,14 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
         className="filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]"
       >
         <defs>
-          {/* Subtle metallic obsidian gradient */}
+          {/* Obsidian graphite gradient */}
           <linearGradient id="emblemBg" x1="30" y1="2" x2="30" y2="60" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#25262B" />
             <stop offset="50%" stopColor="#18191D" />
             <stop offset="100%" stopColor="#111215" />
           </linearGradient>
 
-          {/* Border rim light gradient */}
+          {/* Border rim metallic gradient */}
           <linearGradient id="emblemBorder" x1="30" y1="2" x2="30" y2="60" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#555861" />
             <stop offset="60%" stopColor="#2E3036" />
@@ -47,7 +49,7 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
           </linearGradient>
         </defs>
 
-        {/* Outer Triangle Body with subtle chamfered radius */}
+        {/* Outer Triangle Body: Exactly centered around X = 30.0 */}
         <path
           d="M30 4.2
              L56.5 55.8 
@@ -61,7 +63,7 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
           strokeLinejoin="round"
         />
 
-        {/* Inner architectural hairline */}
+        {/* Inner architectural hairline: Exactly centered around X = 30.0 */}
         <path
           d="M30 9.5 
              L53.2 54.5 
@@ -72,23 +74,21 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
           strokeOpacity="0.6"
         />
 
-        {/* Precision Architectural Capital "A" */}
-        {/* Optically centered within the triangular centroid */}
+        {/* Precision Architectural Capital "A": Symmetrically centered around X = 30.0 */}
         <g id="letter-A">
-          {/* Main A Glyph: clean, sharp apex, precision crossbar */}
           <path
-            d="M30 20.8
-               L22.4 46.5
+            d="M30 20.5
+               L22.2 46.5
                H26.2
                L28.1 39.8
                H31.9
                L33.8 46.5
-               H37.6
-               L30 20.8 Z
-               M30 28.2
-               L31.1 36.3
-               H28.9
-               L30 28.2 Z"
+               H37.8
+               L30 20.5 Z
+               M30 27.8
+               L31.2 36.2
+               H28.8
+               L30 27.8 Z"
             fill="#FFFFFF"
             fillRule="evenodd"
           />

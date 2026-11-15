@@ -96,7 +96,7 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
             </button>
           ) : (
             <Link
-              href="/"
+              href="/app"
               className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-border-subtle bg-surface text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               ← Back to Composer

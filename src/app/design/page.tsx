@@ -173,7 +173,7 @@ export default function DesignReferencePage() {
                   name: 'Background',
                   token: '--color-background',
                   darkHex: '#111214',
-                  lightHex: '#F7F5F0',
+                  lightHex: '#E5E2DC',
                   bgClass: 'bg-background',
                   border: true,
                 },
@@ -181,7 +181,7 @@ export default function DesignReferencePage() {
                   name: 'Surface',
                   token: '--color-surface',
                   darkHex: '#18191C',
-                  lightHex: '#FFFFFF',
+                  lightHex: '#EDEAE4',
                   bgClass: 'bg-surface',
                   border: true,
                 },
@@ -189,7 +189,7 @@ export default function DesignReferencePage() {
                   name: 'Surface Raised',
                   token: '--color-surface-raised',
                   darkHex: '#202125',
-                  lightHex: '#EDE8DF',
+                  lightHex: '#DDD9D2',
                   bgClass: 'bg-surface-raised',
                   border: true,
                 },
@@ -197,7 +197,7 @@ export default function DesignReferencePage() {
                   name: 'Primary Text',
                   token: '--color-text-primary',
                   darkHex: '#E7E5E2',
-                  lightHex: '#1A1B1E',
+                  lightHex: '#111215',
                   bgClass: 'bg-text-primary',
                   border: false,
                 },
@@ -205,7 +205,7 @@ export default function DesignReferencePage() {
                   name: 'Secondary Text',
                   token: '--color-text-secondary',
                   darkHex: '#AAA8A5',
-                  lightHex: '#5A5854',
+                  lightHex: '#3D3B38',
                   bgClass: 'bg-text-secondary',
                   border: false,
                 },
@@ -213,7 +213,7 @@ export default function DesignReferencePage() {
                   name: 'Muted Text',
                   token: '--color-text-muted',
                   darkHex: '#85858D',
-                  lightHex: '#787570',
+                  lightHex: '#5C5955',
                   bgClass: 'bg-text-muted',
                   border: false,
                 },
@@ -221,7 +221,7 @@ export default function DesignReferencePage() {
                   name: 'Border Subtle',
                   token: '--color-border-subtle',
                   darkHex: '#2B2D32',
-                  lightHex: '#E8E3DA',
+                  lightHex: '#D1CCC3',
                   bgClass: 'bg-border-subtle',
                   border: true,
                 },
@@ -843,7 +843,7 @@ export default function DesignReferencePage() {
             title="No Verified Reports Yet"
             description="Paste an AI-generated response or draft a question to begin temporal fact-checking."
             action={
-              <Link href="/">
+              <Link href="/app">
                 <Button variant="secondary" size="sm">
                   Return to Composer
                 </Button>
