@@ -7,23 +7,23 @@ const VERDICT_STATES = [
     key: 'supported',
     title: 'SUPPORTED',
     badgeClass: 'bg-status-supported-bg border-status-supported-border text-status-supported-text',
-    summary: 'The claim is directly confirmed by authoritative evidence valid on the target evaluation date.',
-    example: 'Stripe charges 2.9% + 30¢ for standard card processing in the US in 2026.',
+    summary: 'Confirmed by primary documentation active on the target evaluation date.',
+    example: 'Stripe charges 2.9% + 30¢ for standard card processing in the US.',
     temporalStatus: 'CURRENT',
   },
   {
     key: 'outdated',
     title: 'OUTDATED',
     badgeClass: 'bg-status-outdated-bg border-status-outdated-border text-status-outdated-text',
-    summary: 'The claim was factual in the past, but has been superseded by a documented transition event.',
-    example: 'Twitter Enterprise API is $42,000/mo (Restructured to tiered developer access in June 2023).',
+    summary: 'Factually true in the past, but superseded by a documented transition event.',
+    example: 'Twitter Enterprise API is $42k/mo (restructured to tiered access June 2023).',
     temporalStatus: 'HISTORICAL',
   },
   {
     key: 'contradicted',
     title: 'CONTRADICTED',
     badgeClass: 'bg-status-contradicted-bg border-status-contradicted-border text-status-contradicted-text',
-    summary: 'The claim is directly refuted by authoritative documentation or historical records.',
+    summary: 'Directly refuted by authoritative documentation or historical records.',
     example: 'Stripe does not charge per-transaction fees on credit card transactions.',
     temporalStatus: 'REFUTED',
   },
@@ -31,7 +31,7 @@ const VERDICT_STATES = [
     key: 'context_dependent',
     title: 'CONTEXT-DEPENDENT',
     badgeClass: 'bg-status-unresolved-bg border-status-unresolved-border text-status-unresolved-text',
-    summary: 'The veracity depends on a missing material qualifier such as geographic jurisdiction or SDK tier.',
+    summary: 'Veracity hinges on a missing qualifier like jurisdiction, tier, or region.',
     example: 'Standard processing is 1.4% + 20p (True only in the UK, false in the US).',
     temporalStatus: 'QUALIFIER REQUIRED',
   },
@@ -39,8 +39,8 @@ const VERDICT_STATES = [
     key: 'unresolved',
     title: 'INSUFFICIENT EVIDENCE',
     badgeClass: 'bg-status-checking-bg border-status-checking-border text-status-checking-text',
-    summary: 'No primary authority or reliable web source was found to conclusively confirm or refute the claim.',
-    example: 'Internal unannounced roadmaps or confidential operational metrics.',
+    summary: 'No primary authority found to conclusively confirm or refute the assertion.',
+    example: 'Internal confidential metrics or unannounced product roadmaps.',
     temporalStatus: 'OPEN',
   },
 ];
@@ -49,19 +49,18 @@ export function TemporalSection() {
   const [activeTab, setActiveTab] = useState<'outdated' | 'supported'>('outdated');
 
   return (
-    <section id="architecture" className="py-20 sm:py-28 border-b border-border-subtle bg-surface/30 relative">
+    <section id="architecture" className="scroll-mt-20 sm:scroll-mt-24 py-20 sm:py-28 border-b border-border-subtle bg-surface/30 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl space-y-4 mb-16 sm:mb-20">
           <div className="text-[11px] font-mono tracking-[0.2em] uppercase text-accent">
-            05 // TEMPORAL INTELLIGENCE
+            05 // ARCHITECTURE & TEMPORAL ENGINE
           </div>
           <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-text-primary leading-[1.1]">
             Temporal intelligence in practice.
           </h2>
           <p className="text-sm sm:text-base text-text-secondary leading-relaxed font-light">
-            Truth is not a static binary. A fact true in 2021 can become false today without ever having been a lie.
-            Afterfact reasons over transition events, announcement dates, and effective dates.
+            Truth evolves. A claim factual in 2021 can become obsolete today without ever having been false. Afterfact models temporal validity across announcement, crawl, and effective dates.
           </p>
         </div>
 

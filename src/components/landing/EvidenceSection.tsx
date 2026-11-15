@@ -42,7 +42,7 @@ export function EvidenceSection() {
   ];
 
   return (
-    <section id="evidence" className="py-20 sm:py-28 border-b border-border-subtle relative overflow-hidden bg-background">
+    <section id="evidence" className="scroll-mt-20 sm:scroll-mt-24 py-20 sm:py-28 border-b border-border-subtle relative overflow-hidden bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl space-y-4 mb-16 sm:mb-20">

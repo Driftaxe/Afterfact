@@ -47,7 +47,7 @@ const PIPELINE_STAGES = [
 
 export function PipelineSection() {
   return (
-    <section id="how-it-works" className="py-20 sm:py-28 border-b border-border-subtle bg-surface/30 relative">
+    <section id="how-it-works" className="scroll-mt-20 sm:scroll-mt-24 py-16 sm:py-24 border-b border-border-subtle bg-surface/30 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl space-y-4 mb-16 sm:mb-20">
