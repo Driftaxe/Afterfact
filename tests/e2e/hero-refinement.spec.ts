@@ -5,11 +5,11 @@ test.describe('Hero Refinements Verification', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 0. Verify AFTERFACT wordmark opacity is prominent (0.88) and does not fade
+    // 0. Verify AFTERFACT wordmark opacity is at initial fade (0.46) and remains constant
     const initialWordmarkOpacity = await page.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim();
     });
-    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.88, 2);
+    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.46, 2);
 
     // 1. Eyebrow and Description are removed, Headline is present
     await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
@@ -28,7 +28,7 @@ test.describe('Hero Refinements Verification', () => {
     await expect(page.getByText('INSPECT THE EVIDENCE')).toHaveCount(0);
     await expect(page.getByText('TRACK WHAT CHANGES')).toHaveCount(0);
 
-    // 4. Verify AFTERFACT TITLE is visible and headline is positioned BELOW the TITLE
+    // 4. Verify AFTERFACT TITLE is visible, oversized, and headline is positioned BELOW the TITLE
     const wordmark = page.locator('img.hero-wordmark');
     await expect(wordmark).toBeVisible();
     const wordmarkBox = await wordmark.boundingBox();
@@ -39,6 +39,8 @@ test.describe('Hero Refinements Verification', () => {
     if (wordmarkBox && headlineBox) {
       // Headline is strictly below the AFTERFACT title
       expect(headlineBox.y).toBeGreaterThan(wordmarkBox.y);
+      // Wordmark is oversized (> 1000px on 1440px viewport)
+      expect(wordmarkBox.width).toBeGreaterThan(1000);
     }
 
     // 5. Move mouse over headline and verify no stray circle cursor at top
@@ -102,10 +104,10 @@ test.describe('Hero Refinements Verification', () => {
     // Stretched horizontally
     expect(computed.transform).not.toBe('none');
 
-    // 9. Verify AFTERFACT wordmark does NOT fade upon scratching
+    // 9. Verify AFTERFACT wordmark fade remains constant at 0.46 upon scratching
     const postScratchWordmarkOpacity = await page.evaluate(() => {
       return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim());
     });
-    expect(postScratchWordmarkOpacity).toBeCloseTo(0.88, 2);
+    expect(postScratchWordmarkOpacity).toBeCloseTo(0.46, 2);
   });
 });

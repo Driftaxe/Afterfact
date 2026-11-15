@@ -187,7 +187,7 @@ body {
   --hero-video-sepia: 0.08;
   --hero-overlay-strength: 0.45;
   --hero-grain-opacity: 0.06;
-  --hero-wordmark-opacity: 0.88;
+  --hero-wordmark-opacity: 0.46;
 }
 
 .hero-headline {
@@ -233,21 +233,21 @@ body {
 
 .hero-wordmark {
   position: relative;
-  width: min(90vw, 980px);
+  width: min(92vw, 1500px);
   height: auto;
-  opacity: var(--hero-wordmark-opacity, 0.88);
+  opacity: var(--hero-wordmark-opacity, 0.46);
   pointer-events: none;
   user-select: none;
   z-index: 1;
   object-fit: contain;
   mix-blend-mode: screen;
-  filter: sepia(0.06) brightness(0.96);
+  filter: sepia(0.06) brightness(0.92);
   transition: opacity 300ms ease;
 }
 
 @media (max-width: 768px) {
   .hero-wordmark {
-    width: min(92vw, 560px);
-    opacity: 0.85;
+    width: min(95vw, 650px);
+    opacity: 0.38;
   }
 }
