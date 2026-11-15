@@ -11,7 +11,7 @@ export function FloatingNav() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+      setScrolled(window.scrollY > 30);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -19,100 +19,124 @@ export function FloatingNav() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pointer-events-none w-full px-3 sm:px-6 pt-4 sm:pt-6 transition-all duration-300">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-        {/* Left Floating Capsule: Live Telemetry Indicator */}
-        <div className="pointer-events-auto hidden md:flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-surface/80 dark:bg-[#18191C]/80 border border-border-subtle/80 backdrop-blur-md shadow-lg">
-          <span className="relative flex h-2 w-2" aria-hidden="true">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-supported-text opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-status-supported-text" />
-          </span>
-          <span className="text-[11px] font-mono tracking-widest uppercase text-text-secondary">
-            VERIFIER // 2.4
-          </span>
-        </div>
-
-        {/* Center Floating Pill Navigation with Overlapping Emblem */}
+      <div className="max-w-7xl mx-auto flex items-center justify-center">
+        
+        {/* DESKTOP SPLIT TRAPEZOIDAL NAVIGATION WITH CENTRAL TRIANGULAR EMBLEM */}
         <nav
           aria-label="Main Navigation"
-          className={`pointer-events-auto hidden lg:flex items-center justify-center rounded-full px-7 py-2.5 transition-all duration-300 ${
-            scrolled
-              ? 'bg-surface/90 dark:bg-[#18191C]/90 border border-border-strong/90 backdrop-blur-xl shadow-2xl'
-              : 'bg-surface/75 dark:bg-[#18191C]/75 border border-border-subtle/80 backdrop-blur-md shadow-xl'
-          }`}
+          className="pointer-events-auto hidden lg:flex items-center justify-center transition-all duration-300"
         >
-          {/* Left Navigation Group */}
-          <div className="flex items-center gap-6 text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
-            <a
-              href="#product"
-              className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+          {/* Left Trapezoidal Pod: Outer Rounded, Inner Diagonal Following Triangle Slope */}
+          <div
+            className={`relative p-[1px] rounded-l-full transition-all duration-300 ${
+              scrolled
+                ? 'bg-border-strong/90 shadow-2xl'
+                : 'bg-border-subtle/80 shadow-xl'
+            }`}
+            style={{
+              clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 22px) 100%, 0% 100%)',
+            }}
+          >
+            <div
+              className={`h-12 flex items-center pl-8 pr-10 rounded-l-full transition-colors duration-300 ${
+                scrolled
+                  ? 'bg-surface/95 dark:bg-[#18191C]/95 backdrop-blur-xl'
+                  : 'bg-surface/80 dark:bg-[#18191C]/80 backdrop-blur-md'
+              }`}
+              style={{
+                clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 22px) 100%, 0% 100%)',
+              }}
             >
-              PRODUCT
-            </a>
-            <a
-              href="#how-it-works"
-              className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
-            >
-              HOW IT WORKS
-            </a>
-            <a
-              href="#evidence"
-              className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
-            >
-              EVIDENCE
-            </a>
+              <div className="flex items-center gap-7 text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
+                <a
+                  href="#product"
+                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                >
+                  PRODUCT
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                >
+                  HOW IT WORKS
+                </a>
+                <a
+                  href="#evidence"
+                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                >
+                  EVIDENCE
+                </a>
+              </div>
+            </div>
           </div>
 
-          {/* Central Rising Emblem (Overlaps and rises above navigation pill) */}
-          <div className="relative mx-7 flex items-center justify-center -top-3.5 group">
+          {/* Central Triangular Brand Anchor: Extends Above Nav Bar */}
+          <div className="relative -top-3.5 z-20 flex items-center justify-center -mx-2 group">
             <Link
               href="/"
               aria-label="Afterfact Home"
-              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full transition-transform group-hover:scale-105"
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full transition-transform duration-200 group-hover:scale-105"
             >
               <Emblem size="md" />
             </Link>
           </div>
 
-          {/* Right Navigation Group */}
-          <div className="flex items-center gap-6 text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
-            <a
-              href="#architecture"
-              className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+          {/* Right Trapezoidal Pod: Inner Diagonal Following Triangle Slope, Outer Rounded */}
+          <div
+            className={`relative p-[1px] rounded-r-full transition-all duration-300 ${
+              scrolled
+                ? 'bg-border-strong/90 shadow-2xl'
+                : 'bg-border-subtle/80 shadow-xl'
+            }`}
+            style={{
+              clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 22px 100%)',
+            }}
+          >
+            <div
+              className={`h-12 flex items-center pl-10 pr-6 rounded-r-full transition-colors duration-300 ${
+                scrolled
+                  ? 'bg-surface/95 dark:bg-[#18191C]/95 backdrop-blur-xl'
+                  : 'bg-surface/80 dark:bg-[#18191C]/80 backdrop-blur-md'
+              }`}
+              style={{
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 22px 100%)',
+              }}
             >
-              ARCHITECTURE
-            </a>
-            <Link
-              href="/report/demo?mode=fixture"
-              className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm flex items-center gap-1.5"
-            >
-              <span>SAMPLE REPORT</span>
-              <span className="rounded bg-status-outdated-bg border border-status-outdated-border px-1 py-0.2 text-[9px] text-status-outdated-text">
-                REPLAY
-              </span>
-            </Link>
-            <a
-              href="#workspace"
-              className="text-text-primary hover:text-accent font-semibold transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
-            >
-              <span>GET STARTED</span>
-              <span aria-hidden="true">→</span>
-            </a>
+              <div className="flex items-center gap-6 text-[11px] font-medium tracking-[0.14em] uppercase text-text-secondary">
+                <a
+                  href="#architecture"
+                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                >
+                  ARCHITECTURE
+                </a>
+                <Link
+                  href="/report/demo?mode=fixture"
+                  className="hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm flex items-center gap-1.5"
+                >
+                  <span>SAMPLE REPORT</span>
+                  <span className="rounded bg-status-outdated-bg border border-status-outdated-border px-1 py-0.2 text-[9px] text-status-outdated-text">
+                    REPLAY
+                  </span>
+                </Link>
+                <Link
+                  href="/app"
+                  className="text-text-primary hover:text-accent font-semibold transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                >
+                  <span>GET STARTED</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+
+                {/* Discreetly integrated theme toggle */}
+                <div className="pl-2 border-l border-border-subtle/70">
+                  <ThemeToggle />
+                </div>
+              </div>
+            </div>
           </div>
         </nav>
 
-        {/* Right Floating Capsule: Theme & Controls */}
-        <div className="pointer-events-auto hidden md:flex items-center gap-3 px-3 py-1.5 rounded-full bg-surface/80 dark:bg-[#18191C]/80 border border-border-subtle/80 backdrop-blur-md shadow-lg">
-          <ThemeToggle />
-          <Link
-            href="/design"
-            className="text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors px-2 py-0.5 rounded bg-surface-raised/60 border border-border-subtle/50"
-          >
-            /design
-          </Link>
-        </div>
-
-        {/* Mobile View: Compact Floating Header Pill */}
-        <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-4 py-2 rounded-full bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle backdrop-blur-xl shadow-xl">
+        {/* MOBILE COMPACT FLOATING NAVIGATION BAR */}
+        <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-4 py-2.5 rounded-full bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle backdrop-blur-xl shadow-xl">
           <Link href="/" className="flex items-center gap-2.5">
             <Emblem size="sm" />
             <span className="font-serif text-base tracking-tight text-text-primary font-normal">
@@ -141,7 +165,7 @@ export function FloatingNav() {
         </div>
       </div>
 
-      {/* Mobile Slide-out Menu Drawer */}
+      {/* MOBILE SLIDE-OUT MENU DRAWER */}
       {mobileMenuOpen && (
         <div className="pointer-events-auto lg:hidden fixed inset-x-3 top-20 rounded-2xl bg-surface/95 dark:bg-[#18191C]/95 border border-border-strong backdrop-blur-2xl shadow-2xl p-6 space-y-5 animate-in fade-in slide-in-from-top-4 duration-200">
           <div className="flex flex-col space-y-3.5 text-xs font-mono tracking-widest uppercase text-text-secondary">
@@ -190,14 +214,14 @@ export function FloatingNav() {
           </div>
 
           <div className="pt-2">
-            <a
-              href="#workspace"
+            <Link
+              href="/app"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-btn-primary text-btn-primary-text font-medium text-xs tracking-wider uppercase shadow-md transition-opacity hover:opacity-95"
             >
-              <span>VERIFY AN ANSWER</span>
+              <span>GET STARTED</span>
               <span>→</span>
-            </a>
+            </Link>
           </div>
         </div>
       )}

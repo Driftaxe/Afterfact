@@ -843,7 +843,7 @@ export default function DesignReferencePage() {
             title="No Verified Reports Yet"
             description="Paste an AI-generated response or draft a question to begin temporal fact-checking."
             action={
-              <Link href="/">
+              <Link href="/app">
                 <Button variant="secondary" size="sm">
                   Return to Composer
                 </Button>

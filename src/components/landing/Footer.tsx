@@ -1,12 +1,15 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Emblem } from './Emblem';
 
 export function Footer() {
   return (
-    <footer className="border-t border-border-subtle bg-background py-16 sm:py-24 text-text-secondary relative overflow-hidden">
+    <footer className="border-t border-border-subtle bg-background py-16 sm:py-20 text-text-secondary relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 sm:gap-8 pb-12 sm:pb-16 border-b border-border-subtle">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 sm:gap-8 pb-12 sm:pb-16 border-b border-border-subtle">
+          
           {/* Brand Column */}
           <div className="md:col-span-5 space-y-4">
             <Link href="/" className="inline-flex items-center gap-3 group">
@@ -19,8 +22,16 @@ export function Footer() {
               Evidence-grounded temporal fact verification for AI-generated answers. Decomposes unstructured statements,
               queries primary authorities, and identifies outdated or contradicted facts with deterministic audit trails.
             </p>
-            <div className="text-[11px] font-mono text-text-muted pt-2">
-              RUNNING // ENGINE v2.4 · POSTGRESQL PERSISTED DAG
+            <div className="pt-2">
+              <a
+                href="https://github.com/Driftaxe/Afterfact"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-mono text-text-muted hover:text-text-primary transition-colors"
+              >
+                <span>github.com/Driftaxe/Afterfact</span>
+                <span>↗</span>
+              </a>
             </div>
           </div>
 
@@ -46,9 +57,9 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#workspace" className="hover:text-text-primary transition-colors">
+                <Link href="/app" className="hover:text-text-primary transition-colors">
                   Workspace
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -69,9 +80,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/design" className="hover:text-text-primary transition-colors">
-                  Design Tokens
-                </Link>
+                <a href="#engineering" className="hover:text-text-primary transition-colors">
+                  Engineering Specs
+                </a>
               </li>
               <li>
                 <span className="text-text-muted cursor-default">REST API v1</span>
@@ -88,12 +99,13 @@ export function Footer() {
               authority backing never receive positive scores.
             </p>
             <div className="pt-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-raised border border-border-subtle text-[10px] font-mono text-text-secondary">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-surface-raised border border-border-subtle text-[10px] font-mono text-text-secondary">
                 <span className="w-1.5 h-1.5 rounded-full bg-status-supported-text" />
                 Zero Hallucination Tolerance
               </span>
             </div>
           </div>
+
         </div>
 
         {/* Bottom Bar */}
@@ -102,14 +114,19 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Afterfact Institutional Intelligence. All rights reserved.
           </div>
           <div className="flex items-center gap-6">
-            <a href="#workspace" className="hover:text-text-primary transition-colors">
+            <Link href="/app" className="hover:text-text-primary transition-colors">
               Verify Answer
-            </a>
+            </Link>
             <Link href="/report/demo?mode=fixture" className="hover:text-text-primary transition-colors">
               View Sample Report
             </Link>
-            <a href="#" className="hover:text-text-primary transition-colors">
-              Back to Top ↑
+            <a
+              href="https://github.com/Driftaxe/Afterfact"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-text-primary transition-colors"
+            >
+              GitHub ↗
             </a>
           </div>
         </div>
