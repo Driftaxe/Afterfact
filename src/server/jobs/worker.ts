@@ -112,8 +112,32 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
     switch (nodeType) {
       case 'root_extract_prep': {
         const text = node.run?.text ?? '';
-        let tickets: ClaimTicket[] = [];
-        if (text.trim().length > 0) {
+
+        // Check if claims were already seeded during preparation confirmation
+        const existingClaims = await db.claim.findMany({
+          where: { runId },
+          orderBy: { ordinal: 'asc' },
+        });
+
+        const createdClaims: Array<{
+          id: string;
+          ordinal: number;
+          text: string;
+          span: { start: number; end: number } | null;
+        }> = [];
+
+        if (existingClaims.length > 0) {
+          for (const c of existingClaims) {
+            const spec = c.spec as unknown as ClaimTicket | null;
+            createdClaims.push({
+              id: c.id,
+              ordinal: c.ordinal,
+              text: c.text ?? '',
+              span: spec?.sourceSpan ?? null,
+            });
+          }
+        } else if (text.trim().length > 0) {
+          let tickets: ClaimTicket[] = [];
           try {
             const outcome = await extractClaimsFromText({
               text,
@@ -121,8 +145,13 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             });
             if (outcome.status === 'success') {
               tickets = outcome.tickets;
+            } else if (outcome.status === 'failed') {
+              console.warn(
+                `[Worker root_extract_prep] Model extraction failed: [${outcome.error.code}] ${outcome.error.message}`
+              );
             }
-          } catch {
+          } catch (err) {
+            console.warn('[Worker root_extract_prep] Model gateway error:', err);
             tickets = [];
           }
 
@@ -154,15 +183,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               };
             });
           }
-        }
 
-        if (tickets.length > 0) {
-          const createdClaims: Array<{
-            id: string;
-            ordinal: number;
-            text: string;
-            span: { start: number; end: number } | null;
-          }> = [];
           for (let i = 0; i < tickets.length; i++) {
             const ticket = tickets[i];
             const claim = await db.claim.create({
@@ -183,7 +204,9 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               span: ticket.sourceSpan ?? null,
             });
           }
+        }
 
+        if (createdClaims.length > 0) {
           // Record claims_identified event
           await db.$transaction(async (tx) => {
             await EventService.recordEvent(tx, runId, {

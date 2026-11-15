@@ -10,14 +10,84 @@ import {
   ConfirmPreparationActionResultSchema,
 } from '@/lib/contracts/actions';
 import { MAX_PASTE_LENGTH } from '@/lib/contracts/request';
+import type { ClaimTicket } from '@/lib/contracts/claim-ticket';
+
+// Module-level mocks to isolate unit tests from external database and gateway networks
+const mockResumeWithAnswer = vi.fn();
+const mockExtractClaimsFromText = vi.fn();
+const mockCreateRunAndInitializeDag = vi.fn();
+
+vi.mock('@/server/services/clarification-service', () => ({
+  ClarificationService: {
+    resumeWithAnswer: (...args: unknown[]) => mockResumeWithAnswer(...args),
+  },
+}));
+
+vi.mock('@/server/services/prep-service', () => ({
+  PreparationService: {
+    computeInputHash: vi.fn(),
+    getOrCreatePreparation: vi.fn().mockResolvedValue({
+      id: 'prep_mock_db_cuid_12345',
+      inputHash: 'mock_hash',
+      normalizedText: 'mock',
+    }),
+  },
+}));
+
+vi.mock('@/server/services/dag-service', () => ({
+  createRunAndInitializeDag: (...args: unknown[]) => mockCreateRunAndInitializeDag(...args),
+}));
+
+vi.mock('@/server/jobs/worker', () => ({
+  dispatchDagNodeJob: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock('@/server/verify/extract-claims', () => ({
+  extractClaimsFromText: (...args: unknown[]) => mockExtractClaimsFromText(...args),
+}));
 
 describe('Task C03 & C04: run-actions Server Actions', () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     await _clearPreparationStore();
+
+    // Default: AI helper returns failed so tests verify fallback heuristics
+    mockExtractClaimsFromText.mockResolvedValue({
+      status: 'failed',
+      tickets: [],
+    });
+
+    mockCreateRunAndInitializeDag.mockImplementation(async (params: {
+      ownerHash: string;
+      inputHash: string;
+      prepId?: string;
+      text: string;
+      mode?: string;
+      initialClaims?: ClaimTicket[];
+    }) => ({
+      run: {
+        id: `run_${params.inputHash.slice(0, 16)}`,
+        ownerHash: params.ownerHash,
+        inputHash: params.inputHash,
+        mode: params.mode ?? 'paste',
+        text: params.text,
+        state: 'running',
+      },
+      rootNode: {
+        id: `node_root_run_${params.inputHash.slice(0, 16)}`,
+        runId: `run_${params.inputHash.slice(0, 16)}`,
+        nodeKey: 'root_extract_prep',
+      },
+      finalizeNode: {
+        id: `node_finalize_run_${params.inputHash.slice(0, 16)}`,
+      },
+    }));
+
+    mockResumeWithAnswer.mockRejectedValue(new Error('Clarification not found'));
   });
 
   describe('startPreparationAction', () => {
-    it('successfully extracts claims and prepares valid proposition tickets', async () => {
+    it('successfully extracts claims and prepares valid proposition tickets via fallback heuristic', async () => {
       const input = {
         mode: 'paste' as const,
         text: 'Anthropic Claude Pro costs $20 per month in the United States. Parag Agrawal is the current CEO of Twitter.',
@@ -53,6 +123,71 @@ describe('Task C03 & C04: run-actions Server Actions', () => {
       const jurisdictionProp = firstClaim.verificationContext.find((p) => p.key === 'jurisdiction');
       expect(jurisdictionProp).toBeDefined();
       expect(jurisdictionProp?.value).toBe('US');
+    });
+
+    it('extracts rich proposition tickets via AI backend helper when available', async () => {
+      const input = {
+        mode: 'paste' as const,
+        text: 'Anthropic Claude Pro costs $20 per month in the United States.',
+        context: {
+          jurisdiction: 'US',
+          currency: 'USD',
+          targetDate: '2026-11-08',
+        },
+      };
+
+      const mockAiTicket: ClaimTicket = {
+        ticketId: 'tkt_clm_ai_1_r1',
+        claimId: 'clm_ai_1',
+        runId: 'prep_mock',
+        inputHash: 'hash_placeholder',
+        revision: 1,
+        originalStatement: 'Anthropic Claude Pro costs $20 per month in the United States.',
+        sourceSpan: { start: 0, end: 60 },
+        normalizedProposition: 'Anthropic Claude Pro subscription costs $20 per month in the United States.',
+        domain: 'pricing',
+        targetTime: '2026-11-08',
+        verificationContext: [
+          {
+            key: 'jurisdiction',
+            label: 'Geographic Jurisdiction',
+            propertyType: 'string',
+            value: 'US',
+            origin: 'explicit_claim_text',
+            sourceSpan: { start: 50, end: 60 },
+            status: 'confirmed',
+            applicability: 'claim_level',
+          },
+          {
+            key: 'currency',
+            label: 'Currency',
+            propertyType: 'string',
+            value: 'USD',
+            origin: 'explicit_claim_text',
+            sourceSpan: { start: 25, end: 26 },
+            status: 'confirmed',
+            applicability: 'claim_level',
+          },
+        ],
+        missingMaterialContext: [],
+      };
+
+      mockExtractClaimsFromText.mockResolvedValueOnce({
+        status: 'success',
+        tickets: [mockAiTicket],
+      });
+
+      const result = await startPreparationAction(input);
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+
+      expect(mockExtractClaimsFromText).toHaveBeenCalledTimes(1);
+      expect(result.data.claims.length).toBe(1);
+      expect(result.data.claims[0].domain).toBe('pricing');
+      expect(result.data.claims[0].normalizedProposition).toBe(
+        'Anthropic Claude Pro subscription costs $20 per month in the United States.'
+      );
     });
 
     it('processes Ask Question mode successfully', async () => {
@@ -127,7 +262,7 @@ describe('Task C03 & C04: run-actions Server Actions', () => {
   });
 
   describe('confirmPreparationAction', () => {
-    it('successfully confirms prepared claims and materializes running DAG state', async () => {
+    it('successfully confirms prepared claims, materializes running DAG state, and seeds initial claims', async () => {
       const prepRes = await startPreparationAction({
         mode: 'paste',
         text: 'Stripe charges 2.9% + 30 cents per transaction in the US.',
@@ -153,6 +288,14 @@ describe('Task C03 & C04: run-actions Server Actions', () => {
       expect(confirmRes.data.graphVersion).toBe(1);
       expect(confirmRes.data.runId).toMatch(/^run_[a-f0-9]{16}$/);
       expect(confirmRes.data.streamUrl).toBe(`/api/v1/runs/${confirmRes.data.runId}/stream`);
+
+      // Verify initialClaims were passed to createRunAndInitializeDag
+      expect(mockCreateRunAndInitializeDag).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialClaims: prepRes.data.claims,
+          inputHash: prepRes.data.inputHash,
+        })
+      );
     });
 
     it('rejects confirmation with empty confirmedClaims (Zod schema boundary)', async () => {
@@ -225,6 +368,8 @@ describe('Task C03 & C04: run-actions Server Actions', () => {
 
   describe('submitClarificationAction', () => {
     it('handles clarification submission error gracefully when clarification is missing', async () => {
+      mockResumeWithAnswer.mockRejectedValueOnce(new Error('Clarification node not found'));
+
       const result = await submitClarificationAction({
         clarificationId: 'nonexistent-clarification-id',
         answer: { answers: { jurisdiction: 'US' }, unknown: false },
@@ -237,12 +382,7 @@ describe('Task C03 & C04: run-actions Server Actions', () => {
     });
 
     it('submits successfully when ClarificationService resumes answer', async () => {
-      // Mock ClarificationService dynamic import
-      vi.doMock('@/server/services/clarification-service', () => ({
-        ClarificationService: {
-          resumeWithAnswer: vi.fn().mockResolvedValue({ success: true }),
-        },
-      }));
+      mockResumeWithAnswer.mockResolvedValueOnce({ success: true });
 
       const result = await submitClarificationAction({
         clarificationId: 'clar_mock_123',
@@ -253,8 +393,6 @@ describe('Task C03 & C04: run-actions Server Actions', () => {
       if (result.success) {
         expect(result.data.accepted).toBe(true);
       }
-
-      vi.doUnmock('@/server/services/clarification-service');
     });
   });
 });
