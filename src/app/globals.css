@@ -193,12 +193,12 @@ body {
 .hero-headline {
   font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
   font-weight: 400;
-  font-size: clamp(15px, 1.4vw, 20px);
-  line-height: 1.25;
-  letter-spacing: 0.06em;
+  font-size: clamp(14px, 1.3vw, 17px);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
   color: #A8A09B;
-  transform: scaleX(0.96) scaleY(0.98);
-  transform-origin: center center;
+  transform: scaleX(0.94);
+  transform-origin: left center;
 }
 
 .hero-video {
@@ -218,24 +218,22 @@ body {
   pointer-events: none;
   background:
     linear-gradient(
-      180deg,
-      rgba(16, 16, 18, 0.85) 0%,
-      rgba(16, 16, 18, 0.30) 25%,
-      rgba(16, 16, 18, 0.15) 50%,
-      rgba(16, 16, 18, 0.55) 78%,
-      rgba(16, 16, 18, 0.95) 100%
-    ),
-    linear-gradient(
       90deg,
       rgba(16, 16, 18, 0.52) 0%,
-      rgba(16, 16, 18, 0.15) 48%,
+      rgba(16, 16, 18, 0.20) 48%,
       rgba(16, 16, 18, 0.54) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(16, 16, 18, 0.72) 0%,
+      rgba(41, 39, 42, 0.12) 48%,
+      rgba(16, 16, 18, 0.38) 100%
     );
 }
 
 .hero-wordmark {
   position: relative;
-  width: min(96vw, 1750px);
+  width: min(96vw, 1600px);
   height: auto;
   opacity: var(--hero-wordmark-opacity, 0.24);
   pointer-events: none;
@@ -249,7 +247,7 @@ body {
 
 @media (max-width: 768px) {
   .hero-wordmark {
-    width: min(98vw, 750px);
+    width: min(98vw, 720px);
     opacity: 0.22;
   }
 }

@@ -7,22 +7,22 @@ import { ScratchRevealHeadline } from './ScratchRevealHeadline';
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col justify-between pt-24 sm:pt-28 pb-0 overflow-hidden bg-[var(--af-obsidian)]">
-      {/* 1. Full-Bleed Video Background with Translucent AFTERFACT Wordmark */}
+    <section className="relative min-h-screen flex flex-col justify-between pt-28 sm:pt-32 lg:pt-36 pb-0 overflow-hidden">
+      {/* 1. Full-Bleed Video Background with Seamless Lower Transition */}
       <HeroBackground />
 
       {/* 2. Main Hero Viewport: Central Architectural Hierarchy */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col items-center justify-center text-center py-6 sm:py-8 lg:py-10 z-10">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col items-center justify-center text-center py-10 sm:py-16 lg:py-20 z-10">
         
-        {/* Subtle, Feathered Central Tonal Gradient behind Headline (Non-Panel Legibility Contrast) */}
+        {/* Subtle, Feathered Central Tonal Gradient behind Headline */}
         <div
           className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center overflow-hidden"
           aria-hidden="true"
         >
-          <div className="w-[min(1400px,96vw)] h-[400px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(16,16,18,0.52)_0%,rgba(16,16,18,0.22)_48%,transparent_75%)] blur-2xl pointer-events-none" />
+          <div className="w-[min(1300px,96vw)] h-[380px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(16,16,18,0.52)_0%,rgba(16,16,18,0.22)_48%,transparent_75%)] blur-2xl pointer-events-none" />
         </div>
 
-        {/* 1. Primary Title: AFTERFACT Wordmark (Slightly Larger, More Faded, Constant) */}
+        {/* 1. Primary Title: AFTERFACT Wordmark (Oversized, Atmospheric Faded Presence) */}
         <div className="w-full flex justify-center mb-6 sm:mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -56,10 +56,15 @@ export function HeroSection() {
 
       </div>
 
-      {/* 3. Bottom Strip: Smooth Gradient Blend into Bottom, Housing Scratchable Headline */}
-      <div className="w-full bg-gradient-to-b from-transparent via-[var(--af-obsidian)]/75 to-[var(--af-obsidian)] z-10 pt-8 pb-5 sm:pb-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-center items-center">
-          <ScratchRevealHeadline />
+      {/* 3. Architectural Editorial Baseline Bar: Interactive Claim Reveal Strip */}
+      <div className="w-full border-t border-[var(--af-border)]/50 bg-[var(--af-obsidian)]/80 backdrop-blur-md z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
+          <div className="flex items-center justify-start text-xs">
+            {/* Left: Every claim has a story (Interactive Scratch Effect, Horizontally Compressed) */}
+            <div className="flex items-center">
+              <ScratchRevealHeadline />
+            </div>
+          </div>
         </div>
       </div>
     </section>

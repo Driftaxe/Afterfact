@@ -121,8 +121,8 @@ export function ScratchRevealHeadline({
         const ny = dx / dist;
 
         // Dynamic non-uniformity: subtle pseudo-random bristle jitter for organic analog tooth
-        const jitterA = Math.sin(last.x * 0.17 + last.y * 0.11) * 3;
-        const jitterB = Math.cos(x * 0.13 + y * 0.19) * 3;
+        const jitterA = Math.sin(last.x * 0.17 + last.y * 0.11) * 2.5;
+        const jitterB = Math.cos(x * 0.13 + y * 0.19) * 2.5;
 
         // Primary connecting stroke
         const mainSegment = ` M ${last.x.toFixed(1)} ${last.y.toFixed(1)} L ${x.toFixed(1)} ${y.toFixed(1)}`;
@@ -133,7 +133,7 @@ export function ScratchRevealHeadline({
         pathDataRef.current += mainSegment + bristleSegment;
 
         // Stippled micro-scratch flecks along stroke edge for realistic abrasion
-        if (dist > 6) {
+        if (dist > 5) {
           const midX = (last.x + x) * 0.5 + nx * jitterA * 1.2;
           const midY = (last.y + y) * 0.5 + ny * jitterA * 1.2;
           pathDataRef.current += ` M ${midX.toFixed(1)} ${midY.toFixed(1)} m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0`;
@@ -143,10 +143,10 @@ export function ScratchRevealHeadline({
           pathRef.current.setAttribute('d', pathDataRef.current);
         }
 
-        markCells(last.x, last.y, x, y, 18);
+        markCells(last.x, last.y, x, y, 16);
       }
     } else {
-      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0`;
+      const startDot = ` M ${x.toFixed(1)} ${y.toFixed(1)} m -4,0 a 4,4 0 1,0 8,0 a 4,4 0 1,0 -8,0`;
       pathDataRef.current += startDot;
       if (pathRef.current) {
         pathRef.current.setAttribute('d', pathDataRef.current);
@@ -199,8 +199,8 @@ export function ScratchRevealHeadline({
             <filter id="scratch-feather" x="-30%" y="-30%" width="160%" height="160%">
               {/* Organic fractal noise adds tooth and non-uniform abrasion to stroke edges */}
               <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="3" result="noise" />
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-              <feGaussianBlur in="displaced" stdDeviation="1.8" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+              <feGaussianBlur in="displaced" stdDeviation="1.5" />
             </filter>
             <mask
               id="headline-scratch-mask"
@@ -218,7 +218,7 @@ export function ScratchRevealHeadline({
                 d=""
                 fill="none"
                 stroke="white"
-                strokeWidth="28"
+                strokeWidth="26"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#scratch-feather)"
@@ -230,13 +230,13 @@ export function ScratchRevealHeadline({
 
       {/* 2. THE HEADLINE H1 WITH MASK APPLIED (COMPLETELY INVISIBLE AT FIRST UNTIL SCRATCHED) */}
       <div
-        className="transition-opacity duration-500 text-center"
+        className="transition-opacity duration-500 text-left"
         style={{
           mask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
           WebkitMask: isFullyRevealed ? 'none' : 'url(#headline-scratch-mask)',
         }}
       >
-        <h1 className="hero-headline font-serif text-[clamp(15px,1.4vw,20px)] font-normal tracking-[0.06em] text-[#A8A09B] text-center leading-[1.25] drop-shadow-sm origin-center scale-x-[0.96] scale-y-[0.98] whitespace-normal sm:whitespace-nowrap">
+        <h1 className="hero-headline font-serif text-[clamp(14px,1.3vw,17px)] font-normal tracking-[0.01em] text-[#A8A09B] text-left leading-[1.2] drop-shadow-sm origin-left scale-x-[0.94] whitespace-nowrap">
           Every claim has a story.
         </h1>
       </div>

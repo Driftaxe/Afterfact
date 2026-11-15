@@ -142,6 +142,15 @@ export function HeroBackground({
         </filter>
         <rect width="100%" height="100%" filter="url(#afterfact-film-grain)" />
       </svg>
+
+      {/* 5. SEAMLESS VERTICAL TRANSITION TO LOWER PAGE */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-64 sm:h-80 lg:h-96 pointer-events-none"
+        style={{
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(16, 16, 18, 0.25) 30%, rgba(16, 16, 18, 0.75) 70%, #101012 100%)',
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }

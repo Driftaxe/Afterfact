@@ -23,7 +23,7 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await expect(heading).toBeVisible();
     await expect(heading).toContainText('Every claim has a story.');
 
-    // Editorial baseline removed per refinement spec
+    // Signature was replaced by the Every claim line in the strip
     await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
 
     const verifyCta = page.getByRole('link', { name: /verify an answer/i }).first();
