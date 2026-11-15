@@ -86,11 +86,11 @@ describe('Design Token WCAG AA Contrast Verification (C01-09)', () => {
   });
 
   describe('Light Mode Palette', () => {
-    const lightBg = '#F7F5F0';
-    const lightSurface = '#FFFFFF';
-    const lightPrimaryText = '#1A1B1E';
-    const lightSecondaryText = '#5A5854';
-    const lightAccent = '#5C4E68';
+    const lightBg = '#E5E2DC';
+    const lightSurface = '#EDEAE4';
+    const lightPrimaryText = '#111215';
+    const lightSecondaryText = '#3D3B38';
+    const lightAccent = '#4F4359';
 
     it('satisfies WCAG AA contrast for text (> 4.5:1)', () => {
       expect(contrastRatio(lightBg, lightPrimaryText)).toBeGreaterThanOrEqual(4.5);
@@ -106,11 +106,11 @@ describe('Design Token WCAG AA Contrast Verification (C01-09)', () => {
 
     it('satisfies WCAG AA contrast for light status badge pairs (> 4.5:1)', () => {
       const lightBadges = [
-        { name: 'Supported', bg: '#EDF5F0', text: '#22583B' },
-        { name: 'Outdated', bg: '#FBF5EA', text: '#764F0E' },
-        { name: 'Contradicted', bg: '#FAF0F1', text: '#832C37' },
-        { name: 'Unresolved', bg: '#F2F0EC', text: '#4A4844' },
-        { name: 'Checking', bg: '#F3F0F6', text: '#544660' },
+        { name: 'Supported', bg: '#DCE8DF', text: '#19462E' },
+        { name: 'Outdated', bg: '#EFE6D6', text: '#674208' },
+        { name: 'Contradicted', bg: '#EDE0E2', text: '#721C28' },
+        { name: 'Unresolved', bg: '#DCD8D3', text: '#353331' },
+        { name: 'Checking', bg: '#E1DEE6', text: '#483A54' },
       ];
 
       for (const badge of lightBadges) {

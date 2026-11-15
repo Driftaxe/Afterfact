@@ -33,7 +33,7 @@ export function TemporalDemoCard() {
           <span className="font-mono text-[11px] text-text-muted uppercase tracking-wider block">
             HISTORICAL // 2021
           </span>
-          <div className="font-serif text-xl sm:text-2xl font-normal text-text-muted line-through decoration-status-outdated-text/70">
+          <div className="font-sans text-xl sm:text-2xl font-medium text-text-muted line-through decoration-status-outdated-text/70">
             $42,000 / mo
           </div>
           <p className="font-sans text-[11px] text-text-muted">
@@ -45,7 +45,7 @@ export function TemporalDemoCard() {
           <span className="font-mono text-[11px] text-status-supported-text uppercase tracking-wider block">
             SUPERSEDED // 2023 → PRESENT
           </span>
-          <div className="font-serif text-xl sm:text-2xl font-normal text-text-primary">
+          <div className="font-sans text-xl sm:text-2xl font-medium text-text-primary">
             $100 – $5,000 / mo
           </div>
           <p className="font-sans text-[11px] text-text-secondary">
@@ -56,7 +56,7 @@ export function TemporalDemoCard() {
 
       {/* Clear Explanatory Statement */}
       <div className="rounded bg-surface-raised/40 border border-border-subtle/40 p-3">
-        <p className="font-serif italic text-xs sm:text-sm text-text-primary/90 leading-relaxed">
+        <p className="font-sans text-xs sm:text-sm text-text-primary/90 leading-relaxed">
           &ldquo;An assertion factual in 2021 was superseded on June 1, 2023. Flagged outdated for queries evaluated after that transition date.&rdquo;
         </p>
       </div>

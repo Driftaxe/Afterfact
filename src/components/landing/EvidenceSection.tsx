@@ -49,7 +49,7 @@ export function EvidenceSection() {
           <div className="text-[11px] font-mono tracking-[0.2em] uppercase text-accent">
             04 // EVIDENCE INTELLIGENCE
           </div>
-          <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-text-primary leading-[1.1]">
+          <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-normal tracking-heading text-text-primary leading-tight">
             From raw web byte to verified decision.
           </h2>
           <p className="text-sm sm:text-base text-text-secondary leading-relaxed font-light">

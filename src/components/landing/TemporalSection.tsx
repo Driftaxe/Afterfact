@@ -56,7 +56,7 @@ export function TemporalSection() {
           <div className="text-[11px] font-mono tracking-[0.2em] uppercase text-accent">
             05 // ARCHITECTURE & TEMPORAL ENGINE
           </div>
-          <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-text-primary leading-[1.1]">
+          <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-normal tracking-heading text-text-primary leading-tight">
             Temporal intelligence in practice.
           </h2>
           <p className="text-sm sm:text-base text-text-secondary leading-relaxed font-light">
@@ -71,7 +71,7 @@ export function TemporalSection() {
               <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider block">
                 CASE STUDY // REAL-WORLD TEMPORAL SHIFT
               </span>
-              <h3 className="text-base sm:text-lg font-serif text-text-primary font-normal">
+              <h3 className="text-base sm:text-lg font-sans text-text-primary font-medium tracking-tight">
                 {activeTab === 'outdated'
                   ? 'Pricing Restructure: Twitter/X Enterprise API Transition'
                   : 'Pricing Schedule: Stripe European Interchange'}

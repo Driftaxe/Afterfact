@@ -16,9 +16,9 @@ export function IntroductionSection() {
           <div className="text-[11px] font-mono tracking-[0.2em] uppercase text-accent">
             02 // PRODUCT INTRODUCTION
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-normal tracking-tight text-text-primary leading-tight">
+          <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-normal tracking-heading text-text-primary leading-tight">
             Answers are easy.{' '}
-            <span className="italic font-serif text-text-primary/95">Verifying them is harder.</span>
+            <span className="text-text-secondary">Verifying them is harder.</span>
           </h2>
           <p className="text-sm sm:text-base text-text-secondary font-light leading-relaxed">
             Language models generate assertions with unwavering fluency regardless of whether facts are current, superseded, or obsolete. Afterfact anchors generative answers to verifiable reality through deterministic DAG execution.

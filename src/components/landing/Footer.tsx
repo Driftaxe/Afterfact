@@ -14,7 +14,7 @@ export function Footer() {
           <div className="md:col-span-5 space-y-4">
             <Link href="/" className="inline-flex items-center gap-3 group">
               <Emblem size="sm" />
-              <span className="font-serif text-xl tracking-tight text-text-primary font-normal">
+              <span className="font-sans text-xl tracking-tight text-text-primary font-medium">
                 Afterfact
               </span>
             </Link>

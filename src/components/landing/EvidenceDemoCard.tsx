@@ -29,7 +29,7 @@ export function EvidenceDemoCard() {
 
       {/* Primary Numerical Claim */}
       <div className="space-y-1">
-        <div className="font-serif text-3xl sm:text-4xl font-normal text-text-primary tracking-tight">
+        <div className="font-sans text-3xl sm:text-4xl font-medium text-text-primary tracking-tight">
           2.9% + 30¢
         </div>
         <div className="font-sans text-xs text-text-muted">
@@ -39,7 +39,7 @@ export function EvidenceDemoCard() {
 
       {/* Supporting Verbatim Quotation */}
       <blockquote className="border-l-2 border-status-supported-text/60 pl-3.5 py-1">
-        <p className="font-serif italic text-xs sm:text-sm text-text-primary/90 leading-relaxed">
+        <p className="font-sans text-xs sm:text-sm text-text-primary/90 leading-relaxed">
           &ldquo;Standard processing rate is{' '}
           <mark className="bg-status-supported-bg text-status-supported-text font-sans font-medium not-italic px-1.5 py-0.5 rounded-sm border border-status-supported-border">
             2.9% + 30¢ per transaction

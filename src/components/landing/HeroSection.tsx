@@ -29,7 +29,7 @@ export function HeroSection() {
           </div>
 
           {/* Primary Title: AFTERFACT Wordmark */}
-          <div className="w-full flex justify-center mb-6 sm:mb-8">
+          <div className="w-full flex justify-center mb-10 sm:mb-14 md:mb-16">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/media/hero/afterfact-wordmark-transparent.png"
@@ -39,22 +39,22 @@ export function HeroSection() {
             />
           </div>
 
-          {/* Refined Micro Actions */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
+          {/* Refined Micro Actions — Positioned Lower with Darkened Tactile Palette & Ultra-Subtle Borders */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-2 sm:mt-4">
             <Link
               href="/app"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-sm bg-[var(--af-ivory)] hover:bg-[#F2ECE6] text-[var(--af-obsidian)] font-sans font-medium text-[10px] sm:text-[11px] tracking-wide transition-all shadow-xs hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-sm bg-[#1C1B1E] hover:bg-[#262529] border border-white/[0.06] hover:border-white/[0.14] text-[var(--af-ivory)] font-sans font-medium text-[10px] sm:text-[11px] tracking-wide transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
             >
               <span>VERIFY AN ANSWER</span>
-              <span className="text-[10px] transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
+              <span className="text-[10px] text-[var(--af-silver)] group-hover:text-[var(--af-ivory)] transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
             </Link>
 
             <Link
               href="/report/demo?mode=fixture"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-sm bg-[var(--af-graphite)]/60 hover:bg-[var(--af-graphite)]/90 border border-[var(--af-border)] hover:border-[rgba(232,225,218,0.25)] text-[var(--af-ivory)] font-sans font-medium text-[10px] sm:text-[11px] tracking-wide transition-all shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-sm bg-[#121214]/80 hover:bg-[#1C1B1E] border border-white/[0.04] hover:border-white/[0.10] text-[var(--af-silver)] hover:text-[var(--af-ivory)] font-sans font-medium text-[10px] sm:text-[11px] tracking-wide transition-all shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring group"
             >
               <span>View sample report</span>
-              <span className="text-[7px] font-mono px-1 py-0.2 rounded-xs bg-[var(--af-obsidian)]/80 border border-[var(--af-border)] text-[var(--af-silver)]">
+              <span className="text-[7px] font-mono px-1 py-0.2 rounded-xs bg-[var(--af-obsidian)]/80 border border-white/[0.05] text-[var(--af-silver)]">
                 Replay
               </span>
             </Link>

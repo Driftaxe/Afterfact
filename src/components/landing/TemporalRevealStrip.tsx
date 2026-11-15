@@ -48,7 +48,6 @@ export function TemporalRevealStrip({
   // Randomly select between the two demonstration examples on mount if initialPairId not explicitly set
   const [activePairId, setActivePairId] = useState<'pluto' | 'uk'>(initialPairId || 'pluto');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
-  const [hasStartedDragging, setHasStartedDragging] = useState<boolean>(false);
   const [undercutPercent, setUndercutPercent] = useState<number>(0);
 
   useEffect(() => {
@@ -75,10 +74,6 @@ export function TemporalRevealStrip({
       if (strikeLineRef.current) {
         strikeLineRef.current.style.width = '100%';
       }
-      if (correctedSpanRef.current) {
-        correctedSpanRef.current.style.clipPath = 'none';
-        correctedSpanRef.current.style.opacity = '1';
-      }
     }
   }, [isCompleted]);
 
@@ -92,7 +87,7 @@ export function TemporalRevealStrip({
     }
   }, []);
 
-  // Complete inspection routine
+  // Complete inspection routine: reveals the corrected words only after the whole sentence is dragged
   const completeInspection = useCallback(() => {
     if (isCompletedRef.current) return;
     setIsCompleted(true);
@@ -101,10 +96,6 @@ export function TemporalRevealStrip({
 
     if (strikeLineRef.current) {
       strikeLineRef.current.style.width = '100%';
-    }
-    if (correctedSpanRef.current) {
-      correctedSpanRef.current.style.clipPath = 'none';
-      correctedSpanRef.current.style.opacity = '1';
     }
     if (wrongTrackRef.current && lensRef.current) {
       const rect = wrongTrackRef.current.getBoundingClientRect();
@@ -132,23 +123,16 @@ export function TemporalRevealStrip({
       strikeLineRef.current.style.width = `${percent}%`;
     }
 
-    // Reveal the corrected words live as the glass drags (live clip-path following progress)
-    if (correctedSpanRef.current) {
-      const revealCut = Math.max(0, 100 - percent * 1.25);
-      correctedSpanRef.current.style.clipPath = `inset(0 ${revealCut}% 0 0)`;
-      correctedSpanRef.current.style.opacity = percent > 5 ? '1' : '0';
-    }
-
     setUndercutPercent(percent);
 
-    if (ratio >= 0.82) {
+    // Only reveal corrected sentence after dragging the whole sentence (at or above 90%)
+    if (ratio >= 0.90) {
       completeInspection();
     }
   }, [completeInspection]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
     isPointerDownRef.current = true;
-    setHasStartedDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
     handlePointerMovement(e.clientX);
   };
@@ -164,6 +148,9 @@ export function TemporalRevealStrip({
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
       // Ignore
+    }
+    if (undercutPercent >= 85) {
+      completeInspection();
     }
   };
 
@@ -209,15 +196,17 @@ export function TemporalRevealStrip({
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerUp}
-              className="relative inline-block cursor-grab active:cursor-grabbing py-0.5 px-0.5 group/track"
+              className={`relative inline-block cursor-grab active:cursor-grabbing py-0.5 px-0.5 group/track transition-all duration-700 ease-out ${
+                isCompleted ? 'translate-x-2' : 'translate-x-0'
+              }`}
               style={{ touchAction: 'pan-y' }}
-              title="Drag the verification lens across the outdated words to undercut them and reveal the ground truth live"
+              title="Drag the verification lens across the outdated words to undercut them"
             >
               {/* Outdated words */}
               <span
-                className={`transition-colors duration-200 ${
+                className={`transition-colors duration-500 ${
                   isCompleted
-                    ? 'text-[var(--af-silver)]/40'
+                    ? 'text-[var(--af-silver)]/35'
                     : undercutPercent > 25
                     ? 'text-[var(--af-silver)]/65'
                     : 'text-[var(--af-silver)]'
@@ -288,26 +277,19 @@ export function TemporalRevealStrip({
 
                     {/* Precision Loupe Grip Pin */}
                     <div className="absolute -bottom-1 -right-0.5 w-1.5 h-3.5 rounded-full bg-gradient-to-b from-[#AAA1A6] to-[#2B292C] border border-white/20 shadow-xs rotate-[-35deg]" />
-
-                    {/* Gentle interaction hint when not yet dragged */}
-                    {!hasStartedDragging && (
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none opacity-60 text-[8px] font-mono uppercase tracking-[0.18em] text-[var(--af-silver)]">
-                        Drag to verify →
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
             </span>
 
-            {/* THE CORRECTED WORDS (APPEAR LIVE AS GLASS DRAGS — AFTER UNDERCUT, ZERO OVERLAP) */}
+            {/* THE CORRECTED WORDS (FADES IN SLOWLY MOVING RIGHT TO JUST THE INDENTATION WITH ARROW) */}
             <span
               ref={correctedSpanRef}
-              className="inline-flex items-center gap-1.5 overflow-hidden transition-opacity duration-150"
-              style={{
-                opacity: isCompleted ? 1 : undercutPercent > 5 ? 1 : 0,
-                clipPath: isCompleted ? 'none' : `inset(0 ${Math.max(0, 100 - undercutPercent * 1.25)}% 0 0)`,
-              }}
+              className={`inline-flex items-center gap-1.5 transition-all duration-1000 ease-out ${
+                isCompleted
+                  ? 'opacity-100 translate-x-0'
+                  : 'opacity-0 -translate-x-4 pointer-events-none'
+              }`}
             >
               <span className="text-[var(--af-silver)]/50 text-sm" aria-hidden="true">
                 →

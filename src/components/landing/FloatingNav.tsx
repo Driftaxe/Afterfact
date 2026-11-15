@@ -161,7 +161,7 @@ export function FloatingNav() {
         <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle backdrop-blur-xl shadow-xl">
           <Link href="/" className="flex items-center gap-2.5">
             <Emblem size="sm" />
-            <span className="font-serif text-base tracking-tight text-text-primary font-normal">
+            <span className="font-sans text-base tracking-tight text-text-primary font-medium">
               Afterfact
             </span>
           </Link>

@@ -83,53 +83,53 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Surfaces & Canvas */
-  --color-background: #F7F5F0;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #EDE8DF;
+  /* Surfaces & Canvas — 2-3 shades darker off-white / grayish stone (no pure white) */
+  --color-background: #E5E2DC;
+  --color-surface: #EDEAE4;
+  --color-surface-raised: #DDD9D2;
 
-  /* Typography */
-  --color-text-primary: #1A1B1E;
-  --color-text-secondary: #5A5854;
-  --color-text-muted: #787570;
+  /* Typography — Calibrated crisp dark carbon & deep charcoal for the grayish background */
+  --color-text-primary: #111215;
+  --color-text-secondary: #3D3B38;
+  --color-text-muted: #5C5955;
 
   /* Borders & Dividers */
-  --color-border-subtle: #E8E3DA;
-  --color-border-strong: #DCD6CB;
+  --color-border-subtle: #D1CCC3;
+  --color-border-strong: #BCB6AB;
 
   /* Primary Button */
-  --color-btn-primary-bg: #1A1B1E;
-  --color-btn-primary-text: #FFFFFF;
-  --color-btn-primary-hover: #2B2D32;
+  --color-btn-primary-bg: #18191C;
+  --color-btn-primary-text: #F0EDE8;
+  --color-btn-primary-hover: #26272B;
 
   /* Accent & Interaction */
-  --color-accent: #5C4E68;
-  --color-accent-hover: #4D4058;
+  --color-accent: #4F4359;
+  --color-accent-hover: #3E3446;
   --color-accent-foreground: #FFFFFF;
-  --color-focus-ring: #1A1B1E;
-  --color-selection: rgba(92, 78, 104, 0.18);
-  --color-overlay: rgba(30, 28, 33, 0.5);
+  --color-focus-ring: #18191C;
+  --color-selection: rgba(79, 67, 89, 0.18);
+  --color-overlay: rgba(22, 21, 25, 0.6);
 
   /* Verification Status Tokens (Muted, Accessible, Distinct) */
-  --status-supported-bg: #EDF5F0;
-  --status-supported-text: #22583B;
-  --status-supported-border: #C2DEC9;
+  --status-supported-bg: #DCE8DF;
+  --status-supported-text: #19462E;
+  --status-supported-border: #B2D1BD;
 
-  --status-outdated-bg: #FBF5EA;
-  --status-outdated-text: #764F0E;
-  --status-outdated-border: #EAD6B0;
+  --status-outdated-bg: #EFE6D6;
+  --status-outdated-text: #674208;
+  --status-outdated-border: #D8C3A0;
 
-  --status-contradicted-bg: #FAF0F1;
-  --status-contradicted-text: #832C37;
-  --status-contradicted-border: #EBC8CD;
+  --status-contradicted-bg: #EDE0E2;
+  --status-contradicted-text: #721C28;
+  --status-contradicted-border: #D4B5BA;
 
-  --status-unresolved-bg: #F2F0EC;
-  --status-unresolved-text: #4A4844;
-  --status-unresolved-border: #D4D0C8;
+  --status-unresolved-bg: #DCD8D3;
+  --status-unresolved-text: #353331;
+  --status-unresolved-border: #BEB9B2;
 
-  --status-checking-bg: #F3F0F6;
-  --status-checking-text: #544660;
-  --status-checking-border: #D7CFDF;
+  --status-checking-bg: #E1DEE6;
+  --status-checking-text: #483A54;
+  --status-checking-border: #C6BFCE;
 
   /* Backward Compatibility Aliases for initial scaffold */
   --color-ink: var(--color-text-primary);
