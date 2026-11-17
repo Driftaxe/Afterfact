@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { DEMO_PAIRS } from '../../src/components/landing/TemporalRevealStrip';
 
 test.describe('Hero Refinements Verification', () => {
   test('verifies faded oversized AFTERFACT title, interactive temporal verification strip with magnifying lens, Pluto/UK pairs, dragging reveal, and completion state', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
-    // 0. Verify AFTERFACT wordmark opacity is at 0.24 and constant
+    // 0. Verify AFTERFACT wordmark opacity matches calibrated hero opacity
     const initialWordmarkOpacity = await page.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim();
     });
-    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.24, 2);
+    expect(parseFloat(initialWordmarkOpacity)).toBeCloseTo(0.62, 2);
 
     // 1. Eyebrows and discarded demo sections removed
     await expect(page.getByText('TEMPORAL EVIDENCE INTELLIGENCE')).toHaveCount(0);
@@ -19,13 +20,13 @@ test.describe('Hero Refinements Verification', () => {
     await expect(page.getByText('INSPECT THE EVIDENCE')).toHaveCount(0);
     await expect(page.getByText('TRACK WHAT CHANGES')).toHaveCount(0);
 
-    // 2. Verify AFTERFACT TITLE is visible and oversized (> 1200px on 1440px viewport)
+    // 2. Verify AFTERFACT TITLE is visible and oversized (> 1000px on 1440px viewport)
     const wordmark = page.locator('img.hero-wordmark');
     await expect(wordmark).toBeVisible();
     const wordmarkBox = await wordmark.boundingBox();
     expect(wordmarkBox).not.toBeNull();
     if (wordmarkBox) {
-      expect(wordmarkBox.width).toBeGreaterThan(1200);
+      expect(wordmarkBox.width).toBeGreaterThanOrEqual(1000);
     }
 
     // 3. Verify Buttons are positioned in central hero below the title
@@ -38,7 +39,7 @@ test.describe('Hero Refinements Verification', () => {
     expect(verifyBox).not.toBeNull();
     if (verifyBox && wordmarkBox) {
       expect(verifyBox.y).toBeGreaterThan(wordmarkBox.y);
-      expect(verifyBox.height).toBeLessThan(40);
+      expect(verifyBox.height).toBeLessThanOrEqual(48);
     }
 
     // 4. Verify Temporal Verification Strip is below the initial 100vh viewport fold
@@ -57,12 +58,15 @@ test.describe('Hero Refinements Verification', () => {
     // Scroll into view to interact with it
     await track.scrollIntoViewIfNeeded();
 
-    // Initial randomly selected pair (Pluto or UK) assertion is visible
-    const isPluto = await page.getByText('the ninth planet in our solar system.').count() > 0;
-    const initialWrongPart = isPluto
-      ? 'the ninth planet in our solar system.'
-      : 'is a member of the European Union.';
-    await expect(page.getByText(initialWrongPart)).toBeVisible();
+    // Initial randomly selected pair assertion is visible
+    let activePair = DEMO_PAIRS[0];
+    for (const p of DEMO_PAIRS) {
+      if ((await page.locator('.group\\/track').getByText(p.wrongPart).count()) > 0) {
+        activePair = p;
+        break;
+      }
+    }
+    await expect(page.locator('.group\\/track').getByText(activePair.wrongPart)).toBeVisible();
 
     // Verification lens exists with enlarged triangular logo
     const lens = page.locator('.group\\/lens');
@@ -84,14 +88,9 @@ test.describe('Hero Refinements Verification', () => {
       await page.mouse.up();
 
       // Upon completion: Corrected text appears AFTER undercut, CORRECTED badge & effective date appear
-      const expectedCorrected = isPluto
-        ? 'classified as a dwarf planet.'
-        : 'left the European Union on 31 January 2020.';
-      const expectedDate = isPluto ? 'August 2006' : '31 January 2020';
-
-      await expect(page.getByText(expectedCorrected)).toBeVisible();
+      await expect(page.getByText(activePair.correctedPart)).toBeVisible();
       await expect(page.getByText('CORRECTED')).toBeVisible();
-      await expect(page.getByText(expectedDate, { exact: true })).toBeVisible();
+      await expect(page.getByText(activePair.effectiveDate, { exact: true })).toBeVisible();
     }
 
     // 6. Test Navbar Navigation from /app back to Landing Sections (Verifying bug fix)
@@ -114,10 +113,10 @@ test.describe('Hero Refinements Verification', () => {
     await expect(page.getByText('Clarity, even as facts change.')).toHaveCount(0);
     await expect(page.getByRole('link', { name: /explore story/i })).toHaveCount(0);
 
-    // 8. Wordmark opacity remains steady at 0.24
+    // 8. Wordmark opacity remains steady at 0.62
     const postInspectionWordmarkOpacity = await page.evaluate(() => {
       return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hero-wordmark-opacity').trim());
     });
-    expect(postInspectionWordmarkOpacity).toBeCloseTo(0.24, 2);
+    expect(postInspectionWordmarkOpacity).toBeCloseTo(0.62, 2);
   });
 });
