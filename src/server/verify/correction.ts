@@ -201,7 +201,10 @@ export async function draftSurgicalReplacement(params: {
 
     let parsedJson: unknown;
     try {
-      parsedJson = JSON.parse(rawResponse);
+      const trimmed = rawResponse.trim();
+      const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+      const cleaned = fenceMatch ? fenceMatch[1].trim() : trimmed;
+      parsedJson = JSON.parse(cleaned);
     } catch {
       return {
         success: false,

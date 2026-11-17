@@ -207,7 +207,14 @@ async function callDirectGemini(options: BifrostChatOptions, apiKey: string): Pr
     const candidate = data.candidates?.[0];
     const text = candidate?.content?.parts?.[0]?.text;
     if (typeof text === 'string') {
-      return text;
+      let cleaned = text.trim();
+      if (options.response_format?.type === 'json_object') {
+        const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+        if (fenceMatch) {
+          cleaned = fenceMatch[1].trim();
+        }
+      }
+      return cleaned;
     }
     return '';
   } finally {

@@ -332,6 +332,7 @@ export function InputComposer({
 
     try {
       const claimsToSubmit = editableClaims.length > 0 ? editableClaims : preparation.claims;
+      console.log(`[InputComposer] Confirming run with ${claimsToSubmit.length} claim(s)...`);
       const result = await confirmPreparationAction({
         preparationId: preparation.preparationId,
         inputHash: preparation.inputHash,
@@ -340,10 +341,12 @@ export function InputComposer({
       });
 
       if (!result.success) {
+        console.error('[InputComposer] Run confirmation failed:', result.error, result.code, result.issues);
         setActionError(result.error);
         return;
       }
 
+      console.log('[InputComposer] Run confirmed successfully, run ID:', result.data.runId);
       setConfirmedRun(result.data);
 
       // Record newly confirmed verification to anonymous IP history
@@ -361,6 +364,7 @@ export function InputComposer({
         asOfDate: context.targetDate || undefined,
       });
     } catch (err: unknown) {
+      console.error('[InputComposer] Unexpected confirmation exception:', err);
       const msg = err instanceof Error ? err.message : 'Failed to confirm run';
       setActionError(msg);
     } finally {

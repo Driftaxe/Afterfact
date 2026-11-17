@@ -34,6 +34,12 @@ export {
 } from './span-resolver';
 export { convertUserTargetContext, normalizePropertyValue } from './context-resolver';
 
+function cleanJsonOutput(text: string): string {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenceMatch ? fenceMatch[1].trim() : trimmed;
+}
+
 /**
  * Primary Extraction Service for Ticket A03.
  *
@@ -152,7 +158,8 @@ export async function extractClaimsFromText(
   // 3. Decode and validate model JSON output
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(rawResponse);
+    const cleaned = cleanJsonOutput(rawResponse);
+    parsedJson = JSON.parse(cleaned);
   } catch {
     return {
       status: 'failed',
