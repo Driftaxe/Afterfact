@@ -25,31 +25,34 @@ export function AnswerDocument({
 
   return (
     <div
-      className={`rounded-2xl border border-border-subtle bg-surface p-5 sm:p-6 space-y-4 ${className}`}
+      className={`rounded-xl border border-border-subtle/80 bg-surface/60 backdrop-blur-xs p-5 sm:p-6 space-y-4 ${className}`}
       role="region"
       aria-label="Analyzed original answer document"
     >
-      <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-text-primary">Original Answer</h3>
-          <span className="text-xs text-text-muted font-mono">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/70 pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-text-muted" aria-hidden="true" />
+          <h3 className="font-sans text-base sm:text-lg font-normal tracking-heading text-text-primary">
+            Original Answer
+          </h3>
+          <span className="text-[11px] text-text-muted font-mono">
             ({claims.length} {claims.length === 1 ? 'claim' : 'claims'} analyzed)
           </span>
         </div>
-        <p className="text-xs text-text-muted hidden sm:block">
+        <p className="text-[11px] text-text-muted font-mono hidden sm:block">
           Select highlighted text to inspect evidence
         </p>
       </div>
 
       {hasMalformedSpans && (
-        <div className="p-2.5 rounded-lg bg-status-unresolved-bg border border-status-unresolved-border text-xs text-status-unresolved-text">
+        <div className="p-2.5 rounded-xs bg-status-unresolved-bg border border-status-unresolved-border text-xs text-status-unresolved-text font-mono">
           Notice: One or more claim offsets in this report could not be cleanly anchored to the text.
         </div>
       )}
 
       {/* Rendered answer text with interactive highlights */}
       <div
-        className="font-sans text-sm sm:text-base leading-[1.75] text-text-primary whitespace-pre-wrap selection:bg-accent/20"
+        className="font-sans text-sm sm:text-[14.5px] leading-[1.85] text-text-primary whitespace-pre-wrap selection:bg-accent/20"
         tabIndex={0}
         aria-label="Answer content with interactive verification highlights"
       >
@@ -73,15 +76,15 @@ export function AnswerDocument({
 
           // Distinct selected styling (ring + prominent underline + raised surface, not color alone)
           const selectionClasses = isSelected
-            ? 'ring-2 ring-focus-ring bg-surface-raised font-medium shadow-sm underline-offset-4 decoration-[3px]'
-            : 'underline underline-offset-4 decoration-[1.5px] hover:bg-surface-raised transition-colors';
+            ? 'ring-1 ring-border-strong bg-surface-raised font-medium shadow-xs underline-offset-4 decoration-[2.5px]'
+            : 'underline underline-offset-4 decoration-[1.5px] hover:bg-surface-raised/60 transition-colors';
 
           return (
             <button
               key={`claim-span-${segment.claimId}-${idx}`}
               type="button"
               onClick={() => onSelectClaim(segment.claimId!)}
-              className={`inline rounded-sm px-0.5 mx-0.5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${verdictClasses} ${selectionClasses}`}
+              className={`inline rounded-xs px-1 mx-0.5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring ${verdictClasses} ${selectionClasses}`}
               aria-pressed={isSelected}
               aria-label={`Claim: ${segment.text} (${verdict})`}
             >

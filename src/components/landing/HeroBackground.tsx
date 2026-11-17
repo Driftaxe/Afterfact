@@ -106,10 +106,6 @@ export function HeroBackground({
       {/* 2. DEDICATED DARK CINEMATIC OVERLAY */}
       <div className="hero-video-overlay" />
 
-      {/* Subtle additional directional vignettes for left headline & right cards */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#111214]/60 via-transparent to-[#111214]/70 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#111214] via-[#111214]/30 to-[#111214]/70 pointer-events-none" />
-
       {/* 3. OPTIONAL WORDMARK IN BACKGROUND ONLY IF EXPLICITLY ENABLED */}
       {showWordmark && (
         /* eslint-disable-next-line @next/next/no-img-element */
@@ -143,11 +139,22 @@ export function HeroBackground({
         <rect width="100%" height="100%" filter="url(#afterfact-film-grain)" />
       </svg>
 
-      {/* 5. SEAMLESS VERTICAL TRANSITION TO LOWER PAGE */}
+      {/* 5. SEAMLESS DEEPENED VERTICAL TRANSITION & WATERMARK MASK */}
       <div
         className="absolute inset-x-0 bottom-0 h-64 sm:h-80 lg:h-96 pointer-events-none"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(16, 16, 18, 0.25) 30%, rgba(16, 16, 18, 0.75) 70%, #101012 100%)',
+          background:
+            'linear-gradient(to bottom, transparent 0%, rgba(16, 16, 18, 0.20) 25%, rgba(16, 16, 18, 0.65) 50%, rgba(16, 16, 18, 0.95) 75%, #101012 88%, #101012 100%)',
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Dedicated bottom-right dark gradient to completely obscure corner watermark */}
+      <div
+        className="absolute bottom-0 right-0 w-80 sm:w-96 md:w-[480px] h-52 sm:h-64 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse at 100% 100%, #101012 0%, rgba(16, 16, 18, 0.98) 40%, rgba(16, 16, 18, 0.70) 70%, transparent 100%)',
         }}
         aria-hidden="true"
       />

@@ -181,13 +181,13 @@ body {
    Hero Cinematic Video & Analog Film Grading
    ========================================================================== */
 :root {
-  --hero-video-brightness: 0.65;
-  --hero-video-contrast: 0.98;
-  --hero-video-saturation: 0.28;
+  --hero-video-brightness: 0.70;
+  --hero-video-contrast: 0.96;
+  --hero-video-saturation: 0.32;
   --hero-video-sepia: 0.08;
-  --hero-overlay-strength: 0.45;
-  --hero-grain-opacity: 0.06;
-  --hero-wordmark-opacity: 0.24;
+  --hero-overlay-strength: 0.40;
+  --hero-grain-opacity: 0.035;
+  --hero-wordmark-opacity: 0.62;
 }
 
 .hero-headline {
@@ -203,9 +203,9 @@ body {
 
 .hero-video {
   filter:
-    brightness(var(--hero-video-brightness, 0.65))
-    contrast(var(--hero-video-contrast, 0.98))
-    saturate(var(--hero-video-saturation, 0.28))
+    brightness(var(--hero-video-brightness, 0.70))
+    contrast(var(--hero-video-contrast, 0.96))
+    saturate(var(--hero-video-saturation, 0.32))
     sepia(var(--hero-video-sepia, 0.08));
   object-fit: cover;
   width: 100%;
@@ -217,37 +217,58 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(
-      90deg,
-      rgba(16, 16, 18, 0.52) 0%,
-      rgba(16, 16, 18, 0.20) 48%,
-      rgba(16, 16, 18, 0.54) 100%
+    radial-gradient(
+      ellipse 80% 70% at 50% 45%,
+      rgba(16, 16, 18, 0.32) 0%,
+      rgba(16, 16, 18, 0.62) 100%
     ),
     linear-gradient(
-      0deg,
-      rgba(16, 16, 18, 0.72) 0%,
-      rgba(41, 39, 42, 0.12) 48%,
-      rgba(16, 16, 18, 0.38) 100%
+      180deg,
+      rgba(16, 16, 18, 0.45) 0%,
+      rgba(16, 16, 18, 0.18) 45%,
+      rgba(16, 16, 18, 0.65) 100%
+    );
+}
+
+[data-theme="light"] .hero-video-overlay {
+  background:
+    radial-gradient(
+      ellipse 85% 75% at 50% 45%,
+      rgba(229, 226, 220, 0.60) 0%,
+      rgba(229, 226, 220, 0.88) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(229, 226, 220, 0.70) 0%,
+      rgba(229, 226, 220, 0.45) 45%,
+      rgba(229, 226, 220, 0.92) 100%
     );
 }
 
 .hero-wordmark {
   position: relative;
-  width: min(96vw, 1600px);
+  width: clamp(300px, 86vw, 1100px);
+  max-width: 100%;
   height: auto;
-  opacity: var(--hero-wordmark-opacity, 0.24);
+  opacity: var(--hero-wordmark-opacity, 0.62);
   pointer-events: none;
   user-select: none;
   z-index: 1;
   object-fit: contain;
   mix-blend-mode: screen;
-  filter: sepia(0.06) brightness(0.92);
+  filter: sepia(0.12) brightness(0.96) drop-shadow(0 2px 14px rgba(0, 0, 0, 0.35));
   transition: opacity 300ms ease;
+}
+
+[data-theme="light"] .hero-wordmark {
+  mix-blend-mode: multiply;
+  filter: brightness(0.18) contrast(1.1);
+  opacity: 0.78;
 }
 
 @media (max-width: 768px) {
   .hero-wordmark {
-    width: min(98vw, 720px);
-    opacity: 0.22;
+    width: clamp(260px, 92vw, 700px);
+    opacity: 0.65;
   }
 }

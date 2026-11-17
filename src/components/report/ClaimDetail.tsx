@@ -1,10 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import type { ClaimResultItem } from '@/lib/contracts/report';
 import type { EvidenceItem } from '@/lib/contracts/evidence';
 import type { ClarificationQuestion } from '@/lib/contracts/clarification';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Button } from '@/components/ui/Button';
+import { compareAction } from '@/actions/run-actions';
 import { EvidenceCard } from './EvidenceCard';
 import { ClarificationForm } from './ClarificationForm';
 import { ChangeTimeline } from './ChangeTimeline';
@@ -27,10 +30,240 @@ export interface ClaimDetailProps {
   evidenceMap: Map<string, EvidenceItem>;
   clarification?: ClaimClarificationContext;
   onClarificationSuccess?: () => void;
+  runId?: string;
   className?: string;
 }
 
-export function ClaimDetail({ claim, evidenceMap, clarification, onClarificationSuccess, className = '' }: ClaimDetailProps) {
+interface MissingContextResolverProps {
+  claim: ClaimResultItem;
+  runId?: string;
+}
+
+function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
+  const router = useRouter();
+
+  // Determine the primary missing qualifier key
+  const [selectedKey] = useState<string>(() => {
+    if (claim.missingMaterialContext && claim.missingMaterialContext.length > 0) {
+      return claim.missingMaterialContext[0];
+    }
+    const txt = claim.rawText.toLowerCase();
+    if (txt.includes('cloudflare') || txt.includes('execution time') || txt.includes('limit')) return 'plan_tier';
+    if (txt.includes('stripe') || txt.includes('payment')) return 'apiVersion';
+    if (txt.includes('twitter') || txt.includes('ceo')) return 'asOfDate';
+    return 'target_context';
+  });
+
+  // Pre-configured options for known domain qualifiers
+  const suggestedOptions: { label: string; value: string; hint: string }[] = useMemo(() => {
+    if (selectedKey === 'plan_tier') {
+      return [
+        { label: 'Workers Paid', value: 'Workers Paid', hint: 'Permits up to 50ms CPU execution time' },
+        { label: 'Workers Free', value: 'Workers Free', hint: 'Strict 10ms CPU execution limit' },
+      ];
+    }
+    if (selectedKey === 'apiVersion') {
+      return [
+        { label: '2024-06-20 (Modern)', value: '2024-06-20', hint: 'Explicit payment_method_types required' },
+        { label: '2020-08-27 (Legacy)', value: '2020-08-27', hint: 'Implicit default payment methods allowed' },
+      ];
+    }
+    if (selectedKey === 'asOfDate') {
+      return [
+        { label: '2021-12-01', value: '2021-12-01', hint: 'Dorsey resignation / Parag appointed CEO' },
+        { label: '2022-10-28', value: '2022-10-28', hint: 'Musk acquisition / Agrawal removed' },
+        { label: '2024-01-01', value: '2024-01-01', hint: 'Linda Yaccarino / X Corp' },
+      ];
+    }
+    return [];
+  }, [selectedKey]);
+
+  const [selectedValue, setSelectedValue] = useState<string>(
+    suggestedOptions[0]?.value || ''
+  );
+  const [customValue, setCustomValue] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const effectiveValue = customValue.trim() || selectedValue;
+
+  const handleResolve = async () => {
+    if (!effectiveValue) return;
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    setSimulationResult(null);
+
+    try {
+      if (runId && !runId.startsWith('sample') && !runId.startsWith('fixture')) {
+        const res = await compareAction({
+          parentRunId: runId,
+          claimId: claim.claimId || claim.id,
+          targetContext: {
+            [selectedKey]: effectiveValue,
+          },
+        });
+
+        if (res.success && res.data.childRunId) {
+          router.push(`/report/${res.data.childRunId}`);
+          return;
+        } else if (!res.success) {
+          setErrorMsg(res.error || 'Failed to dispatch comparison run.');
+        }
+      } else {
+        // Replay / fixture mode simulation
+        await new Promise((r) => setTimeout(r, 350));
+        let outcome = '';
+        if (selectedKey === 'plan_tier') {
+          if (effectiveValue.includes('Paid')) {
+            outcome = '✓ Under "Workers Paid" (50ms limit), this proposition is SUPPORTED (Freshness Score: 100/100).';
+          } else {
+            outcome = '✗ Under "Workers Free" (10ms limit), this proposition is CONTRADICTED (Freshness Score: 0/100).';
+          }
+        } else if (selectedKey === 'apiVersion') {
+          if (effectiveValue.startsWith('2024') || effectiveValue.includes('Modern')) {
+            outcome = '✓ Under Stripe API 2024-06-20, manual payment_method_types is mandatory: SUPPORTED (100/100).';
+          } else {
+            outcome = '✗ Under legacy Stripe API versions, automatic payment methods were enabled: OUTDATED (0/100).';
+          }
+        } else {
+          outcome = `Context resolved: under ${selectedKey} = "${effectiveValue}", this claim resolves deterministically.`;
+        }
+        setSimulationResult(outcome);
+      }
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Context comparison failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-accent/40 bg-surface-raised p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-accent" />
+          <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
+            Resolve Missing Context Qualifier
+          </h4>
+        </div>
+        <span className="rounded bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-mono text-accent">
+          Interactive Resolution
+        </span>
+      </div>
+
+      <p className="text-xs text-text-secondary leading-relaxed">
+        This claim was marked <span className="font-semibold text-accent font-mono">{claim.verdict || 'depends_on_context'}</span> ({claim.reasonCode || 'ESSENTIAL_CONTEXT_MISSING'}).
+        Select or specify the missing qualifier below to re-evaluate the factual outcome.
+      </p>
+
+      {/* Suggested Qualifier Buttons */}
+      {suggestedOptions.length > 0 && (
+        <div className="space-y-2">
+          <label className="block text-[11px] font-mono text-text-muted uppercase">
+            Quick Options for <code className="text-accent">{selectedKey}</code>:
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {suggestedOptions.map((opt) => {
+              const isSelected = effectiveValue === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setSelectedValue(opt.value);
+                    setCustomValue('');
+                    setSimulationResult(null);
+                  }}
+                  className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                    isSelected
+                      ? 'border-accent bg-accent/10 text-text-primary shadow-xs'
+                      : 'border-border-subtle bg-surface hover:border-border-strong text-text-secondary'
+                  }`}
+                >
+                  <div className="font-semibold">{opt.label}</div>
+                  <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Custom input override */}
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-mono text-text-muted uppercase">
+          Or Enter Custom Qualifier Value:
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={customValue}
+            onChange={(e) => {
+              setCustomValue(e.target.value);
+              setSimulationResult(null);
+            }}
+            placeholder={`e.g. custom ${selectedKey} value...`}
+            className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+          />
+        </div>
+      </div>
+
+      {simulationResult && (
+        <div className="p-3 rounded-lg border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text">
+          {simulationResult}
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
+          {errorMsg}
+        </div>
+      )}
+
+      <div className="pt-2 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <span className="text-[11px] font-mono text-text-muted">
+          Selected: <code className="text-accent">{selectedKey} = &quot;{effectiveValue || '—'}&quot;</code>
+        </span>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          disabled={!effectiveValue || isSubmitting}
+          onClick={handleResolve}
+        >
+          {isSubmitting ? 'Evaluating Context...' : 'Re-evaluate with this Context →'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function ClaimDetail({
+  claim,
+  evidenceMap,
+  clarification,
+  onClarificationSuccess,
+  runId,
+  className = '',
+}: ClaimDetailProps) {
+  const driftDiscoveredText = useMemo(() => {
+    if (!claim) return '';
+    if (claim.correction?.replacementText) {
+      return claim.correction.replacementText;
+    }
+    const currentEntry = claim.timeline?.find((e) => e.state === 'current');
+    if (currentEntry?.summary) return currentEntry.summary;
+
+    const transitionEntry = claim.timeline?.find((e) => e.state === 'transition');
+    if (transitionEntry?.summary) return transitionEntry.summary;
+
+    if (claim.state === 'assessed' && claim.scoreReason) {
+      return claim.scoreReason;
+    }
+    return '';
+  }, [claim]);
+
   if (!claim) {
     return (
       <div className={`rounded-2xl border border-border-subtle bg-surface p-6 text-center text-xs text-text-muted ${className}`}>
@@ -75,6 +308,16 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
     }
   }
 
+  // Check if this claim requires word-by-word context drift analysis
+  const needsDriftAnalysis =
+    Boolean(claim.correction) ||
+    claim.verdict === 'outdated' ||
+    claim.verdict === 'contradicted' ||
+    claim.verdict === 'depends_on_context' ||
+    Boolean(claim.timeline && claim.timeline.some((e) => e.state === 'transition' || e.state === 'current'));
+
+  const driftOriginalText = claim.correction?.originalText || claim.rawText;
+
   // Detect future-dated scheduled changes without falsely marking current fact stale
   const upcomingEntry = claim.timeline?.find((e) => e.state === 'upcoming');
   const hasScheduledChange =
@@ -87,25 +330,17 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
 
   return (
     <div
-      className={`rounded-2xl border border-border-subtle bg-surface p-5 sm:p-6 space-y-6 ${className}`}
+      className={`rounded-xl border border-border-subtle/80 bg-surface/70 backdrop-blur-xs p-6 sm:p-7 space-y-6 shadow-xs ${className}`}
       role="region"
       aria-label={`Claim details for claim ${claim.ordinal + 1}`}
     >
-      {/* Header & Claim Text */}
-      <div className="space-y-3 pb-4 border-b border-border-subtle">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-raised text-xs font-mono font-medium text-text-muted border border-border-subtle">
-              {claim.ordinal + 1}
+      {/* Dossier Section Pre-Header */}
+      <div className="space-y-4 pb-4 border-b border-border-subtle/70">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-text-muted">
+              CLAIM INSPECTOR // {claim.id}
             </span>
-            <StatusBadge status={verdictStatus} label={verdictLabel} size="md" />
-            {hasScheduledChange && (
-              <ScheduledChangeBadge
-                effectiveDate={upcomingEntry?.effectiveDate}
-                announcementDate={upcomingEntry?.announcementDate}
-                size="sm"
-              />
-            )}
           </div>
 
           <div className="text-right">
@@ -113,28 +348,45 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
               <span className="text-text-muted">Freshness Score: </span>
               <span className={scoreClass}>{scoreText}</span>
             </div>
-            <p className="text-[10px] text-text-muted mt-0.5">
+            <p className="text-[10px] text-text-muted mt-0.5 font-sans">
               Freshness score reflects the verification rubric, not a probability.
             </p>
           </div>
         </div>
 
-        <p className="text-sm sm:text-base font-normal text-text-primary leading-relaxed">
-          “{claim.rawText}”
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-xs bg-surface-raised text-[10px] font-mono font-medium text-text-muted border border-border-subtle">
+            {claim.ordinal + 1}
+          </span>
+          <StatusBadge status={verdictStatus} label={verdictLabel} size="md" />
+          {hasScheduledChange && (
+            <ScheduledChangeBadge
+              effectiveDate={upcomingEntry?.effectiveDate}
+              announcementDate={upcomingEntry?.announcementDate}
+              size="sm"
+            />
+          )}
+        </div>
+
+        {/* Claim Quote in Editorial Serif */}
+        <div className="relative pl-3.5 border-l-2 border-border-strong py-0.5">
+          <p className="font-serif text-base sm:text-lg text-text-primary leading-relaxed font-normal italic">
+            “{claim.rawText}”
+          </p>
+        </div>
 
         {claim.state === 'assessed' && claim.scoreReason && (
-          <div className="p-3 rounded-lg bg-surface-raised/70 border border-border-subtle text-xs text-text-secondary leading-relaxed space-y-1">
+          <div className="p-3.5 rounded-lg bg-surface-raised/80 border border-border-subtle/80 text-xs text-text-secondary leading-relaxed space-y-1.5">
             <div className="flex items-center gap-2 text-[11px] font-mono text-text-muted">
-              <span>Decision Reason</span>
+              <span className="uppercase tracking-wider">Decision Reason</span>
               {claim.reasonCode && (
                 <>
                   <span>·</span>
-                  <span className="text-accent">{claim.reasonCode}</span>
+                  <span className="text-accent font-semibold">{claim.reasonCode}</span>
                 </>
               )}
             </div>
-            <p>{claim.scoreReason}</p>
+            <p className="text-text-primary/90">{claim.scoreReason}</p>
           </div>
         )}
       </div>
@@ -148,32 +400,54 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
         />
       )}
 
-      {/* Verified Surgical Correction Diff & Context Comparison */}
+      {/* Verified Surgical Correction Diff (if present) */}
       {claim.state === 'assessed' && claim.correction && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider font-mono">
-              Surgical Correction
-            </h4>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)]" />
+              <h4 className="text-[11px] font-mono text-text-muted uppercase tracking-[0.16em]">
+                Surgical Correction Diff
+              </h4>
+            </div>
             {claim.correction.verified && (
-              <span className="rounded bg-status-supported-bg border border-status-supported-border px-1.5 py-0.5 text-[10px] text-status-supported-text font-medium">
+              <span className="rounded-xs bg-status-supported-bg border border-status-supported-border px-1.5 py-0.5 text-[10px] text-status-supported-text font-mono font-medium tracking-wider uppercase">
                 Verified
               </span>
             )}
           </div>
 
-          <pre className="rounded-xl border border-border-subtle bg-surface-raised p-3 text-xs font-mono text-text-primary leading-relaxed overflow-x-auto whitespace-pre-wrap">
+          <pre className="rounded-lg border border-border-subtle/80 bg-surface-raised/90 p-3.5 text-xs font-mono text-text-primary leading-relaxed overflow-x-auto whitespace-pre-wrap">
             {claim.correction.diff}
           </pre>
-
-          <ContextComparison
-            title="Surgical Context Comparison"
-            originalText={claim.correction.originalText}
-            discoveredText={claim.correction.replacementText}
-            discoveredSourceUrl={claim.correction.evidenceIds?.[0] ? evidenceMap.get(claim.correction.evidenceIds[0])?.url : undefined}
-            discoveredPublisher={claim.correction.evidenceIds?.[0] ? evidenceMap.get(claim.correction.evidenceIds[0])?.publisher : undefined}
-          />
         </div>
+      )}
+
+      {/* Word-by-Word Context Drift Analysis */}
+      {needsDriftAnalysis && driftDiscoveredText && (
+        <ContextComparison
+          title="Word-by-Word Context Drift Analysis"
+          originalText={driftOriginalText}
+          discoveredText={driftDiscoveredText}
+          defaultTab="unified"
+          discoveredSourceUrl={
+            claim.correction?.evidenceIds?.[0]
+              ? evidenceMap.get(claim.correction.evidenceIds[0])?.url
+              : citedEvidence[0]?.url
+          }
+          discoveredPublisher={
+            claim.correction?.evidenceIds?.[0]
+              ? evidenceMap.get(claim.correction.evidenceIds[0])?.publisher
+              : citedEvidence[0]?.publisher
+          }
+        />
+      )}
+
+      {/* Interactive Missing Context Resolution Form */}
+      {(claim.verdict === 'depends_on_context' ||
+        claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
+        (claim.missingMaterialContext && claim.missingMaterialContext.length > 0)) && (
+        <MissingContextResolver claim={claim} runId={runId} />
       )}
 
       {/* Dynamic Clarification Form (when DAG branch is waiting_for_input) */}
@@ -186,15 +460,18 @@ export function ClaimDetail({ claim, evidenceMap, clarification, onClarification
       )}
 
       {/* Cited Evidence Cards */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider font-mono">
-            Cited Evidence ({citedEvidence.length})
-          </h4>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-text-muted" />
+            <h4 className="text-[11px] font-mono text-text-muted uppercase tracking-[0.16em]">
+              Cited Evidence ({citedEvidence.length})
+            </h4>
+          </div>
         </div>
 
         {citedEvidence.length === 0 ? (
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-text-muted font-mono">
             No direct web evidence attached to this claim result.
           </p>
         ) : (

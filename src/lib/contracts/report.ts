@@ -159,6 +159,7 @@ const BaseClaimFields = {
   ordinal: z.number().int().nonnegative(),
   rawText: z.string().min(1, { message: 'Raw claim text is required' }),
   span: ClaimSpanSchema.nullable().optional(),
+  missingMaterialContext: z.array(z.string()).optional(),
 };
 
 /**
@@ -258,6 +259,7 @@ export const BaseReportSchema = z.object({
   summary: ReportSummarySchema,
   claims: z.array(ClaimResultItemSchema),
   evidence: z.array(EvidenceItemSchema),
+  clarifications: z.array(z.any()).optional().default([]),
   isReplay: z.boolean().optional().default(false),
   replayLabel: z.string().nullable().optional(),
 });

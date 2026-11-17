@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface DemonstrationPair {
-  id: 'pluto' | 'uk';
+  id: string;
   categoryLabel: string;
   prefix: string;
   wrongPart: string;
@@ -16,48 +16,116 @@ export interface DemonstrationPair {
 export const DEMO_PAIRS: DemonstrationPair[] = [
   {
     id: 'pluto',
-    categoryLabel: 'TEMPORAL CLASSIFICATION',
+    categoryLabel: 'ASTRONOMY',
     prefix: 'Pluto is ',
-    wrongPart: 'the ninth planet in our solar system.',
-    correctedPart: 'classified as a dwarf planet.',
-    historicalContext: 'Before August 2006',
+    wrongPart: 'the 9th planet.',
+    correctedPart: 'a dwarf planet.',
+    historicalContext: 'Before Aug 2006',
     classificationContext: 'IAU Classification, 2006',
     effectiveDate: 'August 2006',
   },
   {
+    id: 'iphone',
+    categoryLabel: 'HARDWARE STANDARDS',
+    prefix: 'iPhones charge via ',
+    wrongPart: 'a Lightning cable.',
+    correctedPart: 'universal USB-C.',
+    historicalContext: 'iPhone 5–14',
+    classificationContext: 'EU Directive / iPhone 15',
+    effectiveDate: 'Sept 2023',
+  },
+  {
+    id: 'twitter',
+    categoryLabel: 'SOCIAL PLATFORMS',
+    prefix: 'Tweets are capped at ',
+    wrongPart: '140 characters.',
+    correctedPart: '280 chars (now X).',
+    historicalContext: '2006–2017',
+    classificationContext: 'Character Expansion',
+    effectiveDate: 'Nov 2017',
+  },
+  {
+    id: 'netflix',
+    categoryLabel: 'MEDIA & STREAMING',
+    prefix: 'Netflix mails ',
+    wrongPart: 'red paper DVDs.',
+    correctedPart: 'streams all titles.',
+    historicalContext: '1998–2023',
+    classificationContext: 'DVD Service Sunset',
+    effectiveDate: 'Sept 2023',
+  },
+  {
     id: 'uk',
-    categoryLabel: 'TEMPORAL CHANGE',
-    prefix: 'The United Kingdom ',
-    wrongPart: 'is a member of the European Union.',
-    correctedPart: 'left the European Union on 31 January 2020.',
-    historicalContext: 'Before 31 January 2020',
+    categoryLabel: 'GEOPOLITICS',
+    prefix: 'The UK is ',
+    wrongPart: 'an EU member state.',
+    correctedPart: 'outside the EU.',
+    historicalContext: '1973–2020',
     classificationContext: 'EU Withdrawal Agreement',
-    effectiveDate: '31 January 2020',
+    effectiveDate: 'Jan 2020',
+  },
+  {
+    id: 'python',
+    categoryLabel: 'PROGRAMMING',
+    prefix: 'Python prints with ',
+    wrongPart: 'print "text" statements.',
+    correctedPart: 'the print() function.',
+    historicalContext: 'Python 2.x',
+    classificationContext: 'PEP 3105 Specification',
+    effectiveDate: 'Dec 2008',
+  },
+  {
+    id: 'breakdancing',
+    categoryLabel: 'OLYMPIC REVISION',
+    prefix: 'Olympic breaking is ',
+    wrongPart: 'a permanent sport.',
+    correctedPart: 'dropped for LA 2028.',
+    historicalContext: 'Paris 2024',
+    classificationContext: 'IOC Program Selection',
+    effectiveDate: 'Aug 2024',
   },
 ];
 
 interface TemporalRevealStripProps {
   className?: string;
-  initialPairId?: 'pluto' | 'uk';
+  initialPairId?: string;
 }
 
 export function TemporalRevealStrip({
   className = '',
   initialPairId,
 }: TemporalRevealStripProps) {
-  // Randomly select between the two demonstration examples on mount if initialPairId not explicitly set
-  const [activePairId, setActivePairId] = useState<'pluto' | 'uk'>(initialPairId || 'pluto');
+  // Randomly select between the demonstration examples on mount if initialPairId not explicitly set
+  const [activePairId, setActivePairId] = useState<string>(
+    initialPairId || DEMO_PAIRS[0].id
+  );
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [undercutPercent, setUndercutPercent] = useState<number>(0);
 
   useEffect(() => {
     if (!initialPairId) {
-      const picked = Math.random() < 0.5 ? 'pluto' : 'uk';
+      const picked = DEMO_PAIRS[Math.floor(Math.random() * DEMO_PAIRS.length)].id;
       setActivePairId(picked);
     }
   }, [initialPairId]);
 
-  const activePair = DEMO_PAIRS.find((p) => p.id === activePairId) || DEMO_PAIRS[0];
+  const activeIndex = DEMO_PAIRS.findIndex((p) => p.id === activePairId);
+  const activePair = DEMO_PAIRS[activeIndex >= 0 ? activeIndex : 0];
+
+  const handleNextPair = () => {
+    const nextIdx = (activeIndex + 1) % DEMO_PAIRS.length;
+    const nextPair = DEMO_PAIRS[nextIdx];
+    setActivePairId(nextPair.id);
+    setIsCompleted(false);
+    isCompletedRef.current = false;
+    setUndercutPercent(0);
+    if (strikeLineRef.current) {
+      strikeLineRef.current.style.width = '0%';
+    }
+    if (lensRef.current) {
+      lensRef.current.style.transform = 'translate3d(0px, -50%, 0px)';
+    }
+  };
 
   // DOM Refs for direct 60fps manipulation
   const wrongTrackRef = useRef<HTMLSpanElement>(null);
@@ -172,12 +240,22 @@ export function TemporalRevealStrip({
     >
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 py-1">
         
-        {/* 1. DISCREET CLASSIFICATION METADATA */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* 1. DISCREET CLASSIFICATION METADATA & EXAMPLE SWITCHER */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)]" aria-hidden="true" />
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--af-silver)]/80">
             {activePair.categoryLabel}
           </span>
+          <button
+            type="button"
+            onClick={handleNextPair}
+            className="group/btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs border border-white/[0.08] hover:border-white/25 bg-white/[0.03] hover:bg-white/[0.08] text-[9px] font-mono tracking-widest uppercase text-[var(--af-silver)]/70 hover:text-[var(--af-ivory)] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--af-ivory)]"
+            title="Cycle to another temporal claim pair"
+            aria-label="Next temporal claim example"
+          >
+            <span>TRY ANOTHER</span>
+            <span className="text-[10px] transition-transform duration-200 group-hover/btn:rotate-90">↻</span>
+          </button>
         </div>
 
         {/* 2. THE CENTRAL INTERACTIVE SENTENCE TRACK: LIVE UNDERCUT ON WRONG PART ONLY */}

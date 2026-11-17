@@ -36,23 +36,26 @@ export function ClaimList({
 
   return (
     <div
-      className={`space-y-2.5 ${className}`}
+      className={`space-y-3 ${className}`}
       role="listbox"
       aria-label="Extracted claim statements"
     >
       <div className="flex items-center justify-between pb-1">
-        <h3 className="text-sm font-medium text-text-primary">
-          Claims ({filteredClaims.length} of {claims.length})
-        </h3>
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-text-muted" aria-hidden="true" />
+          <h3 className="font-sans text-base font-normal tracking-heading text-text-primary">
+            Claims ({filteredClaims.length} of {claims.length})
+          </h3>
+        </div>
         {activeFilter !== 'all' && (
-          <span className="text-xs text-text-muted font-mono capitalize">
+          <span className="text-[11px] text-text-muted font-mono capitalize">
             Filtered: {activeFilter.replace(/_/g, ' ')}
           </span>
         )}
       </div>
 
       {filteredClaims.length === 0 ? (
-        <div className="rounded-xl border border-border-subtle bg-surface p-4 text-center text-xs text-text-muted">
+        <div className="rounded-xl border border-border-subtle/80 bg-surface/60 p-6 text-center text-xs text-text-muted font-mono">
           No claims match the active filter.
         </div>
       ) : (
@@ -95,15 +98,15 @@ export function ClaimList({
               role="option"
               aria-selected={isSelected}
               tabIndex={0}
-              className={`group cursor-pointer rounded-xl border p-3.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+              className={`group cursor-pointer rounded-xl border p-4 transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring ${
                 isSelected
-                  ? 'border-border-strong bg-surface-raised shadow-sm ring-1 ring-border-strong'
-                  : 'border-border-subtle bg-surface hover:border-border-strong/60 hover:bg-surface-raised/50'
+                  ? 'border-border-strong bg-surface-raised shadow-xs ring-1 ring-border-strong'
+                  : 'border-border-subtle/80 bg-surface/50 hover:border-border-strong/60 hover:bg-surface-raised/40'
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-raised text-[10px] font-mono font-medium text-text-muted border border-border-subtle">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-xs bg-surface-raised text-[10px] font-mono font-medium text-text-muted border border-border-subtle/70">
                     {claim.ordinal + 1}
                   </span>
                   <StatusBadge status={verdictStatus} label={verdictLabel} size="sm" />
@@ -128,12 +131,12 @@ export function ClaimList({
                 </div>
               </div>
 
-              <p className="mt-2 text-xs font-medium text-text-primary leading-relaxed line-clamp-2">
+              <p className="mt-2.5 text-xs sm:text-[13px] font-normal text-text-primary leading-relaxed line-clamp-2">
                 {claim.rawText}
               </p>
 
               {claim.state === 'assessed' && claim.scoreReason && (
-                <p className="mt-1.5 text-[11px] text-text-muted line-clamp-1">
+                <p className="mt-1.5 text-[11px] font-mono text-text-muted/80 line-clamp-1">
                   {claim.scoreReason}
                 </p>
               )}
