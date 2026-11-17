@@ -81,7 +81,18 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
         });
         const isRetryable = res.status === 503 || res.status === 429 || res.status === 502;
         if (isRetryable && attempt < maxRetries) {
-          const backoffMs = (attempt + 1) * 1500;
+          let backoffMs = (attempt + 1) * 2000;
+          if (res.status === 429) {
+            try {
+              const parsedErr = JSON.parse(errText);
+              const retryAfterMs = parsedErr?.extra_fields?.retry_after_ms;
+              if (typeof retryAfterMs === 'number' && retryAfterMs > 0) {
+                backoffMs = Math.min(retryAfterMs + 1000, 15000);
+              }
+            } catch {
+              backoffMs = 5000;
+            }
+          }
           console.warn(`[Bifrost] Received HTTP ${res.status} (model high demand / capacity spike). Retrying in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
           continue;
@@ -107,14 +118,99 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
 
   const fallbackModel = getModelProfile('fallback');
   if (options.enableFallback && modelToUse !== fallbackModel) {
-    console.warn(`[Bifrost] Primary model ${modelToUse} failed. Falling back to ${fallbackModel}...`);
-    
-    return bifrostChat({
-      ...options,
-      model: fallbackModel,
-      enableFallback: false,
-    });
+    console.warn(`[Bifrost] Primary model ${modelToUse} failed. Trying Bifrost fallback to ${fallbackModel}...`);
+    try {
+      return await bifrostChat({
+        ...options,
+        model: fallbackModel,
+        enableFallback: false,
+      });
+    } catch (fbErr) {
+      console.warn(`[Bifrost] Bifrost fallback model ${fallbackModel} also failed:`, fbErr);
+    }
+  }
+
+  // Direct Google Gemini fallback if configured in environment
+  const geminiFallbackKey = (
+    process.env.GEMINI_FALLBACK ||
+    process.env['GEMINI_FALLBACK '] ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    ''
+  )
+    .trim()
+    .replace(/^["']|["']$/g, '');
+
+  if (geminiFallbackKey) {
+    console.warn('[Bifrost] Gateway unavailable or failed. Engaging direct Google Gemini fallback API...');
+    try {
+      const directResult = await callDirectGemini(options, geminiFallbackKey);
+      if (directResult && directResult.trim().length > 0) {
+        return directResult;
+      }
+    } catch (geminiError) {
+      console.error('[Gemini Direct Fallback Error]', geminiError);
+    }
   }
 
   throw lastError;
+}
+
+/**
+ * Direct Google Gemini API caller for zero-downtime gateway fallback.
+ */
+async function callDirectGemini(options: BifrostChatOptions, apiKey: string): Promise<string> {
+  const model = process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash';
+  const controller = new AbortController();
+  const timeoutMs = Math.max(options.timeoutMs ?? 30000, 15000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const systemMessages = options.messages.filter((m) => m.role === 'system');
+    const systemInstruction =
+      systemMessages.length > 0
+        ? { parts: [{ text: systemMessages.map((m) => m.content).join('\n\n') }] }
+        : undefined;
+
+    const nonSystemMessages = options.messages.filter((m) => m.role !== 'system');
+    const contents =
+      nonSystemMessages.length > 0
+        ? nonSystemMessages.map((m) => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }],
+          }))
+        : [{ role: 'user', parts: [{ text: 'Begin' }] }];
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        ...(systemInstruction ? { systemInstruction } : {}),
+        generationConfig: {
+          temperature: options.temperature ?? 0,
+          ...(options.response_format?.type === 'json_object'
+            ? { responseMimeType: 'application/json' }
+            : {}),
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Direct Gemini API HTTP ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+    const candidate = data.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text;
+    if (typeof text === 'string') {
+      return text;
+    }
+    return '';
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
