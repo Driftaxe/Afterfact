@@ -190,7 +190,9 @@ export class DagService {
 
 export async function createRunAndInitializeDag(params: {
   ownerHash: string;
+  ipHash?: string;
   inputHash: string;
+  parentRunId?: string;
   prepId?: string;
   text: string;
   question?: string;
@@ -215,7 +217,9 @@ export async function createRunAndInitializeDag(params: {
     const run = await tx.verificationRun.create({
       data: {
         ownerHash: params.ownerHash,
+        ipHash: params.ipHash,
         inputHash: params.inputHash,
+        parentRunId: params.parentRunId,
         prepId: validatedPrepId,
         mode: params.mode ?? 'paste',
         text: params.text,
@@ -234,13 +238,17 @@ export async function createRunAndInitializeDag(params: {
     if (params.initialClaims && params.initialClaims.length > 0) {
       for (let i = 0; i < params.initialClaims.length; i++) {
         const ticket = params.initialClaims[i];
+        const boundTicket = {
+          ...ticket,
+          runId: run.id,
+        };
         await tx.claim.create({
           data: {
             runId: run.id,
             ordinal: i,
             text: ticket.originalStatement,
             normalizedText: ticket.normalizedProposition,
-            spec: ticket as unknown as Prisma.InputJsonValue,
+            spec: boundTicket as unknown as Prisma.InputJsonValue,
             state: 'pending',
             status: 'PENDING',
           },

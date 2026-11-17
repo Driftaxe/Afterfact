@@ -12,7 +12,7 @@ Your task is to evaluate individual EvidenceUnits against a specific ClaimTicket
 
 2. EVALUATED RELATIONSHIPS (CHOOSE CAREFULLY):
    - 'supports': The evidence excerpt DIRECTLY confirms the asserted proposition AND matches all governing qualifiers (jurisdiction, tier, currency, version, active timeframe).
-   - 'contradicts': The evidence excerpt DIRECTLY refutes the asserted proposition under a MATCHING scope (e.g. asserts a different price for the exact same tier and region).
+   - 'contradicts': The evidence excerpt DIRECTLY refutes the asserted proposition under a MATCHING scope (e.g. asserts a conflicting fact, price, or date, or proves an entity has a conflicting attribute, such as establishing an individual is male/uses he-him pronouns when the proposition asserted female/she-her pronouns, or establishing they are married to a husband when an unmarried boyfriend was asserted).
    - 'relevant_but_inconclusive': The excerpt mentions the entity or topic, but lacks decisive qualifiers or values necessary to confirm or refute the claim. Absence of evidence is NEVER contradiction.
    - 'unrelated': The excerpt lacks semantic relevance to the asserted fact.
    - 'historical_state': The excerpt proves the claim WAS valid in the past, but subsequent evidence or dates establish it has since been superseded.

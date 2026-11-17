@@ -116,10 +116,10 @@ export async function expandDag(params: ExpandDagParams, tx?: Prisma.Transaction
       throw new Error('Dynamic DAG expansion would create a cycle in graph topology');
     }
 
-    // 3. Atomically insert new nodes
-    for (const node of newNodes) {
-      await client.dagNode.create({
-        data: {
+    // 3. Atomically batch insert new nodes
+    if (newNodes.length > 0) {
+      await client.dagNode.createMany({
+        data: newNodes.map((node) => ({
           id: node.id,
           runId,
           claimId: node.claimId,
@@ -127,27 +127,31 @@ export async function expandDag(params: ExpandDagParams, tx?: Prisma.Transaction
           nodeKey: node.id,
           state: node.state ?? 'pending',
           status: (node.state ?? 'pending').toUpperCase(),
-          input: node.input,
-        },
+          input: node.input ?? undefined,
+        })),
+        skipDuplicates: true,
       });
     }
 
-    // 4. Atomically insert new edges
-    for (const edge of newEdges) {
-      const edgeHash = crypto
-        .createHash('sha256')
-        .update(`${runId}:${edge.predecessorId}:${edge.successorId}`)
-        .digest('hex')
-        .slice(0, 32);
-      const edgeId = `edge_${edgeHash}`;
-      await client.dagEdge.create({
-        data: {
-          id: edgeId,
-          runId,
-          predecessorId: edge.predecessorId,
-          successorId: edge.successorId,
-          condition: edge.condition ?? 'on_success',
-        },
+    // 4. Atomically batch insert new edges
+    if (newEdges.length > 0) {
+      await client.dagEdge.createMany({
+        data: newEdges.map((edge) => {
+          const edgeHash = crypto
+            .createHash('sha256')
+            .update(`${runId}:${edge.predecessorId}:${edge.successorId}`)
+            .digest('hex')
+            .slice(0, 32);
+          const edgeId = `edge_${edgeHash}`;
+          return {
+            id: edgeId,
+            runId,
+            predecessorId: edge.predecessorId,
+            successorId: edge.successorId,
+            condition: edge.condition ?? 'on_success',
+          };
+        }),
+        skipDuplicates: true,
       });
     }
 
@@ -160,6 +164,6 @@ export async function expandDag(params: ExpandDagParams, tx?: Prisma.Transaction
   if (tx) {
     return await runner(tx);
   } else {
-    return await db.$transaction(runner);
+    return await db.$transaction(runner, { timeout: 30000, maxWait: 10000 });
   }
 }

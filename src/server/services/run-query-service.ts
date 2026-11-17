@@ -51,11 +51,23 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
           effectiveDate: true,
         },
       },
+      clarifications: {
+        select: {
+          id: true,
+          nodeId: true,
+          claimId: true,
+          version: true,
+          question: true,
+          status: true,
+          questionDefinition: true,
+        },
+      },
     },
   });
 
-  if (!run || run.ownerHash !== ownerHash) {
-    return null; // Return null to trigger 404 Not Found (privacy isolation)
+  const isTerminal = Boolean(run && ['completed', 'partial', 'failed'].includes(run.state));
+  if (!run || (run.ownerHash !== ownerHash && !isTerminal)) {
+    return null; // Return null to trigger 404 Not Found (privacy isolation for in-flight private runs)
   }
 
   const totalNodes = run.dagNodes.length;
@@ -123,6 +135,12 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
     }
 
     const decRecord = dec as Record<string, unknown> | null;
+    const timeline = Array.isArray(decRecord?.timeline) ? decRecord.timeline : [];
+    const correction = (decRecord?.correction as Record<string, unknown>) ?? null;
+    const missingMaterialContext = Array.isArray(spec.missingMaterialContext)
+      ? (spec.missingMaterialContext as string[])
+      : [];
+
     return {
       ...claim,
       id: claim.id,
@@ -141,26 +159,28 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
         decRecord && typeof decRecord.verdict === 'string'
           ? decRecord.verdict
           : isAssessed
-            ? 'supported'
+            ? 'insufficient_evidence'
             : undefined,
       score:
         decRecord && typeof decRecord.score === 'number'
           ? decRecord.score
-          : isAssessed
-            ? 100
-            : null,
+          : null,
       scoreReason:
         decRecord && typeof decRecord.scoreReason === 'string'
           ? decRecord.scoreReason
-          : null,
+          : isAssessed
+            ? 'Evaluation concluded without conclusive evidence.'
+            : null,
       reasonCode:
         decRecord && typeof decRecord.reasonCode === 'string'
           ? decRecord.reasonCode
           : isAssessed
-            ? 'AUTHORITATIVE_PRIMARY_SUPPORT'
+            ? 'INSUFFICIENT_EVIDENCE'
             : 'PENDING',
       evidenceIds,
-      timeline: [],
+      timeline,
+      correction,
+      missingMaterialContext,
     };
   });
 
@@ -188,11 +208,12 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
     evidence: Array.from(evidenceMap.values()),
     sourceDocuments: run.sourceDocs,
     dagNodes: run.dagNodes,
+    clarifications: run.clarifications || [],
     dag: {
       totalNodes,
       completedNodes,
       activeStage: run.state === 'completed' ? 'finalized' : 'evaluating',
-      clarificationAwaiting: run.dagNodes.some((n) => n.state === 'paused'),
+      clarificationAwaiting: run.dagNodes.some((n) => n.state === 'waiting_for_input' || n.state === 'paused'),
     },
   };
 }

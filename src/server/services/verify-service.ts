@@ -6,6 +6,7 @@ import type { VerificationRequest } from '@/lib/contracts/request';
 
 export interface VerificationServiceOptions {
   ownerHash: string;
+  ipHash?: string;
   idempotencyKey?: string;
 }
 
@@ -91,6 +92,7 @@ export class VerificationService {
     // 3. Persist run and initialize DAG (root_extract_prep -> finalize_run)
     const { run, rootNode } = await createRunAndInitializeDag({
       ownerHash,
+      ipHash: options.ipHash,
       inputHash,
       text,
       question,

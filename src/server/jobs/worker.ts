@@ -7,8 +7,17 @@ import { expandDag } from '@/server/dag/expand';
 import { extractClaimsFromText } from '@/server/verify/extract-claims';
 import { generateResearchPlan } from '@/server/verify/research-planner';
 import { tavilySearch, RawSourceDoc } from '@/server/tavily/client';
+import { extractEvidenceUnits } from '@/server/verify/extract-evidence';
+import { assessEvidenceAgainstClaim } from '@/server/verify/assess-evidence';
+import { evaluatePolicy } from '@/server/policies';
+import type { ProvenanceFact, SemanticIntentFacts } from '@/server/policies/types';
 import { decideClaim } from '@/server/verify/decide';
-import type { ClaimTicket } from '@/lib/contracts/claim-ticket';
+import { ClarificationService } from '@/server/services/clarification-service';
+import { composeTimeline } from '@/server/verify/transition';
+import { orchestrateClaimCorrection } from '@/server/verify/correction';
+import type { ClaimTicket, VerificationProperty } from '@/lib/contracts/claim-ticket';
+import type { DecideClaimInput, DecisionRecord } from '@/lib/contracts/decision';
+import type { EvidenceUnit, SourceDocument, ClaimEvidenceAssessment, AssessmentRelationship } from '@/lib/contracts/evidence-objects';
 import type { Prisma } from '@prisma/client';
 
 const qstash = new Client({
@@ -284,31 +293,42 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
       case 'search_evidence': {
         const claimId = node.claimId;
         const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
-        const query = claim?.text ?? 'fact check query';
+        const input = (node.input as Record<string, unknown>) ?? {};
+        const plannedQuery =
+          typeof input.query === 'string'
+            ? input.query
+            : Array.isArray((input.plan as { queries?: Array<{ query?: string }> })?.queries)
+              ? (input.plan as { queries: Array<{ query: string }> }).queries[0]?.query
+              : undefined;
+
+        const query = plannedQuery || claim?.normalizedText || claim?.text || 'fact check query';
 
         let docs: RawSourceDoc[] = [];
         try {
-          docs = await tavilySearch({ query, maxResults: 2 });
+          docs = await tavilySearch({ query, maxResults: 3 });
         } catch {
           docs = [];
         }
 
-        let savedDocId: string | null = null;
-        if (docs.length > 0) {
-          const d = docs[0];
-          const savedDoc = await db.sourceDocument.create({
-            data: {
-              runId,
-              url: d.url,
-              finalUrl: d.finalUrl,
-              title: d.title,
-              publisher: d.publisher,
-              contentHash: d.contentHash,
-              sourceRole: 'primary_authority',
-              rawContent: d.rawContent,
-            },
-          });
-          savedDocId = savedDoc.id;
+        const savedDocIds: string[] = [];
+        for (const d of docs) {
+          try {
+            const savedDoc = await db.sourceDocument.create({
+              data: {
+                runId,
+                url: d.url,
+                finalUrl: d.finalUrl,
+                title: d.title,
+                publisher: d.publisher,
+                contentHash: d.contentHash,
+                sourceRole: 'primary_authority',
+                rawContent: d.rawContent,
+              },
+            });
+            savedDocIds.push(savedDoc.id);
+          } catch {
+            // Graceful handling of duplicates
+          }
         }
 
         const nextNodeId = `node_extract_${claimId}`;
@@ -320,7 +340,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               claimId: claimId ?? undefined,
               nodeType: 'extract_evidence',
               state: 'pending',
-              input: { sourceDocId: savedDocId },
+              input: { sourceDocIds: savedDocIds, sourceDocId: savedDocIds[0] ?? null },
             },
           ],
           newEdges: [
@@ -335,23 +355,90 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
       case 'extract_evidence': {
         const claimId = node.claimId;
+        const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
-        const sourceDocId = typeof input.sourceDocId === 'string' ? input.sourceDocId : null;
+        const rawDocIds = Array.isArray(input.sourceDocIds)
+          ? (input.sourceDocIds as string[])
+          : typeof input.sourceDocId === 'string'
+            ? [input.sourceDocId]
+            : [];
 
-        let unitId: string | null = null;
-        if (sourceDocId) {
-          const doc = await db.sourceDocument.findUnique({ where: { id: sourceDocId } });
-          if (doc) {
-            const raw = doc.rawContent ?? doc.title ?? 'source text';
-            const unit = await db.evidenceUnit.create({
-              data: {
+        const createdUnitIds: string[] = [];
+
+        if (claim && claim.spec && rawDocIds.length > 0) {
+          const rawTicket = claim.spec as unknown as ClaimTicket;
+          const ticket: ClaimTicket = { ...rawTicket, runId };
+          const docs = await db.sourceDocument.findMany({
+            where: { id: { in: rawDocIds } },
+          });
+
+          for (const doc of docs) {
+            const raw = doc.rawContent ?? doc.title ?? '';
+            if (!raw || raw.trim().length === 0) continue;
+
+            const retrievedIso = doc.retrievedAt?.toISOString() ?? new Date().toISOString();
+            const effectiveDate = retrievedIso.slice(0, 10);
+            const sourceContract: SourceDocument = {
+              documentId: doc.id,
+              runId,
+              url: doc.url,
+              finalUrl: doc.finalUrl ?? doc.url,
+              retrievedContentHash: doc.contentHash ?? 'hash',
+              retrievedAt: retrievedIso,
+              rawText: raw,
+              extractionStatus: 'success',
+              sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? 'primary_authority',
+              effectiveDate,
+            };
+
+            let extractedPassages: EvidenceUnit[] = [];
+            try {
+              const outcome = await extractEvidenceUnits({
+                source: sourceContract,
+                ticket,
+                maxPassages: 3,
+              });
+
+              if (outcome.status === 'success' && outcome.evidenceUnits.length > 0) {
+                extractedPassages = outcome.evidenceUnits;
+              }
+            } catch (err) {
+              console.warn('[extract_evidence] Model extraction failed, falling back to grounded excerpt:', err);
+            }
+
+            // Grounded deterministic fallback if model extraction was empty
+            if (extractedPassages.length === 0) {
+              const cleanedText = raw.trim();
+              const snippet = cleanedText.slice(0, 400);
+              extractedPassages.push({
+                evidenceId: `unit_${doc.id.slice(0, 12)}_${Date.now()}`,
                 documentId: doc.id,
-                sourceDocId: doc.id,
-                verbatimText: raw.slice(0, 500),
-                content: raw.slice(0, 500),
-              },
-            });
-            unitId = unit.id;
+                verbatimText: snippet,
+                locator: { charOffsetStart: 0, charOffsetEnd: snippet.length },
+                surroundingHeaders: [],
+                footnotes: [],
+                extractedProperties: [],
+                extractionLimitations: [],
+              });
+            }
+
+            for (const unit of extractedPassages) {
+              const created = await db.evidenceUnit.create({
+                data: {
+                  documentId: doc.id,
+                  sourceDocId: doc.id,
+                  verbatimText: unit.verbatimText,
+                  content: unit.verbatimText,
+                  quote: unit.verbatimText,
+                  locator: unit.locator as unknown as Prisma.InputJsonValue,
+                  surroundingHeaders: (unit.surroundingHeaders ?? []) as unknown as Prisma.InputJsonValue,
+                  tableContext: (unit.tableContext ?? null) as unknown as Prisma.InputJsonValue,
+                  footnotes: (unit.footnotes ?? []) as unknown as Prisma.InputJsonValue,
+                  extractedProperties: (unit.extractedProperties ?? []) as unknown as Prisma.InputJsonValue,
+                },
+              });
+              createdUnitIds.push(created.id);
+            }
           }
         }
 
@@ -364,7 +451,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               claimId: claimId ?? undefined,
               nodeType: 'assess_evidence',
               state: 'pending',
-              input: { evidenceUnitId: unitId },
+              input: { evidenceUnitIds: createdUnitIds, evidenceUnitId: createdUnitIds[0] ?? null },
             },
           ],
           newEdges: [
@@ -379,21 +466,138 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
       case 'assess_evidence': {
         const claimId = node.claimId;
+        const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
-        const evidenceUnitId = typeof input.evidenceUnitId === 'string' ? input.evidenceUnitId : null;
+        const rawUnitIds = Array.isArray(input.evidenceUnitIds)
+          ? (input.evidenceUnitIds as string[])
+          : typeof input.evidenceUnitId === 'string'
+            ? [input.evidenceUnitId]
+            : [];
 
-        if (claimId && evidenceUnitId) {
-          await db.claimEvidenceAssessment.create({
-            data: {
-              claimId,
-              evidenceUnitId,
-              relationship: 'supports',
-              stance: 'SUPPORTS',
-              confidence: 1.0,
-              rationale: 'Passage supports claim propositional core',
-              quotationVerified: true,
-            },
+        if (claim && claim.spec && rawUnitIds.length > 0 && claimId) {
+          const currentClaimId = claimId;
+          const rawTicket = claim.spec as unknown as ClaimTicket;
+          const ticket: ClaimTicket = { ...rawTicket, runId };
+          const unitsFromDb = await db.evidenceUnit.findMany({
+            where: { id: { in: rawUnitIds } },
+            include: { document: true },
           });
+
+          if (unitsFromDb.length > 0) {
+            const docMap = new Map<string, SourceDocument>();
+            const contractUnits: EvidenceUnit[] = [];
+
+            for (const u of unitsFromDb) {
+              const doc = u.document;
+              const docEffectiveDate = doc?.retrievedAt?.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+              if (doc && !docMap.has(doc.id)) {
+                docMap.set(doc.id, {
+                  documentId: doc.id,
+                  runId,
+                  url: doc.url,
+                  finalUrl: doc.finalUrl ?? doc.url,
+                  retrievedContentHash: doc.contentHash ?? 'hash',
+                  retrievedAt: doc.retrievedAt?.toISOString() ?? new Date().toISOString(),
+                  rawText: doc.rawContent ?? doc.title ?? '',
+                  extractionStatus: 'success',
+                  sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? 'primary_authority',
+                  effectiveDate: docEffectiveDate,
+                });
+              }
+
+              const loc = typeof u.locator === 'object' && u.locator !== null
+                ? (u.locator as { charOffsetStart?: number; charOffsetEnd?: number })
+                : {};
+
+              contractUnits.push({
+                evidenceId: u.id,
+                documentId: u.documentId ?? (doc ? doc.id : 'unknown'),
+                verbatimText: u.verbatimText ?? u.content ?? '',
+                locator: {
+                  charOffsetStart: loc.charOffsetStart ?? 0,
+                  charOffsetEnd: loc.charOffsetEnd ?? (u.verbatimText?.length ?? 10),
+                },
+                surroundingHeaders: Array.isArray(u.surroundingHeaders) ? (u.surroundingHeaders as string[]) : [],
+                tableContext: (u.tableContext as unknown as EvidenceUnit['tableContext']) ?? undefined,
+                footnotes: Array.isArray(u.footnotes) ? (u.footnotes as string[]) : [],
+                extractedProperties: Array.isArray(u.extractedProperties) ? (u.extractedProperties as unknown as VerificationProperty[]) : [],
+                effectiveDate: docEffectiveDate,
+                extractionLimitations: [],
+              });
+            }
+
+            let assessmentsToStore: ClaimEvidenceAssessment[] = [];
+            try {
+              const outcome = await assessEvidenceAgainstClaim({
+                ticket,
+                evidenceUnits: contractUnits,
+                sourceDocuments: docMap,
+              });
+
+              if (outcome.status === 'success' && outcome.assessments.length > 0) {
+                assessmentsToStore = outcome.assessments;
+              }
+            } catch (err) {
+              console.warn('[assess_evidence] Semantic assessment failed, using grounded fallback:', err);
+            }
+
+            // Resilient grounded fallback: fail closed with inconclusive relationship
+            if (assessmentsToStore.length === 0) {
+              for (const u of contractUnits) {
+                assessmentsToStore.push({
+                  assessmentId: `asm_${u.evidenceId.slice(0, 16)}`,
+                  claimTicketId: ticket.ticketId,
+                  evidenceId: u.evidenceId,
+                  claimRevision: ticket.revision,
+                  relationship: 'relevant_but_inconclusive',
+                  scopeMatching: 'unknown',
+                  quotationVerified: true,
+                  propertyMatchStatus: { matching: [], mismatched: [], missingInEvidence: [] },
+                  temporalApplicability: 'undetermined',
+                  sourceSuitability: 'credible_secondary',
+                  modelConfidence: 0.2,
+                  reasoning: 'Grounded passage was retrieved but semantic relationship is inconclusive.',
+                });
+              }
+            }
+
+            for (const a of assessmentsToStore) {
+              await db.claimEvidenceAssessment.upsert({
+                where: {
+                  claimId_evidenceUnitId_claimRevision: {
+                    claimId: currentClaimId,
+                    evidenceUnitId: a.evidenceId,
+                    claimRevision: a.claimRevision,
+                  },
+                },
+                create: {
+                  claimId: currentClaimId,
+                  evidenceUnitId: a.evidenceId,
+                  claimRevision: a.claimRevision,
+                  relationship: a.relationship,
+                  stance: a.relationship === 'supports' ? 'SUPPORTS' : a.relationship === 'contradicts' ? 'CONTRADICTS' : 'INCONCLUSIVE',
+                  confidence: a.modelConfidence ?? 0.9,
+                  rationale: a.reasoning,
+                  reasoning: a.reasoning,
+                  quotationVerified: a.quotationVerified,
+                  propertyMatchStatus: a.propertyMatchStatus as unknown as Prisma.InputJsonValue,
+                  temporalApplicability: a.temporalApplicability,
+                  sourceSuitability: a.sourceSuitability,
+                },
+                update: {
+                  relationship: a.relationship,
+                  stance: a.relationship === 'supports' ? 'SUPPORTS' : a.relationship === 'contradicts' ? 'CONTRADICTS' : 'INCONCLUSIVE',
+                  confidence: a.modelConfidence ?? 0.9,
+                  rationale: a.reasoning,
+                  reasoning: a.reasoning,
+                  quotationVerified: a.quotationVerified,
+                  propertyMatchStatus: a.propertyMatchStatus as unknown as Prisma.InputJsonValue,
+                  temporalApplicability: a.temporalApplicability,
+                  sourceSuitability: a.sourceSuitability,
+                },
+              });
+            }
+          }
         }
 
         const nextNodeId = `node_decide_${claimId}`;
@@ -430,83 +634,253 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           });
 
           if (claim && claim.spec) {
-            const decisionOutcome = decideClaim({
-              ticket: claim.spec as unknown as ClaimTicket,
-              assessments: claim.assessments.map((a) => ({
-                assessmentId: a.id,
-                claimId: a.claimId,
-                evidenceId: a.evidenceUnitId,
-                claimRevision: a.claimRevision,
-                relationship: (a.relationship as 'supports' | 'contradicts' | 'relevant_but_inconclusive' | 'unrelated' | 'historical_state' | 'future_scheduled_change') ?? 'supports',
-                quotationVerified: a.quotationVerified,
-                propertyMatchStatus: { matching: [], mismatched: [], missingInEvidence: [] },
-                temporalApplicability: 'active_at_target_time',
-                sourceSuitability: 'authoritative_primary',
-                reasoning: a.reasoning ?? a.rationale ?? 'Assessment rationale',
-              })),
-              evidenceUnits: claim.assessments.map((a) => ({
-                unitId: a.evidenceUnit.id,
-                documentId: a.evidenceUnit.documentId ?? '',
-                verbatimText: a.evidenceUnit.verbatimText ?? a.evidenceUnit.content ?? '',
-                locator: { kind: 'exact_offset', start: 0, end: 10 },
-                surroundingHeaders: [],
-                extractedProperties: [],
-              })),
-              sources: claim.assessments.map((a) => ({
-                documentId: a.evidenceUnit.document?.id ?? 'doc_unknown',
-                runId,
-                url: a.evidenceUnit.document?.url ?? 'https://example.com',
-                finalUrl: a.evidenceUnit.document?.finalUrl ?? 'https://example.com',
-                retrievedContentHash: a.evidenceUnit.document?.contentHash ?? 'hash',
-                retrievedAt: new Date().toISOString(),
-                rawText: a.evidenceUnit.document?.rawContent ?? 'content',
-                extractionStatus: 'success' as const,
-                sourceRole: 'primary_authority' as const,
-              })),
-              targetTime: new Date().toISOString(),
-            });
+            const rawTicket = claim.spec as unknown as ClaimTicket;
+            const ticket: ClaimTicket = { ...rawTicket, runId };
 
-            if (decisionOutcome.status === 'decided') {
-              const dec = decisionOutcome.decision;
-              await db.decisionRecord.create({
-                data: {
-                  claimId,
-                  verdict: dec.verdict,
-                  score: dec.score,
-                  reasonCode: dec.reasonCode,
-                  scoreReason: dec.scoreReason,
-                  appliedPolicy: dec.appliedPolicy,
-                  primaryEvidenceIds: dec.primaryEvidenceIds as unknown as Prisma.InputJsonValue,
-                  counterEvidenceIds: dec.counterEvidenceIds as unknown as Prisma.InputJsonValue,
-                  excludedEvidence: dec.excludedEvidence as unknown as Prisma.InputJsonValue,
-                  extractedQualifiers: dec.extractedQualifiers as unknown as Prisma.InputJsonValue,
-                  temporalBasis: dec.temporalBasis as unknown as Prisma.InputJsonValue,
-                  limitations: dec.limitations as unknown as Prisma.InputJsonValue,
-                  traceIds: dec.traceIds as unknown as Prisma.InputJsonValue,
-                },
-              });
+            // 1. Build typed SourceDocuments, EvidenceUnits, and Assessments
+            const sourceDocMap = new Map<string, SourceDocument>();
+            const contractEvidenceUnits: EvidenceUnit[] = [];
 
-              await db.claim.update({
-                where: { id: claimId },
-                data: {
-                  state: 'assessed',
-                  status: 'ASSESSED',
-                  result: dec as unknown as Prisma.InputJsonValue,
-                },
-              });
-
-              // Record claim_result event
-              await db.$transaction(async (tx) => {
-                await EventService.recordEvent(tx, runId, {
-                  type: 'claim_result',
-                  claimId,
-                  verdict: dec.verdict,
-                  score: dec.score,
-                  reasonCode: dec.reasonCode,
-                  scoreReason: dec.scoreReason,
+            for (const a of claim.assessments) {
+              const u = a.evidenceUnit;
+              const doc = u.document;
+              const docEffectiveDate = doc?.retrievedAt?.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+              if (doc && !sourceDocMap.has(doc.id)) {
+                sourceDocMap.set(doc.id, {
+                  documentId: doc.id,
+                  runId,
+                  url: doc.url,
+                  finalUrl: doc.finalUrl ?? doc.url,
+                  retrievedContentHash: doc.contentHash ?? 'hash',
+                  retrievedAt: doc.retrievedAt?.toISOString() ?? new Date().toISOString(),
+                  rawText: doc.rawContent ?? doc.title ?? '',
+                  extractionStatus: 'success',
+                  sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? 'primary_authority',
+                  effectiveDate: docEffectiveDate,
                 });
+              }
+
+              const loc = typeof u.locator === 'object' && u.locator !== null
+                ? (u.locator as { charOffsetStart?: number; charOffsetEnd?: number })
+                : {};
+
+              contractEvidenceUnits.push({
+                evidenceId: u.id,
+                documentId: u.documentId ?? (doc ? doc.id : 'unknown'),
+                verbatimText: u.verbatimText ?? u.content ?? '',
+                locator: {
+                  charOffsetStart: loc.charOffsetStart ?? 0,
+                  charOffsetEnd: loc.charOffsetEnd ?? (u.verbatimText?.length ?? 10),
+                },
+                surroundingHeaders: Array.isArray(u.surroundingHeaders) ? (u.surroundingHeaders as string[]) : [],
+                tableContext: (u.tableContext as unknown as EvidenceUnit['tableContext']) ?? undefined,
+                footnotes: Array.isArray(u.footnotes) ? (u.footnotes as string[]) : [],
+                extractedProperties: Array.isArray(u.extractedProperties) ? (u.extractedProperties as unknown as VerificationProperty[]) : [],
+                effectiveDate: docEffectiveDate,
+                extractionLimitations: [],
               });
             }
+
+            const contractSourceDocuments = Array.from(sourceDocMap.values());
+
+            // Build provenance facts for all retrieved source documents to establish authority
+            const provenanceMap: Record<string, ProvenanceFact> = {};
+            for (const doc of contractSourceDocuments) {
+              const isPrimary =
+                doc.sourceRole === 'primary_authority' ||
+                doc.sourceRole === 'regulatory_filing' ||
+                doc.sourceRole === 'official_changelog';
+
+              provenanceMap[doc.documentId] = {
+                documentId: doc.documentId,
+                claimId: ticket.claimId,
+                revision: ticket.revision,
+                basis: isPrimary ? 'official_primary_record' : 'independent_secondary_report',
+                entityMatch: true,
+                claimApplicability: 'applicable',
+                isIndependentSecondary: !isPrimary,
+              };
+            }
+
+            const semanticFacts: SemanticIntentFacts = {
+              claimId: ticket.claimId,
+              revision: ticket.revision,
+              assertedPropertyKeys: ticket.verificationContext
+                .filter((p) => p.origin === 'explicit_claim_text' || p.key === 'asserted_value')
+                .map((p) => p.key),
+              scopeQualifierKeys: ticket.verificationContext
+                .filter((p) => p.key === 'jurisdiction' || p.key === 'effective_date' || p.key === 'plan_tier')
+                .map((p) => p.key),
+            };
+
+            // 2. Policy Evaluation across Specialized Domains (Pricing, API, Regulation, Leadership, Generic)
+            const policyResult = evaluatePolicy({
+              ticket,
+              documents: contractSourceDocuments,
+              provenanceMap,
+              semanticFacts,
+            });
+
+            // Protocol C: Clarification Pause if questions planned
+            if (policyResult.clarification.status === 'questions_planned') {
+              const firstQ = policyResult.clarification.questionSet.questions[0];
+              await ClarificationService.pauseForClarification({
+                runId,
+                nodeId,
+                claimId,
+                questionText: firstQ?.prompt ?? 'Material context required to verify claim.',
+                questionDefinition: policyResult.clarification.questionSet as unknown as Prisma.InputJsonValue,
+                options: firstQ?.options?.map((o) => o.label ?? o.value),
+              });
+              return; // Halt branch without committing completion
+            }
+
+            // 3. Assemble typed DecideClaimInput
+            const contractAssessments: ClaimEvidenceAssessment[] = claim.assessments.map((a) => {
+              const rel = (a.relationship as ClaimEvidenceAssessment['relationship']) ?? 'supports';
+              const temp = (a.temporalApplicability as ClaimEvidenceAssessment['temporalApplicability']) ?? 'active_at_target_time';
+              const suitability = (a.sourceSuitability as ClaimEvidenceAssessment['sourceSuitability']) ?? 'authoritative_primary';
+
+              return {
+                assessmentId: a.id,
+                claimTicketId: ticket.ticketId,
+                evidenceId: a.evidenceUnitId,
+                claimRevision: a.claimRevision,
+                relationship: rel,
+                scopeMatching: 'match' as const,
+                quotationVerified: a.quotationVerified,
+                propertyMatchStatus: (typeof a.propertyMatchStatus === 'object' && a.propertyMatchStatus !== null)
+                  ? (a.propertyMatchStatus as unknown as ClaimEvidenceAssessment['propertyMatchStatus'])
+                  : { matching: [], mismatched: [], missingInEvidence: [] },
+                temporalApplicability: temp,
+                sourceSuitability: suitability,
+                modelConfidence: a.confidence ?? 0.9,
+                reasoning: a.reasoning ?? a.rationale ?? 'Evidence assessment',
+              };
+            });
+
+            const decideInput: DecideClaimInput = {
+              ticket,
+              assessments: contractAssessments,
+              evidenceUnits: contractEvidenceUnits,
+              sourceDocuments: contractSourceDocuments,
+              claimTemporalScope: {
+                quantifier: 'current',
+                intervalSemantics: 'existential',
+              },
+              assessmentGrounding: contractAssessments.map((a) => ({
+                assessmentId: a.assessmentId,
+                contextBasis: a.quotationVerified ? 'verified_context' : 'quotation_only',
+                limitations: [],
+              })),
+              evidenceTemporalProofs: contractAssessments.map((a) => ({
+                evidenceId: a.evidenceId,
+                basis: a.temporalApplicability === 'active_at_target_time'
+                  ? 'current_validity_confirmed'
+                  : a.temporalApplicability === 'historical_prior'
+                    ? 'historical_interval_confirmed'
+                    : 'unknown',
+              })),
+              sourceAuthority: policyResult.authorityFacts.map((f) => ({
+                documentId: f.documentId,
+                basis: f.basis,
+                claimApplicability: f.claimApplicability,
+              })),
+              transitions: [],
+              coverage: {
+                researchComplete: true,
+                obligations: policyResult.obligations,
+                rejectedCandidates: [],
+                budgetExhausted: false,
+                limitations: policyResult.limitations,
+              },
+              policy: policyResult.policy,
+              decidedAt: new Date().toISOString(),
+              traceIds: {
+                runId,
+                nodeId,
+              },
+            };
+
+            const decisionOutcome = decideClaim(decideInput);
+
+            let dec: DecisionRecord;
+            if (decisionOutcome.status === 'decided') {
+              dec = decisionOutcome.decision;
+            } else {
+              console.warn(`[decide_claim] decideClaim returned ${decisionOutcome.status}:`, decisionOutcome);
+              dec = {
+                recordId: `dec_${claimId}_r1`,
+                claimTicketId: ticket.ticketId,
+                claimRevision: ticket.revision,
+                appliedPolicy: policyResult.selectedDomain,
+                verdict: 'insufficient_evidence',
+                score: null,
+                reasonCode: 'INSUFFICIENT_EVIDENCE',
+                scoreReason: 'No authoritative evidence found conclusively supporting or contradicting this proposition.',
+                primaryEvidenceIds: [],
+                counterEvidenceIds: [],
+                excludedEvidence: [],
+                extractedQualifiers: [],
+                temporalBasis: { targetTime: ticket.targetTime },
+                limitations: policyResult.limitations,
+                traceIds: { runId, nodeId },
+              };
+            }
+
+            await db.decisionRecord.upsert({
+              where: { claimId },
+              create: {
+                claimId,
+                verdict: dec.verdict,
+                score: dec.score,
+                reasonCode: dec.reasonCode,
+                scoreReason: dec.scoreReason,
+                appliedPolicy: dec.appliedPolicy,
+                primaryEvidenceIds: dec.primaryEvidenceIds as unknown as Prisma.InputJsonValue,
+                counterEvidenceIds: dec.counterEvidenceIds as unknown as Prisma.InputJsonValue,
+                excludedEvidence: dec.excludedEvidence as unknown as Prisma.InputJsonValue,
+                extractedQualifiers: dec.extractedQualifiers as unknown as Prisma.InputJsonValue,
+                temporalBasis: dec.temporalBasis as unknown as Prisma.InputJsonValue,
+                limitations: dec.limitations as unknown as Prisma.InputJsonValue,
+                traceIds: dec.traceIds as unknown as Prisma.InputJsonValue,
+              },
+              update: {
+                verdict: dec.verdict,
+                score: dec.score,
+                reasonCode: dec.reasonCode,
+                scoreReason: dec.scoreReason,
+                appliedPolicy: dec.appliedPolicy,
+                primaryEvidenceIds: dec.primaryEvidenceIds as unknown as Prisma.InputJsonValue,
+                counterEvidenceIds: dec.counterEvidenceIds as unknown as Prisma.InputJsonValue,
+                excludedEvidence: dec.excludedEvidence as unknown as Prisma.InputJsonValue,
+                extractedQualifiers: dec.extractedQualifiers as unknown as Prisma.InputJsonValue,
+                temporalBasis: dec.temporalBasis as unknown as Prisma.InputJsonValue,
+                limitations: dec.limitations as unknown as Prisma.InputJsonValue,
+                traceIds: dec.traceIds as unknown as Prisma.InputJsonValue,
+              },
+            });
+
+            await db.claim.update({
+              where: { id: claimId },
+              data: {
+                state: 'assessed',
+                status: 'ASSESSED',
+                result: dec as unknown as Prisma.InputJsonValue,
+              },
+            });
+
+            // Record claim_result event
+            await db.$transaction(async (tx) => {
+              await EventService.recordEvent(tx, runId, {
+                type: 'claim_result',
+                claimId,
+                verdict: dec.verdict,
+                score: dec.score,
+                reasonCode: dec.reasonCode,
+                scoreReason: dec.scoreReason,
+              });
+            });
           }
 
           // Link decide_claim to finalize_run node
@@ -539,11 +913,123 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           },
         });
 
+        if (uncompletedNodes > 0) {
+          // Other DAG branches are still active; release finalize_run back to pending
+          // so it can be re-dispatched when remaining predecessor branches complete.
+          await db.dagNode.update({
+            where: { id: nodeId },
+            data: {
+              state: 'pending',
+              status: 'PENDING',
+              leaseToken: null,
+              leaseOwner: null,
+              leaseUntil: null,
+            },
+          });
+          return;
+        }
+
         if (uncompletedNodes === 0) {
           const claims = await db.claim.findMany({
             where: { runId },
-            include: { decision: true, decisionRecord: true },
+            include: {
+              decision: true,
+              decisionRecord: true,
+              assessments: { include: { evidenceUnit: { include: { document: true } } } },
+            },
           });
+
+          // Compose Timelines and Corrections for eligible claims (FIN-005)
+          for (const c of claims) {
+            const dec = (c.decisionRecord ?? c.decision) as unknown as DecisionRecord | null;
+            if (dec && (dec.verdict === 'outdated' || dec.verdict === 'contradicted') && c.spec) {
+              const ticket = c.spec as unknown as ClaimTicket;
+              const contractUnits: EvidenceUnit[] = c.assessments.map((a) => {
+                const loc = typeof a.evidenceUnit.locator === 'object' && a.evidenceUnit.locator !== null
+                  ? (a.evidenceUnit.locator as { charOffsetStart?: number; charOffsetEnd?: number })
+                  : {};
+                return {
+                  evidenceId: a.evidenceUnit.id,
+                  documentId: a.evidenceUnit.documentId ?? '',
+                  verbatimText: a.evidenceUnit.verbatimText ?? a.evidenceUnit.content ?? '',
+                  locator: {
+                    charOffsetStart: loc.charOffsetStart ?? 0,
+                    charOffsetEnd: loc.charOffsetEnd ?? (a.evidenceUnit.verbatimText?.length ?? 10),
+                  },
+                  surroundingHeaders: [],
+                  footnotes: [],
+                  extractedProperties: [],
+                  extractionLimitations: [],
+                };
+              });
+
+              const contractSources: SourceDocument[] = c.assessments
+                .map((a) => a.evidenceUnit.document)
+                .filter((d): d is NonNullable<typeof d> => Boolean(d))
+                .map((d) => ({
+                  documentId: d.id,
+                  runId,
+                  url: d.url,
+                  finalUrl: d.finalUrl ?? d.url,
+                  retrievedContentHash: d.contentHash ?? 'hash',
+                  retrievedAt: d.retrievedAt?.toISOString() ?? new Date().toISOString(),
+                  rawText: d.rawContent ?? d.title ?? '',
+                  extractionStatus: 'success',
+                  sourceRole: (d.sourceRole as SourceDocument['sourceRole']) ?? 'primary_authority',
+                }));
+
+              const timelineResult = composeTimeline({
+                ticket,
+                decision: dec,
+                evidenceUnits: contractUnits,
+                sourceDocuments: contractSources,
+                assessments: c.assessments.map((a) => ({
+                  assessmentId: a.id,
+                  claimTicketId: ticket.ticketId,
+                  evidenceId: a.evidenceUnitId,
+                  claimRevision: a.claimRevision,
+                  relationship: (a.relationship as AssessmentRelationship) ?? 'contradicts',
+                  scopeMatching: 'match' as const,
+                  modelConfidence: a.confidence ?? 0.9,
+                  quotationVerified: a.quotationVerified,
+                  propertyMatchStatus: { matching: [], mismatched: [], missingInEvidence: [] },
+                  temporalApplicability: (a.temporalApplicability as ClaimEvidenceAssessment['temporalApplicability']) ?? 'historical_prior',
+                  sourceSuitability: 'authoritative_primary',
+                  reasoning: a.reasoning ?? '',
+                })),
+              });
+
+              let correctionData = null;
+              try {
+                const corrOutcome = await orchestrateClaimCorrection({
+                  ticket,
+                  decision: dec,
+                  evidenceUnits: contractUnits,
+                  sourceDocuments: contractSources,
+                  answerText: node.run?.text ?? undefined,
+                });
+                if (corrOutcome && corrOutcome.publicCorrection) {
+                  correctionData = corrOutcome.publicCorrection;
+                }
+              } catch (err) {
+                console.warn('[finalize_run] Claim correction orchestration caught:', err);
+              }
+
+              // Update claim.result with timeline and correction
+              const enrichedResult = {
+                ...dec,
+                timeline: timelineResult.timeline,
+                correction: correctionData,
+              };
+
+              await db.claim.update({
+                where: { id: c.id },
+                data: {
+                  result: enrichedResult as unknown as Prisma.InputJsonValue,
+                },
+              });
+            }
+          }
 
           const totalClaims = claims.length;
           let supported = 0;
