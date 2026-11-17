@@ -36,30 +36,30 @@ export function EvidenceCard({ evidence, className = '' }: EvidenceCardProps) {
   return (
     <article
       id={`evidence-${evidence.id}`}
-      className={`rounded-xl border border-border-subtle bg-surface p-4 space-y-3 transition-colors ${className}`}
+      className={`rounded-lg border border-border-subtle/80 bg-surface-raised/40 p-4 space-y-3.5 transition-colors hover:border-border-strong/60 ${className}`}
       aria-label={`Evidence: ${evidence.title || hostname}`}
     >
       {/* Evidence Source Header */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-0.5 min-w-0 flex-1">
-          <h4 className="text-sm font-medium text-text-primary truncate">
+          <h4 className="text-xs sm:text-sm font-medium text-text-primary truncate">
             {evidence.title || hostname}
           </h4>
-          <p className="text-xs text-text-muted truncate">
+          <p className="text-[11px] text-text-muted truncate font-mono">
             {evidence.publisher ? `${evidence.publisher} · ` : ''}
-            <span className="font-mono">{hostname}</span>
+            <span>{hostname}</span>
           </p>
         </div>
 
         {evidence.sourceType && (
-          <span className="inline-block rounded-md bg-surface-raised px-2 py-0.5 text-[11px] font-mono text-text-secondary capitalize">
+          <span className="inline-block rounded-xs bg-surface-raised px-1.5 py-0.5 text-[10px] font-mono text-text-secondary uppercase tracking-wider border border-border-subtle/60">
             {evidence.sourceType.replace(/_/g, ' ')}
           </span>
         )}
       </div>
 
-      {/* Quoted Passage */}
-      <blockquote className="border-l-2 border-accent/40 pl-3 py-0.5 text-xs text-text-secondary leading-relaxed font-sans">
+      {/* Quoted Passage in Editorial Blockquote */}
+      <blockquote className="border-l-2 border-border-strong pl-3.5 py-0.5 text-xs text-text-secondary leading-relaxed font-sans italic">
         <p className={!isExpanded && isLongPassage ? 'line-clamp-3' : ''}>
           “{evidence.passage}”
         </p>
@@ -67,7 +67,7 @@ export function EvidenceCard({ evidence, className = '' }: EvidenceCardProps) {
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-1 text-[11px] font-medium text-accent hover:underline focus-visible:outline-none"
+            className="mt-1 text-[11px] font-mono text-accent hover:underline focus-visible:outline-none cursor-pointer"
           >
             {isExpanded ? 'Show less' : 'Read full passage'}
           </button>
@@ -75,26 +75,26 @@ export function EvidenceCard({ evidence, className = '' }: EvidenceCardProps) {
       </blockquote>
 
       {/* Distinct Dates & External Link */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border-subtle text-[11px] text-text-muted">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border-subtle/60 text-[11px] font-mono text-text-muted">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
           {publishedDate && (
             <span>
-              <span className="font-medium text-text-secondary">Published:</span> {publishedDate}
+              <span className="text-text-muted/70">Published:</span> {publishedDate}
             </span>
           )}
           {effectiveDate && (
             <span>
-              <span className="font-medium text-text-secondary">Effective:</span> {effectiveDate}
+              <span className="text-text-muted/70">Effective:</span> {effectiveDate}
             </span>
           )}
           {announcedDate && (
             <span>
-              <span className="font-medium text-text-secondary">Announced:</span> {announcedDate}
+              <span className="text-text-muted/70">Announced:</span> {announcedDate}
             </span>
           )}
           {retrievedDate && (
             <span>
-              <span className="font-medium text-text-secondary">Retrieved:</span> {retrievedDate}
+              <span className="text-text-muted/70">Retrieved:</span> {retrievedDate}
             </span>
           )}
         </div>
@@ -103,7 +103,7 @@ export function EvidenceCard({ evidence, className = '' }: EvidenceCardProps) {
           href={evidence.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 font-medium text-text-secondary hover:text-text-primary hover:underline transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded shrink-0"
+          className="inline-flex items-center gap-1 font-mono text-[11px] text-text-muted hover:text-text-primary hover:underline transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded shrink-0"
         >
           <span>Verify source</span>
           <span aria-hidden="true">↗</span>

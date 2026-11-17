@@ -52,7 +52,7 @@ export function ReportEmptyClaimsState({ answerText, onBack }: ReportEmptyClaims
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-medium text-text-primary">
+        <h2 className="font-sans text-xl font-normal tracking-heading text-text-primary">
           No Time-Sensitive Claims Identified
         </h2>
         <p className="text-sm text-text-secondary max-w-md mx-auto leading-relaxed">
@@ -108,7 +108,7 @@ export function ReportErrorState({
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-medium text-text-primary">{title}</h2>
+        <h2 className="font-sans text-xl font-normal tracking-heading text-text-primary">{title}</h2>
         <p className="text-sm text-text-secondary leading-relaxed">{message}</p>
       </div>
 

@@ -3,6 +3,7 @@ import { VerificationRequestSchema } from '@/lib/contracts/request';
 import { VerificationService } from '@/server/services/verify-service';
 import { resolveOwnerHash, OWNER_COOKIE_NAME } from '@/server/services/auth-helper';
 import { problemResponse } from '@/server/services/problem-details';
+import { getClientIp, hashIp } from '@/lib/iphistory/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -69,6 +70,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { ownerHash, isNew } = resolveOwnerHash(req);
+  const clientIp = getClientIp(req.headers);
+  const ipHash = hashIp(clientIp);
+
   const idempotencyKey =
     req.headers.get('idempotency-key') ||
     (typeof bodyIdempKey === 'string' ? bodyIdempKey : undefined);
@@ -76,6 +80,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await VerificationService.runVerification(parsed.data, {
       ownerHash,
+      ipHash,
       idempotencyKey: idempotencyKey || undefined,
     });
 

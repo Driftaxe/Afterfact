@@ -58,43 +58,43 @@ export function FloatingNav() {
           aria-label="Main Navigation"
           className="pointer-events-auto hidden lg:flex items-center justify-center transition-all duration-300"
         >
-          {/* Left Trapezoidal Pod: Architectural 8px Corner Radius, Angled Inner Edge */}
+          {/* Left Trapezoidal Pod: Architectural Corner Radius, Angled Inner Edge */}
           <div
-            className={`relative p-[1px] rounded-l-lg transition-all duration-300 w-[320px] xl:w-[350px] ${
+            className={`relative p-[1px] rounded-l-md transition-all duration-300 w-[285px] xl:w-[310px] ${
               scrolled
-                ? 'bg-border-strong/80 shadow-md'
-                : 'bg-border-subtle/80 shadow-xl'
+                ? 'bg-white/[0.12] dark:bg-white/[0.12] bg-black/[0.10] shadow-sm'
+                : 'bg-white/[0.07] dark:bg-white/[0.07] bg-black/[0.06]'
             }`}
             style={{
-              clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 24px) 100%, 0% 100%)',
+              clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 20px) 100%, 0% 100%)',
             }}
           >
             <div
-              className={`h-11 flex items-center justify-between pl-7 pr-10 rounded-l-lg transition-colors duration-300 ${
+              className={`h-9 flex items-center justify-between pl-6 pr-8 rounded-l-md transition-colors duration-300 ${
                 scrolled
-                  ? 'bg-surface/90 dark:bg-[#18191C]/90 backdrop-blur-md'
-                  : 'bg-surface/85 dark:bg-[#18191C]/85 backdrop-blur-md'
+                  ? 'bg-surface/85 dark:bg-[#161619]/85 backdrop-blur-md'
+                  : 'bg-surface/70 dark:bg-[#161619]/70 backdrop-blur-md'
               }`}
               style={{
-                clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 24px) 100%, 0% 100%)',
+                clipPath: 'polygon(0% 0%, 100% 0%, calc(100% - 20px) 100%, 0% 100%)',
               }}
             >
-              <div className="flex items-center justify-between w-full text-xs font-sans font-medium tracking-[0.08em] uppercase text-[var(--af-silver)]">
+              <div className="flex items-center justify-between w-full text-[11px] font-sans font-medium tracking-[0.06em] uppercase text-[var(--af-silver)]">
                 <Link
                   href="/#product"
-                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] dark:hover:text-[var(--af-ivory)] hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   PRODUCT
                 </Link>
                 <Link
                   href="/#how-it-works"
-                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] dark:hover:text-[var(--af-ivory)] hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   HOW IT WORKS
                 </Link>
                 <Link
                   href="/#evidence"
-                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] dark:hover:text-[var(--af-ivory)] hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   EVIDENCE
                 </Link>
@@ -103,41 +103,41 @@ export function FloatingNav() {
           </div>
 
           {/* Central Triangular Brand Anchor: Grounded in Notch */}
-          <div className="relative -top-1.5 z-20 flex items-center justify-center -mx-2.5 group">
+          <div className="relative -top-1 z-20 flex items-center justify-center -mx-2 group">
             <Link
               href="/"
               aria-label="Afterfact Home"
               className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full transition-transform duration-200 group-hover:scale-105"
             >
-              <Emblem size="md" />
+              <Emblem size="sm" />
             </Link>
           </div>
 
           {/* Right Trapezoidal Pod: Angled Inner Edge, Integrated Theme Toggle */}
           <div
-            className={`relative p-[1px] rounded-r-lg transition-all duration-300 w-[320px] xl:w-[350px] ${
+            className={`relative p-[1px] rounded-r-md transition-all duration-300 w-[285px] xl:w-[310px] ${
               scrolled
-                ? 'bg-border-strong/80 shadow-md'
-                : 'bg-border-subtle/80 shadow-xl'
+                ? 'bg-white/[0.12] dark:bg-white/[0.12] bg-black/[0.10] shadow-sm'
+                : 'bg-white/[0.07] dark:bg-white/[0.07] bg-black/[0.06]'
             }`}
             style={{
-              clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 24px 100%)',
+              clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 20px 100%)',
             }}
           >
             <div
-              className={`h-11 flex items-center justify-between pl-10 pr-6 rounded-r-lg transition-colors duration-300 ${
+              className={`h-9 flex items-center justify-between pl-8 pr-5 rounded-r-md transition-colors duration-300 ${
                 scrolled
-                  ? 'bg-surface/90 dark:bg-[#18191C]/90 backdrop-blur-md'
-                  : 'bg-surface/85 dark:bg-[#18191C]/85 backdrop-blur-md'
+                  ? 'bg-surface/85 dark:bg-[#161619]/85 backdrop-blur-md'
+                  : 'bg-surface/70 dark:bg-[#161619]/70 backdrop-blur-md'
               }`}
               style={{
-                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 24px 100%)',
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 20px 100%)',
               }}
             >
-              <div className="flex items-center justify-between w-full text-xs font-sans font-medium tracking-[0.08em] uppercase text-[var(--af-silver)]">
+              <div className="flex items-center justify-between w-full text-[11px] font-sans font-medium tracking-[0.06em] uppercase text-[var(--af-silver)]">
                 <Link
                   href="/#architecture"
-                  className="hover:text-[var(--af-ivory)] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="hover:text-[var(--af-ivory)] dark:hover:text-[var(--af-ivory)] hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   ARCHITECTURE
                 </Link>
@@ -147,7 +147,7 @@ export function FloatingNav() {
 
                 <Link
                   href="/app"
-                  className="text-[var(--af-ivory)] hover:text-white font-medium transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                  className="text-[var(--af-ivory)] dark:text-[var(--af-ivory)] text-text-primary hover:text-white dark:hover:text-white font-medium transition-colors py-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
                   <span>GET STARTED</span>
                   <span aria-hidden="true" className="text-xs">→</span>
@@ -158,7 +158,7 @@ export function FloatingNav() {
         </nav>
 
         {/* MOBILE COMPACT FLOATING NAVIGATION BAR */}
-        <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-surface/90 dark:bg-[#18191C]/90 border border-border-subtle backdrop-blur-xl shadow-xl">
+        <div className="pointer-events-auto lg:hidden w-full flex items-center justify-between px-3.5 py-2 rounded-md bg-surface/85 dark:bg-[#161619]/85 border border-white/[0.08] dark:border-white/[0.08] border-black/[0.08] backdrop-blur-xl shadow-xs">
           <Link href="/" className="flex items-center gap-2.5">
             <Emblem size="sm" />
             <span className="font-sans text-base tracking-tight text-text-primary font-medium">

@@ -110,25 +110,25 @@ export async function triggerRecheckAction(
       lastRecheckedAt: new Date().toISOString(),
     };
 
-    // If active database connection is present, update the verification run or record fresh recheck event
-    const updated = await db.verificationRun.update({
-      where: { id: reportId },
-      data: {
-        context: mergedContext,
-        state: 'RUNNING',
-      },
+    // Invariant: Sealed historical runs are immutable. Recheck creates a child run with parentRunId.
+    const { createRunAndInitializeDag } = await import('@/server/services/dag-service');
+    const { dispatchDagNodeJob } = await import('@/server/jobs/worker');
+
+    const effectiveOwner = existingRun.ownerHash || ownerHash || 'anon_owner';
+
+    const { run: childRun, rootNode } = await createRunAndInitializeDag({
+      ownerHash: effectiveOwner,
+      parentRunId: existingRun.id,
+      inputHash: existingRun.inputHash,
+      text: existingRun.text,
+      question: existingRun.question ?? undefined,
+      mode: existingRun.mode,
+      context: mergedContext,
     });
 
-    // Optionally dispatch background QStash job or re-evaluation pass if service available
+    // Dispatch the root node job for the fresh child run
     try {
-      const { dispatchDagNodeJob } = await import('@/server/jobs/worker');
-      const rootNode = await db.dagNode.findFirst({
-        where: { runId: reportId },
-        orderBy: { attempt: 'asc' },
-      });
-      if (rootNode) {
-        await dispatchDagNodeJob(reportId, rootNode.id);
-      }
+      await dispatchDagNodeJob(childRun.id, rootNode.id);
     } catch {
       // In standalone or test environments without QStash credentials, proceed gracefully
     }
@@ -136,12 +136,12 @@ export async function triggerRecheckAction(
     return {
       success: true,
       data: {
-        runId: updated.id,
+        runId: childRun.id,
         parentRunId: existingRun.id,
         state: 'running',
         recheckedAt: new Date().toISOString(),
         message: 'Recheck triggered successfully. Refreshing live claims and evidence.',
-        snapshotUrl: `/api/runs/${updated.id}`,
+        snapshotUrl: `/api/runs/${childRun.id}`,
       },
     };
   } catch (err: unknown) {

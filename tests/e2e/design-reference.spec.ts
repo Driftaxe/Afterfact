@@ -91,6 +91,7 @@ test.describe('C01: Design Reference & Visual Foundation (/design)', () => {
 
     // Reload page and verify light theme persists
     await page.reload();
+    await page.waitForLoadState('networkidle');
     await expect(html).toHaveAttribute('data-theme', 'light');
 
     // Button label now describes next action: switch to dark

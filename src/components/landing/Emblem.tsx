@@ -25,27 +25,27 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
         viewBox={dimensions.viewBox}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]"
+        className="filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
       >
         <defs>
           {/* Obsidian graphite gradient */}
           <linearGradient id="emblemBg" x1="30" y1="2" x2="30" y2="60" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#25262B" />
-            <stop offset="50%" stopColor="#18191D" />
-            <stop offset="100%" stopColor="#111215" />
+            <stop offset="0%" stopColor="#222327" />
+            <stop offset="50%" stopColor="#16171A" />
+            <stop offset="100%" stopColor="#101114" />
           </linearGradient>
 
           {/* Border rim metallic gradient */}
           <linearGradient id="emblemBorder" x1="30" y1="2" x2="30" y2="60" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#555861" />
-            <stop offset="60%" stopColor="#2E3036" />
-            <stop offset="100%" stopColor="#1C1D21" />
+            <stop offset="0%" stopColor="#3C3E44" />
+            <stop offset="60%" stopColor="#24252A" />
+            <stop offset="100%" stopColor="#18191D" />
           </linearGradient>
 
           {/* Inner hairline glow */}
           <linearGradient id="innerGlow" x1="30" y1="8" x2="30" y2="56" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.22)" />
-            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.02)" />
+            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.14)" />
+            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.01)" />
           </linearGradient>
         </defs>
 
@@ -59,7 +59,7 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
              L30 4.2 Z"
           fill="url(#emblemBg)"
           stroke="url(#emblemBorder)"
-          strokeWidth="1.5"
+          strokeWidth="1.25"
           strokeLinejoin="round"
         />
 
@@ -71,7 +71,7 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
           fill="none"
           stroke="url(#innerGlow)"
           strokeWidth="0.75"
-          strokeOpacity="0.6"
+          strokeOpacity="0.35"
         />
 
         {/* Precision Architectural Capital "A": Symmetrically centered around X = 30.0 */}
@@ -89,7 +89,7 @@ export function Emblem({ className = '', size = 'md' }: EmblemProps) {
                L31.2 36.2
                H28.8
                L30 27.8 Z"
-            fill="#FFFFFF"
+            fill="#E8E1DA"
             fillRule="evenodd"
           />
         </g>

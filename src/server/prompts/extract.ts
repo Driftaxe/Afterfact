@@ -16,7 +16,12 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
 
 2. ATOMIC CLAIM EXTRACTION:
    - Identify discrete factual assertions that can be independently verified against authoritative documentation or web evidence.
-   - Split compound statements containing multiple assertions into distinct atomic claims (e.g., a sentence stating both a price and an included feature contains two distinct claims).
+   - Split compound statements containing multiple assertions into distinct atomic claims (e.g., a sentence stating both a price and an included feature contains two distinct claims; statements joined by "and", "while", "as well as", or ";" contain separate claims).
+   - Pronoun, Gender & Demographic Attributions:
+     * When a statement applies a gendered pronoun ("her", "his", "she", "he") or gender marker to a named individual, the pronoun attribution itself is a verifiable factual proposition if asserted or presupposed (e.g., "her" applied to Sam Altman asserts that Sam Altman uses female pronouns / is female). Extract pronoun / gender assertions as distinct claims when present.
+   - Relational & Intimate Attributes:
+     * When a statement asserts a relationship or partnership status ("her boyfriend", "his husband", "wife"), extract the relationship status as a distinct claim (e.g., "Sam Altman has a boyfriend").
+     * When an assertion attributes an intimate or biographical status (e.g., "is virgin"), extract it as an independent claim to verify against authoritative records.
    - For every claim:
      * statement: The verbatim excerpt from the source text representing the assertion or clause. Must match the source text character-for-character.
      * normalizedProposition: A clear, self-contained, disambiguated natural language statement asserting the fact independently (resolving pronouns, incorporating shared sentence subjects, and stating full context).
@@ -237,6 +242,53 @@ export const SYNTHETIC_EXTRACTION_EXAMPLES = [
           ],
           inferredQualifiers: [],
           missingMaterialQualifiers: ['billingTerm', 'productName'],
+        },
+      ],
+    },
+  },
+  {
+    input: 'Sam Altman is gay and her boyfriend is virgin.',
+    output: {
+      claims: [
+        {
+          statement: 'Sam Altman is gay',
+          normalizedProposition: "Sam Altman's sexual orientation is gay.",
+          domain: 'biography',
+          timeSensitivity: 'high',
+          locationHint: { prefix: '', suffix: ' and her boyfriend is virgin.' },
+          explicitQualifiers: [],
+          inferredQualifiers: [],
+          missingMaterialQualifiers: [],
+        },
+        {
+          statement: 'her',
+          normalizedProposition: 'Sam Altman uses female pronouns (she/her) / is a woman.',
+          domain: 'biography',
+          timeSensitivity: 'high',
+          locationHint: { prefix: 'Sam Altman is gay and ', suffix: ' boyfriend is virgin.' },
+          explicitQualifiers: [],
+          inferredQualifiers: [],
+          missingMaterialQualifiers: [],
+        },
+        {
+          statement: 'boyfriend',
+          normalizedProposition: 'Sam Altman has an unmarried boyfriend.',
+          domain: 'biography',
+          timeSensitivity: 'high',
+          locationHint: { prefix: 'Sam Altman is gay and her ', suffix: ' is virgin.' },
+          explicitQualifiers: [],
+          inferredQualifiers: [],
+          missingMaterialQualifiers: [],
+        },
+        {
+          statement: 'is virgin',
+          normalizedProposition: "Sam Altman's partner is a virgin.",
+          domain: 'biography',
+          timeSensitivity: 'high',
+          locationHint: { prefix: 'Sam Altman is gay and her boyfriend ', suffix: '.' },
+          explicitQualifiers: [],
+          inferredQualifiers: [],
+          missingMaterialQualifiers: [],
         },
       ],
     },

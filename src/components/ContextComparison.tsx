@@ -32,6 +32,8 @@ export interface ContextComparisonProps {
   discoveredPublisher?: string | null;
   /** Section title */
   title?: string;
+  /** Default view mode: 'unified' (default) or 'side-by-side' */
+  defaultTab?: 'side-by-side' | 'unified';
   /** Callback when user edits or simulates a qualifier modification */
   onQualifierChange?: (key: string, newValue: string) => void;
   className?: string;
@@ -135,10 +137,11 @@ export function ContextComparison({
   originalPublisher,
   discoveredPublisher,
   title = 'Context Qualifier Comparison',
+  defaultTab = 'unified',
   onQualifierChange,
   className = '',
 }: ContextComparisonProps) {
-  const [activeTab, setActiveTab] = useState<'side-by-side' | 'unified'>('side-by-side');
+  const [activeTab, setActiveTab] = useState<'side-by-side' | 'unified'>(defaultTab);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editedVal, setEditedVal] = useState<string>('');
 
@@ -292,38 +295,58 @@ export function ContextComparison({
               </div>
             </div>
           ) : (
-            /* Unified Diff Highlight */
-            <div className="rounded-xl border border-border-subtle bg-surface-raised/60 p-4 font-mono text-xs leading-relaxed overflow-x-auto">
-              <div className="flex flex-wrap gap-1.5 items-center">
-                {diffTokens.map((token, idx) => {
-                  if (token.type === 'removed') {
+            /* Unified Word-by-Word Diff Highlight */
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-text-muted">
+                <span className="flex items-center gap-2">
+                  <span className="uppercase tracking-wider">Word-by-Word Token Drift:</span>
+                  <span className="text-status-outdated-text font-semibold">
+                    -{diffTokens.filter((t) => t.type === 'removed').length} drifted
+                  </span>
+                  <span>·</span>
+                  <span className="text-status-supported-text font-semibold">
+                    +{diffTokens.filter((t) => t.type === 'added').length} discovered
+                  </span>
+                </span>
+                <span className="text-[10px] text-text-muted/80">
+                  <span className="line-through text-status-outdated-text px-1 py-0.5 rounded bg-status-outdated-bg border border-status-outdated-border/50">Asserted</span>
+                  {' '}→{' '}
+                  <span className="text-status-supported-text font-medium px-1 py-0.5 rounded bg-status-supported-bg border border-status-supported-border/50">Discovered</span>
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-border-subtle bg-surface-raised/70 p-4 font-mono text-xs sm:text-[13px] leading-relaxed overflow-x-auto shadow-inner">
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {diffTokens.map((token, idx) => {
+                    if (token.type === 'removed') {
+                      return (
+                        <span
+                          key={`diff-${idx}`}
+                          className="rounded px-1.5 py-0.5 bg-status-outdated-bg text-status-outdated-text line-through border border-status-outdated-border/80 font-medium"
+                          title="Drifted / Outdated in original assertion"
+                        >
+                          {token.value}
+                        </span>
+                      );
+                    }
+                    if (token.type === 'added') {
+                      return (
+                        <span
+                          key={`diff-${idx}`}
+                          className="rounded px-1.5 py-0.5 bg-status-supported-bg text-status-supported-text font-semibold border border-status-supported-border/80"
+                          title="Authoritative discovered truth"
+                        >
+                          {token.value}
+                        </span>
+                      );
+                    }
                     return (
-                      <span
-                        key={`diff-${idx}`}
-                        className="rounded px-1.5 py-0.5 bg-status-outdated-bg text-status-outdated-text line-through border border-status-outdated-border/60"
-                        title="Removed from current context"
-                      >
+                      <span key={`diff-${idx}`} className="text-text-primary">
                         {token.value}
                       </span>
                     );
-                  }
-                  if (token.type === 'added') {
-                    return (
-                      <span
-                        key={`diff-${idx}`}
-                        className="rounded px-1.5 py-0.5 bg-status-supported-bg text-status-supported-text font-medium border border-status-supported-border/60"
-                        title="Added in current discovered context"
-                      >
-                        {token.value}
-                      </span>
-                    );
-                  }
-                  return (
-                    <span key={`diff-${idx}`} className="text-text-primary">
-                      {token.value}
-                    </span>
-                  );
-                })}
+                  })}
+                </div>
               </div>
             </div>
           )}

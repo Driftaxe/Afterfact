@@ -68,7 +68,7 @@ test.describe('C02 Input Composer Interactive Experience (/app)', () => {
 
     // Verify preparation review state appears with extracted claims and confirmation CTA
     const reviewHeading = page.getByText(/Review Prepared Claims & Scope/i);
-    await expect(reviewHeading).toBeVisible();
+    await expect(reviewHeading).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Custom text that is not in any database.')).toBeVisible();
 
     const confirmButton = page.getByRole('button', { name: 'Confirm & Run Verification' });

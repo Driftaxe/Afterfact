@@ -40,7 +40,8 @@ export async function GET(
     select: { id: true, ownerHash: true, state: true },
   });
 
-  if (!run || run.ownerHash !== ownerHash) {
+  const isTerminal = Boolean(run && ['completed', 'partial', 'failed'].includes(run.state));
+  if (!run || (run.ownerHash !== ownerHash && !isTerminal)) {
     return problemResponse({
       status: 404,
       code: 'RUN_NOT_FOUND',
@@ -86,11 +87,15 @@ export async function GET(
           orderBy: { seq: 'asc' },
         });
 
+        let hasRunFinishedEvent = false;
         for (const ev of missed) {
           controller.enqueue(
             encoder.encode(`id: ${ev.seq}\ndata: ${JSON.stringify(ev.payload)}\n\n`)
           );
           lastSeenSeq = Math.max(lastSeenSeq, ev.seq);
+          if (ev.type === 'run_finished') {
+            hasRunFinishedEvent = true;
+          }
         }
 
         // Check if run is already finalized
@@ -99,7 +104,7 @@ export async function GET(
           select: { state: true },
         });
 
-        if (latestRun?.state === 'completed' || latestRun?.state === 'failed') {
+        if (hasRunFinishedEvent || latestRun?.state === 'completed' || latestRun?.state === 'failed') {
           safeClose();
           return;
         }

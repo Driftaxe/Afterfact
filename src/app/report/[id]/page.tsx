@@ -22,13 +22,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const { mode } = await searchParams;
 
-  // Use fixture playback when requesting demo mode or explicit fixture mode
-  if (id === 'demo' || mode === 'fixture') {
-    const result = getReportById(id);
+  // Use fixture playback when requesting demo mode, sample-run alias, or explicit fixture mode
+  if (id === 'demo' || id === 'sample-run' || mode === 'fixture') {
+    const fixtureId = id === 'sample-run' ? 'demo' : id;
+    const result = getReportById(fixtureId);
 
     if (!result.success) {
       return (
-        <main className="min-h-[calc(100vh-8.5rem)] flex items-center justify-center px-4 sm:px-6 pt-28 pb-12 sm:pt-32">
+        <main className="min-h-[calc(100vh-8.5rem)] flex items-center justify-center px-4 sm:px-6 pt-20 pb-16">
           <ReportErrorState
             title={result.notFound ? 'Report Not Found' : 'Report Error'}
             message={result.error}
@@ -38,7 +39,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     }
 
     return (
-      <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 pt-28 pb-12 sm:pt-32 sm:pb-16">
+      <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-16 sm:pb-24">
         <ReportView report={result.report} />
       </main>
     );
@@ -46,7 +47,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   // Live dynamic run stream with SSE and snapshot polling fallback
   return (
-    <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 pt-28 pb-12 sm:pt-32 sm:pb-16">
+    <main className="min-h-[calc(100vh-8.5rem)] px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-16 sm:pb-24">
       <LiveReportViewer runId={id} />
     </main>
   );

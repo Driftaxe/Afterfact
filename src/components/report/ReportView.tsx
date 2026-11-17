@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import type { Report, ClaimResultItem } from '@/lib/contracts/report';
 import type { EvidenceItem } from '@/lib/contracts/evidence';
+import type { ClarificationQuestion } from '@/lib/contracts/clarification';
 import { AnswerDocument } from './AnswerDocument';
 import { ClaimList } from './ClaimList';
 import { ClaimDetail } from './ClaimDetail';
@@ -40,6 +41,58 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
     return report.claims.find((c) => c.id === selectedClaimId) || null;
   }, [report.claims, selectedClaimId]);
 
+  // Find pending clarification relevant to the selected claim or overall run
+  const activeClarification = useMemo(() => {
+    const clarList = (report as unknown as { clarifications?: Array<{ id: string; claimId?: string; status: string; question?: string; questionDefinition?: unknown }> }).clarifications;
+    if (!clarList || !Array.isArray(clarList)) return undefined;
+
+    const pending = clarList.filter((c) => c.status === 'pending');
+    if (pending.length === 0) return undefined;
+
+    // Match selected claim, or use first pending
+    const match = selectedClaim
+      ? pending.find((c) => c.claimId === selectedClaim.claimId || c.claimId === selectedClaim.id)
+      : null;
+
+    const target = match || pending[0];
+    if (!target) return undefined;
+
+    const qd = target.questionDefinition as
+      | { fieldId?: string; propertyKey?: string; label?: string; fieldType?: string; options?: Array<string | { value: string; label: string }> }
+      | undefined;
+
+    const questions: ClarificationQuestion[] = [];
+    if (qd) {
+      questions.push({
+        questionId: qd.fieldId || target.id,
+        propertyKey: qd.propertyKey || qd.fieldId || 'clarification_field',
+        prompt: qd.label || target.question || 'Please provide required context:',
+        reason: 'Material context is required to determine the factual truth of this claim.',
+        fieldType: (qd.fieldType === 'select' ? 'select' : 'short_text') as 'select' | 'short_text',
+        required: true,
+        allowUnknown: true,
+        options: qd.options
+          ? qd.options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt))
+          : undefined,
+      });
+    } else if (target.question) {
+      questions.push({
+        questionId: target.id,
+        propertyKey: 'context_qualifier',
+        prompt: target.question,
+        reason: 'Material context is required to evaluate this claim.',
+        fieldType: 'short_text',
+        required: true,
+        allowUnknown: true,
+      });
+    }
+
+    return {
+      clarificationId: target.id,
+      questions,
+    };
+  }, [report, selectedClaim]);
+
   if (report.claims.length === 0) {
     return <ReportEmptyClaimsState answerText={report.answerText} onBack={onBack} />;
   }
@@ -48,62 +101,102 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
   const completedClaimsCount = report.claims.filter((c) => c.state === 'assessed').length;
 
   return (
-    <div className={`w-full max-w-7xl mx-auto space-y-6 ${className}`}>
-      {/* Report Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-subtle">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-normal tracking-heading text-text-primary">
-              Verification Report
-            </h1>
-
-            {report.isReplay ? (
-              <span className="inline-flex items-center rounded-md bg-status-outdated-bg/80 border border-status-outdated-border px-2.5 py-0.5 text-xs font-mono font-medium text-status-outdated-text">
-                Sample report · Not a live verification
-              </span>
+    <div className={`w-full max-w-7xl mx-auto space-y-8 ${className}`}>
+      {/* Editorial Dossier Header */}
+      <div className="flex flex-col gap-4 border-b border-border-subtle/70 pb-6">
+        {/* Top bar: Back breadcrumb & Quick actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {onBack ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className="group inline-flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase text-text-muted hover:text-text-primary transition-colors cursor-pointer focus-visible:outline-none"
+              >
+                <span className="transition-transform group-hover:-translate-x-0.5">←</span>
+                <span>BACK TO COMPOSER</span>
+              </button>
             ) : (
-              <span className="inline-flex items-center rounded-md bg-surface-raised px-2 py-0.5 text-xs font-mono text-text-secondary">
-                Live Run
-              </span>
+              <Link
+                href="/app"
+                className="group inline-flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase text-text-muted hover:text-text-primary transition-colors focus-visible:outline-none"
+              >
+                <span className="transition-transform group-hover:-translate-x-0.5">←</span>
+                <span>BACK TO COMPOSER</span>
+              </Link>
             )}
+            <span className="text-border-subtle select-none font-mono">/</span>
+            <span className="font-mono text-[11px] tracking-widest uppercase text-text-muted">
+              DOSSIER #{report.id.slice(0, 12)}
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
-            <span>
-              Run ID: <code className="font-mono text-text-secondary">{report.id}</code>
-            </span>
-            {report.asOfDate && (
-              <span>
-                As of Date: <span className="font-mono text-text-secondary">{report.asOfDate}</span>
-              </span>
-            )}
-            <span>
-              Mode: <span className="capitalize text-text-secondary">{report.mode}</span>
-            </span>
+          <div className="flex items-center gap-2">
+            <ExportReport report={report} />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <ExportReport report={report} />
+        {/* Headline, Status & Technical Metadata Strip */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-1">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)]" />
+              <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted">
+                TEMPORAL GROUND TRUTH AUDIT
+              </span>
+            </div>
 
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-border-subtle bg-surface text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              ← Back to Composer
-            </button>
-          ) : (
-            <Link
-              href="/app"
-              className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-border-subtle bg-surface text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              ← Back to Composer
-            </Link>
-          )}
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-sans text-3xl sm:text-4xl lg:text-[42px] font-normal tracking-heading text-text-primary leading-tight">
+                Verification Report
+              </h1>
+
+              {report.isReplay ? (
+                <span className="inline-flex items-center gap-1.5 rounded-xs bg-status-outdated-bg/80 border border-status-outdated-border px-2.5 py-1 text-xs font-mono font-medium text-status-outdated-text">
+                  <span className="w-1 h-1 rounded-full bg-status-outdated-text" />
+                  Sample report · Not a live verification
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-xs bg-surface-raised border border-border-subtle px-2.5 py-1 text-xs font-mono text-text-secondary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)] animate-pulse" />
+                  Live Run
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Dossier Metadata Grid */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 py-2 px-3.5 rounded-lg border border-border-subtle bg-surface/50 backdrop-blur-xs text-xs font-mono text-text-muted">
+            <div className="flex items-center gap-1.5">
+              <span className="text-text-muted/70 uppercase text-[10px] tracking-wider">Run ID:</span>
+              <code className="text-text-secondary font-semibold">{report.id}</code>
+            </div>
+            {report.asOfDate && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-text-muted/70 uppercase text-[10px] tracking-wider">As of:</span>
+                <span className="text-text-secondary">{report.asOfDate}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <span className="text-text-muted/70 uppercase text-[10px] tracking-wider">Mode:</span>
+              <span className="capitalize text-text-secondary">{report.mode}</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Active Clarification Alert Banner */}
+      {activeClarification && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 text-amber-500 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+            <span className="uppercase tracking-wider">Awaiting Material Context Input</span>
+          </div>
+          <span className="text-text-secondary">
+            Additional context parameters are required to finalize this verification. Please complete the form in the Claim Inspector panel.
+          </span>
+        </div>
+      )}
 
       {/* Partial State Banner */}
       {isPartial && (
@@ -120,28 +213,35 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
         onFilterChange={setActiveFilter}
       />
 
-      {/* 55:45 Coordinated Split Layout */}
+      {/* Coordinated Dual-Column Editorial Split Layout:
+          Left Column (col-span-5): Original Document + Sequenced Claims Index
+          Right Column (col-span-7, sticky): Active Claim Forensic Inspection Dossier */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column (55% on desktop): Answer Document with interactive spans */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Left Column: Source Document + Claims Index */}
+        <div className="lg:col-span-5 space-y-6">
           <AnswerDocument
             answerText={report.answerText || ''}
             claims={report.claims}
             selectedClaimId={selectedClaimId}
             onSelectClaim={setSelectedClaimId}
           />
-        </div>
 
-        {/* Right Column (45% on desktop): Claim List + Selected Detail Panel */}
-        <div className="lg:col-span-5 space-y-6">
           <ClaimList
             claims={report.claims}
             selectedClaimId={selectedClaimId}
             onSelectClaim={setSelectedClaimId}
             activeFilter={activeFilter}
           />
+        </div>
 
-          <ClaimDetail claim={selectedClaim} evidenceMap={evidenceMap} />
+        {/* Right Column: Active Claim Forensic Inspection Dossier (Sticky on Desktop) */}
+        <div className="lg:col-span-7 lg:sticky lg:top-24 space-y-6">
+          <ClaimDetail
+            claim={selectedClaim}
+            evidenceMap={evidenceMap}
+            clarification={activeClarification}
+            runId={report.id}
+          />
         </div>
       </div>
 

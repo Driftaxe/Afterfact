@@ -31,7 +31,7 @@ export function ExportReport({ report, className = '' }: ExportReportProps) {
       <button
         type="button"
         onClick={handleCopy}
-        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-border-subtle bg-surface text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xs border border-border-subtle bg-surface/70 hover:bg-surface-raised/80 text-xs font-mono text-text-muted hover:text-text-primary transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
         title="Copy complete report as Markdown"
       >
         {copySuccess ? (
@@ -43,7 +43,7 @@ export function ExportReport({ report, className = '' }: ExportReportProps) {
           </>
         ) : (
           <>
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -63,9 +63,9 @@ export function ExportReport({ report, className = '' }: ExportReportProps) {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-expanded={menuOpen}
           aria-haspopup="true"
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-border-subtle bg-surface text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xs border border-border-subtle bg-surface/70 hover:bg-surface-raised/80 text-xs font-mono text-text-muted hover:text-text-primary transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
         >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -81,7 +81,7 @@ export function ExportReport({ report, className = '' }: ExportReportProps) {
 
         {menuOpen && (
           <div
-            className="absolute right-0 mt-1.5 w-48 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-lg z-20 space-y-1 text-xs font-sans"
+            className="absolute right-0 mt-1.5 w-48 rounded-lg border border-border-subtle bg-surface/95 backdrop-blur-md p-1 shadow-lg z-20 space-y-0.5 text-xs font-mono"
             role="menu"
           >
             <button
@@ -91,9 +91,9 @@ export function ExportReport({ report, className = '' }: ExportReportProps) {
                 downloadReportAsJson(report);
                 setMenuOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors text-left"
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors text-left cursor-pointer"
             >
-              <span className="font-mono text-[11px] font-semibold text-accent">JSON</span>
+              <span className="font-mono text-[10px] font-semibold text-accent">JSON</span>
               <span>Download Raw JSON</span>
             </button>
 
@@ -104,9 +104,9 @@ export function ExportReport({ report, className = '' }: ExportReportProps) {
                 downloadReportAsMarkdown(report);
                 setMenuOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors text-left"
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors text-left cursor-pointer"
             >
-              <span className="font-mono text-[11px] font-semibold text-text-muted">MD</span>
+              <span className="font-mono text-[10px] font-semibold text-text-muted">MD</span>
               <span>Download Markdown</span>
             </button>
           </div>

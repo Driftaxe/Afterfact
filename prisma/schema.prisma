@@ -11,6 +11,7 @@ generator client {
 model VerificationRun {
   id             String    @id @default(cuid()) @db.VarChar(36)
   ownerHash      String    @db.VarChar(64)
+  ipHash         String?   @db.VarChar(64)
   inputHash      String    @db.VarChar(64)
   prepId         String?   @db.VarChar(36)
   idempotencyKey String?   @db.VarChar(64)
@@ -36,6 +37,7 @@ model VerificationRun {
 
   @@unique([ownerHash, idempotencyKey])
   @@index([ownerHash, createdAt])
+  @@index([ipHash, createdAt])
   @@index([expiresAt])
   @@map("runs")
 }
@@ -43,6 +45,7 @@ model VerificationRun {
 model Preparation {
   id                     String    @id @default(cuid()) @db.VarChar(36)
   ownerHash              String?   @db.VarChar(64)
+  ipHash                 String?   @db.VarChar(64)
   inputHash              String    @unique @db.VarChar(64)
   mode                   String?   @db.VarChar(16)
   text                   String?   @db.Text
@@ -60,6 +63,7 @@ model Preparation {
   runs                   VerificationRun[]
 
   @@index([ownerHash, inputHash, status])
+  @@index([ipHash, createdAt])
   @@map("preparations")
 }
 

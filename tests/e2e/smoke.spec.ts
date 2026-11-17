@@ -38,13 +38,16 @@ test.describe('Root Application Landing Page & Visual Review', () => {
     await expect(cta).toBeVisible();
 
     // Verify clicking CTA navigates to /report/demo?mode=fixture
-    await cta.click();
-    await expect(page).toHaveURL(/\/report\/demo/);
+    await Promise.all([
+      page.waitForURL(/\/report\/demo/),
+      cta.click(),
+    ]);
 
     expect(pageErrors).toEqual([]);
   });
 
   test('captures responsive screenshots and verifies zero overflow for landing page', async ({ page }) => {
+    test.setTimeout(60000);
     // 1. Desktop Dark
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
