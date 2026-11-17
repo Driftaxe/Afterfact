@@ -305,3 +305,5 @@ Refer to [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) and [docs/PHAS
 | **Master Phase Tracker**| [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md) | Single source of truth for all 28 task tickets and gates (G0–G4) |
 | **Parallel Work Plan** | [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) | Execution waves, DAG topologies, and cross-lane handoff contracts |
 | **Demo & Judging** | [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md) | 3-minute judge script, sponsor proof, and submission checklist |
+| **Finalization Audit** | [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md) | Comprehensive system readiness audit, journey matrix, and finding register |
+| **Development Log** | [docs/DEV-LOG.md](docs/DEV-LOG.md) | Chronological record of engineering sessions, commands, and observed evidence |

@@ -82,3 +82,5 @@ Required invariants that must be enforced:
 - **Testing & Eval:** [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md)
 - **Setup & Infrastructure:** [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md)
 - **Master Plan:** [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md)
+- **Finalization Audit:** [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md)
+- **Development Log:** [docs/DEV-LOG.md](docs/DEV-LOG.md)
