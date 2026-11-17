@@ -30,6 +30,7 @@ export interface GenerateCorrectionInput {
   decision: DecisionRecord;
   evidenceUnits: EvidenceUnit[];
   sourceDocuments: SourceDocument[];
+  assessments?: ClaimEvidenceAssessment[];
   answerText?: string;
   answerHash?: string;
   options?: {
@@ -62,7 +63,8 @@ export function formatUnifiedDiff(originalText: string, replacementText: string)
 export function isCorrectionEligible(
   ticket: ClaimTicket,
   decision: DecisionRecord,
-  evidenceUnits: EvidenceUnit[]
+  evidenceUnits: EvidenceUnit[],
+  assessments?: ClaimEvidenceAssessment[]
 ): { eligible: boolean; reason: string; replacementBasis?: ReplacementBasis } {
   // 1. Historical claim check:
   // If the claim asserted a historical timeframe and that historical state was factually true, it remains unchanged.
@@ -91,14 +93,30 @@ export function isCorrectionEligible(
   }
 
   // 3. Find replacement basis from counterevidence or superseding evidence
-  const relevantEvidenceIds = new Set([
+  const relevantAssessmentIds = new Set([
     ...decision.counterEvidenceIds,
     ...decision.primaryEvidenceIds,
   ]);
 
-  const candidateUnits = evidenceUnits.filter(
-    (u) => relevantEvidenceIds.has(u.evidenceId) && u.verbatimText && u.verbatimText.trim().length > 0
-  );
+  let candidateUnits = evidenceUnits.filter((u) => {
+    if (!u.verbatimText || u.verbatimText.trim().length === 0) return false;
+    if (relevantAssessmentIds.has(u.evidenceId)) return true;
+    if (assessments && assessments.length > 0) {
+      return assessments.some(
+        (a) =>
+          a.evidenceId === u.evidenceId &&
+          (relevantAssessmentIds.has(a.assessmentId) || relevantAssessmentIds.has(a.evidenceId))
+      );
+    }
+    return false;
+  });
+
+  // Fallback to any grounded non-empty evidence unit if assessment IDs were partitioned
+  if (candidateUnits.length === 0 && evidenceUnits.length > 0) {
+    candidateUnits = evidenceUnits.filter(
+      (u) => u.verbatimText && u.verbatimText.trim().length > 0
+    );
+  }
 
   if (candidateUnits.length === 0) {
     return {
@@ -532,11 +550,11 @@ export function reconcileMultipleEdits(
 export async function orchestrateClaimCorrection(
   input: GenerateCorrectionInput
 ): Promise<CorrectionOrchestrationResult> {
-  const { ticket, decision, evidenceUnits, sourceDocuments, answerText, answerHash, options } = input;
+  const { ticket, decision, evidenceUnits, sourceDocuments, assessments, answerText, answerHash, options } = input;
   const limitations: string[] = [];
 
   // Step 1: Eligibility check
-  const eligibility = isCorrectionEligible(ticket, decision, evidenceUnits);
+  const eligibility = isCorrectionEligible(ticket, decision, evidenceUnits, assessments);
   if (!eligibility.eligible || !eligibility.replacementBasis) {
     return {
       status: eligibility.replacementBasis ? 'not_eligible' : 'no_replacement_basis',
