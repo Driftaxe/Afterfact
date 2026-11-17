@@ -14,81 +14,83 @@ export async function GET(req: NextRequest) {
   const ipHash = hashIp(ip);
   const resolvedOwner = resolveOwnerHash(req);
 
-  // 1. Query real historical verification runs from PostgreSQL via Prisma
-  try {
-    const realRuns = await db.verificationRun.findMany({
-      where: {
-        OR: [
-          { ipHash },
-          { ownerHash: resolvedOwner.ownerHash },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 25,
-      include: {
-        claims: {
-          select: {
-            id: true,
-            state: true,
-            result: true,
-            text: true,
-            normalizedText: true,
+  // 1. Query real historical verification runs from PostgreSQL via Prisma if configured
+  if (process.env.DATABASE_URL) {
+    try {
+      const realRuns = await db.verificationRun.findMany({
+        where: {
+          OR: [
+            { ipHash },
+            { ownerHash: resolvedOwner.ownerHash },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 25,
+        include: {
+          claims: {
+            select: {
+              id: true,
+              state: true,
+              result: true,
+              text: true,
+              normalizedText: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (realRuns.length > 0) {
-      const mapped: HistoryCheckItem[] = realRuns.map((r) => {
-        // Compute truth score from assessed claims if available
-        let truthScore: number | null = null;
-        const assessed = r.claims.filter((c) => c.state === 'assessed' && c.result);
-        if (assessed.length > 0) {
-          const scores = assessed
-            .map((c) => {
-              const res = c.result as Record<string, unknown> | null;
-              return typeof res?.score === 'number' ? res.score : null;
-            })
-            .filter((s): s is number => s !== null);
-          if (scores.length > 0) {
-            truthScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      if (realRuns.length > 0) {
+        const mapped: HistoryCheckItem[] = realRuns.map((r) => {
+          // Compute truth score from assessed claims if available
+          let truthScore: number | null = null;
+          const assessed = r.claims.filter((c) => c.state === 'assessed' && c.result);
+          if (assessed.length > 0) {
+            const scores = assessed
+              .map((c) => {
+                const res = c.result as Record<string, unknown> | null;
+                return typeof res?.score === 'number' ? res.score : null;
+              })
+              .filter((s): s is number => s !== null);
+            if (scores.length > 0) {
+              truthScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+            }
           }
-        }
 
-        const rawSnippet = r.question || r.text || '';
-        const titleSnippet = r.question ? r.question.slice(0, 48) : r.text.slice(0, 48);
+          const rawSnippet = r.question || r.text || '';
+          const titleSnippet = r.question ? r.question.slice(0, 48) : r.text.slice(0, 48);
 
-        return {
-          id: r.id,
-          timestamp: r.createdAt.getTime(),
-          mode: r.mode === 'ask' ? 'ask' : 'paste',
-          title: titleSnippet,
-          queryOrSnippet: rawSnippet.slice(0, 160),
-          claimsCount: r.claims.length,
-          status:
-            r.state === 'COMPLETED' || r.state === 'completed'
-              ? 'completed'
-              : r.state === 'FAILED' || r.state === 'failed'
-              ? 'failed'
-              : 'running',
-          reportUrl: `/report/${r.id}`,
-          truthScore,
-          asOfDate: (r.context as Record<string, unknown>)?.targetDate
-            ? String((r.context as Record<string, unknown>).targetDate)
-            : undefined,
-          ipHash: ipHash.slice(0, 12),
-        };
-      });
+          return {
+            id: r.id,
+            timestamp: r.createdAt.getTime(),
+            mode: r.mode === 'ask' ? 'ask' : 'paste',
+            title: titleSnippet,
+            queryOrSnippet: rawSnippet.slice(0, 160),
+            claimsCount: r.claims.length,
+            status:
+              r.state === 'COMPLETED' || r.state === 'completed'
+                ? 'completed'
+                : r.state === 'FAILED' || r.state === 'failed'
+                ? 'failed'
+                : 'running',
+            reportUrl: `/report/${r.id}`,
+            truthScore,
+            asOfDate: (r.context as Record<string, unknown>)?.targetDate
+              ? String((r.context as Record<string, unknown>).targetDate)
+              : undefined,
+            ipHash: ipHash.slice(0, 12),
+          };
+        });
 
-      return NextResponse.json({
-        success: true,
-        source: 'database',
-        ipHash: `${ipHash.slice(0, 10)}...`,
-        checks: mapped,
-      });
+        return NextResponse.json({
+          success: true,
+          source: 'database',
+          ipHash: `${ipHash.slice(0, 10)}...`,
+          checks: mapped,
+        });
+      }
+    } catch (err) {
+      console.warn('[GET /api/history] PostgreSQL query caught:', err);
     }
-  } catch (err) {
-    console.warn('[GET /api/history] PostgreSQL query caught:', err);
   }
 
   // 2. Fallback to in-memory store or seed demo checks

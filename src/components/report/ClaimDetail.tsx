@@ -41,20 +41,21 @@ interface MissingContextResolverProps {
 
 function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(true);
 
-  // Determine the primary missing qualifier key
-  const [selectedKey] = useState<string>(() => {
+  // Determine initial qualifier key
+  const [selectedKey, setSelectedKey] = useState<string>(() => {
     if (claim.missingMaterialContext && claim.missingMaterialContext.length > 0) {
       return claim.missingMaterialContext[0];
     }
     const txt = claim.rawText.toLowerCase();
     if (txt.includes('cloudflare') || txt.includes('execution time') || txt.includes('limit')) return 'plan_tier';
     if (txt.includes('stripe') || txt.includes('payment')) return 'apiVersion';
-    if (txt.includes('twitter') || txt.includes('ceo')) return 'asOfDate';
-    return 'target_context';
+    if (txt.includes('twitter') || txt.includes('ceo') || txt.includes('reign') || txt.includes('queen') || txt.includes('wife')) return 'asOfDate';
+    return 'asOfDate';
   });
 
-  // Pre-configured options for known domain qualifiers
+  // Pre-configured options for known domain qualifiers (MCQs)
   const suggestedOptions: { label: string; value: string; hint: string }[] = useMemo(() => {
     if (selectedKey === 'plan_tier') {
       return [
@@ -68,24 +69,32 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
         { label: '2020-08-27 (Legacy)', value: '2020-08-27', hint: 'Implicit default payment methods allowed' },
       ];
     }
-    if (selectedKey === 'asOfDate') {
+    if (selectedKey === 'jurisdiction') {
       return [
-        { label: '2021-12-01', value: '2021-12-01', hint: 'Dorsey resignation / Parag appointed CEO' },
-        { label: '2022-10-28', value: '2022-10-28', hint: 'Musk acquisition / Agrawal removed' },
-        { label: '2024-01-01', value: '2024-01-01', hint: 'Linda Yaccarino / X Corp' },
+        { label: 'United States (US)', value: 'US', hint: 'Federal / US nationwide jurisdiction' },
+        { label: 'United Kingdom (UK)', value: 'UK', hint: 'United Kingdom domestic jurisdiction' },
+        { label: 'European Union (EU)', value: 'EU', hint: 'EU Community regulatory framework' },
+        { label: 'Global / International', value: 'Global', hint: 'Worldwide international scope' },
       ];
     }
-    return [];
+    // Default to asOfDate
+    return [
+      { label: '2024-09-01 (Present)', value: '2024-09-01', hint: 'Current / modern authoritative state' },
+      { label: '2022-09-08 (Historical 2022)', value: '2022-09-08', hint: 'Historical period prior to royal succession / transition' },
+      { label: '2021-12-01 (Historical 2021)', value: '2021-12-01', hint: 'Historical initial state (Dorsey resignation / Parag appointed)' },
+    ];
   }, [selectedKey]);
 
   const [selectedValue, setSelectedValue] = useState<string>(
     suggestedOptions[0]?.value || ''
   );
+  const [customKey, setCustomKey] = useState<string>('');
   const [customValue, setCustomValue] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [simulationResult, setSimulationResult] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const activeKey = selectedKey === 'custom' ? (customKey.trim() || 'qualifier') : selectedKey;
   const effectiveValue = customValue.trim() || selectedValue;
 
   const handleResolve = async () => {
@@ -100,7 +109,7 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
           parentRunId: runId,
           claimId: claim.claimId || claim.id,
           targetContext: {
-            [selectedKey]: effectiveValue,
+            [activeKey]: effectiveValue,
           },
         });
 
@@ -114,20 +123,26 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
         // Replay / fixture mode simulation
         await new Promise((r) => setTimeout(r, 350));
         let outcome = '';
-        if (selectedKey === 'plan_tier') {
+        if (activeKey === 'plan_tier') {
           if (effectiveValue.includes('Paid')) {
             outcome = '✓ Under "Workers Paid" (50ms limit), this proposition is SUPPORTED (Freshness Score: 100/100).';
           } else {
             outcome = '✗ Under "Workers Free" (10ms limit), this proposition is CONTRADICTED (Freshness Score: 0/100).';
           }
-        } else if (selectedKey === 'apiVersion') {
+        } else if (activeKey === 'apiVersion') {
           if (effectiveValue.startsWith('2024') || effectiveValue.includes('Modern')) {
             outcome = '✓ Under Stripe API 2024-06-20, manual payment_method_types is mandatory: SUPPORTED (100/100).';
           } else {
             outcome = '✗ Under legacy Stripe API versions, automatic payment methods were enabled: OUTDATED (0/100).';
           }
+        } else if (activeKey === 'asOfDate') {
+          if (effectiveValue.startsWith('2024') || effectiveValue.startsWith('2023')) {
+            outcome = `✓ Re-evaluated with target date ${effectiveValue}: Decisive current-state verdict reached.`;
+          } else {
+            outcome = `✓ Re-evaluated under historical interval ${effectiveValue}: Prior validity confirmed.`;
+          }
         } else {
-          outcome = `Context resolved: under ${selectedKey} = "${effectiveValue}", this claim resolves deterministically.`;
+          outcome = `Context resolved: under ${activeKey} = "${effectiveValue}", this proposition resolves deterministically.`;
         }
         setSimulationResult(outcome);
       }
@@ -139,102 +154,161 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
   };
 
   return (
-    <div className="rounded-xl border border-accent/40 bg-surface-raised p-5 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="rounded-xl border border-amber-500/40 bg-surface-raised p-5 space-y-4 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border-subtle/80">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-accent" />
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
-            Resolve Missing Context Qualifier
+            More Context Needed
           </h4>
+          <span className="rounded-xs bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-300">
+            {claim.verdict || 'insufficient_evidence'}
+          </span>
         </div>
-        <span className="rounded bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-mono text-accent">
-          Interactive Resolution
-        </span>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-xs font-mono text-accent hover:underline self-start sm:self-auto"
+        >
+          {isOpen ? '▲ Collapse Form' : '▼ Expand Context Form'}
+        </button>
       </div>
 
       <p className="text-xs text-text-secondary leading-relaxed">
-        This claim was marked <span className="font-semibold text-accent font-mono">{claim.verdict || 'depends_on_context'}</span> ({claim.reasonCode || 'ESSENTIAL_CONTEXT_MISSING'}).
-        Select or specify the missing qualifier below to re-evaluate the factual outcome.
+        Factual verification was inconclusive or dependent on missing parameters ({claim.reasonCode || 'INSUFFICIENT_RETRIEVAL_DATA'}).
+        Select a qualifier category and choice below or enter custom text to re-evaluate deterministically.
       </p>
 
-      {/* Suggested Qualifier Buttons */}
-      {suggestedOptions.length > 0 && (
-        <div className="space-y-2">
-          <label className="block text-[11px] font-mono text-text-muted uppercase">
-            Quick Options for <code className="text-accent">{selectedKey}</code>:
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {suggestedOptions.map((opt) => {
-              const isSelected = effectiveValue === opt.value;
-              return (
+      {isOpen && (
+        <div className="space-y-4 pt-1">
+          {/* Qualifier Dimension Selector Pills */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-mono text-text-muted uppercase">
+              1. Select Qualifier Dimension:
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'asOfDate', label: 'Target Date / As-Of' },
+                { id: 'jurisdiction', label: 'Jurisdiction / Region' },
+                { id: 'apiVersion', label: 'API Version' },
+                { id: 'plan_tier', label: 'Execution Tier' },
+                { id: 'custom', label: 'Custom Key' },
+              ].map((dim) => (
                 <button
-                  key={opt.value}
+                  key={dim.id}
                   type="button"
                   onClick={() => {
-                    setSelectedValue(opt.value);
-                    setCustomValue('');
+                    setSelectedKey(dim.id);
                     setSimulationResult(null);
                   }}
-                  className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
-                    isSelected
-                      ? 'border-accent bg-accent/10 text-text-primary shadow-xs'
-                      : 'border-border-subtle bg-surface hover:border-border-strong text-text-secondary'
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    selectedKey === dim.id
+                      ? 'bg-accent text-accent-contrast font-semibold shadow-xs'
+                      : 'bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-strong'
                   }`}
                 >
-                  <div className="font-semibold">{opt.label}</div>
-                  <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
+                  {dim.label}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Key Input (if custom selected) */}
+          {selectedKey === 'custom' && (
+            <div className="space-y-1">
+              <label className="block text-[11px] font-mono text-text-muted uppercase">
+                Custom Qualifier Key:
+              </label>
+              <input
+                type="text"
+                value={customKey}
+                onChange={(e) => setCustomKey(e.target.value)}
+                placeholder="e.g. relation, jurisdiction, sdkVersion..."
+                className="w-full rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+              />
+            </div>
+          )}
+
+          {/* Quick Options MCQs */}
+          {suggestedOptions.length > 0 && selectedKey !== 'custom' && (
+            <div className="space-y-2">
+              <label className="block text-[11px] font-mono text-text-muted uppercase">
+                2. Quick Options (MCQs) for <code className="text-accent">{selectedKey}</code>:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {suggestedOptions.map((opt) => {
+                  const isSelected = effectiveValue === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedValue(opt.value);
+                        setCustomValue('');
+                        setSimulationResult(null);
+                      }}
+                      className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                        isSelected
+                          ? 'border-accent bg-accent/10 text-text-primary shadow-xs'
+                          : 'border-border-subtle bg-surface hover:border-border-strong text-text-secondary'
+                      }`}
+                    >
+                      <div className="font-semibold">{opt.label}</div>
+                      <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Custom input override */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-mono text-text-muted uppercase">
+              {selectedKey === 'custom' ? 'Qualifier Value:' : 'Or Enter Custom Textfield Value:'}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customValue}
+                onChange={(e) => {
+                  setCustomValue(e.target.value);
+                  setSimulationResult(null);
+                }}
+                placeholder={`e.g. custom ${activeKey} value...`}
+                className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          {simulationResult && (
+            <div className="p-3 rounded-lg border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text">
+              {simulationResult}
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
+              {errorMsg}
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-[11px] font-mono text-text-muted">
+              Active Context: <code className="text-accent">{activeKey} = &quot;{effectiveValue || '—'}&quot;</code>
+            </span>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={!effectiveValue || isSubmitting}
+              onClick={handleResolve}
+            >
+              {isSubmitting ? 'Evaluating Context...' : 'Re-evaluate with this Context →'}
+            </Button>
           </div>
         </div>
       )}
-
-      {/* Custom input override */}
-      <div className="space-y-1.5">
-        <label className="block text-[11px] font-mono text-text-muted uppercase">
-          Or Enter Custom Qualifier Value:
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={customValue}
-            onChange={(e) => {
-              setCustomValue(e.target.value);
-              setSimulationResult(null);
-            }}
-            placeholder={`e.g. custom ${selectedKey} value...`}
-            className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
-          />
-        </div>
-      </div>
-
-      {simulationResult && (
-        <div className="p-3 rounded-lg border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text">
-          {simulationResult}
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
-          {errorMsg}
-        </div>
-      )}
-
-      <div className="pt-2 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <span className="text-[11px] font-mono text-text-muted">
-          Selected: <code className="text-accent">{selectedKey} = &quot;{effectiveValue || '—'}&quot;</code>
-        </span>
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          disabled={!effectiveValue || isSubmitting}
-          onClick={handleResolve}
-        >
-          {isSubmitting ? 'Evaluating Context...' : 'Re-evaluate with this Context →'}
-        </Button>
-      </div>
     </div>
   );
 }
@@ -407,7 +481,7 @@ export function ClaimDetail({
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)]" />
               <h4 className="text-[11px] font-mono text-text-muted uppercase tracking-[0.16em]">
-                Surgical Correction Diff
+                Surgical Correction
               </h4>
             </div>
             {claim.correction.verified && (
@@ -416,6 +490,12 @@ export function ClaimDetail({
               </span>
             )}
           </div>
+
+          {claim.correction.replacementText && (
+            <div className="p-3 rounded-lg bg-surface-raised/80 border border-border-subtle text-xs sm:text-sm font-medium text-text-primary leading-relaxed">
+              {claim.correction.replacementText}
+            </div>
+          )}
 
           <pre className="rounded-lg border border-border-subtle/80 bg-surface-raised/90 p-3.5 text-xs font-mono text-text-primary leading-relaxed overflow-x-auto whitespace-pre-wrap">
             {claim.correction.diff}
@@ -444,9 +524,16 @@ export function ClaimDetail({
       )}
 
       {/* Interactive Missing Context Resolution Form */}
-      {(claim.verdict === 'depends_on_context' ||
-        claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
-        (claim.missingMaterialContext && claim.missingMaterialContext.length > 0)) && (
+      {(('verdict' in claim &&
+        (claim.verdict === 'depends_on_context' ||
+          claim.verdict === 'insufficient_evidence')) ||
+        claim.state === 'failed' ||
+        ('score' in claim && claim.score === null) ||
+        ('reasonCode' in claim &&
+          (claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
+            claim.reasonCode === 'INSUFFICIENT_RETRIEVAL_DATA' ||
+            claim.reasonCode === 'INSUFFICIENT_EVIDENCE')) ||
+        Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0)) && (
         <MissingContextResolver claim={claim} runId={runId} />
       )}
 
