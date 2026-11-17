@@ -42,6 +42,172 @@ export interface InputComposerProps {
   onOpenHistory?: () => void;
 }
 
+interface DynamicClaimQuestion {
+  claimIndex: number;
+  claimProposition: string;
+  question: string;
+  reason: string;
+  targetKey: string;
+  options: { label: string; value: string; hint: string }[];
+}
+
+function deriveDynamicQuestionsForClaims(claims: ClaimTicket[]): DynamicClaimQuestion[] {
+  const dynamicQuestions: DynamicClaimQuestion[] = [];
+
+  for (let i = 0; i < claims.length; i++) {
+    const claim = claims[i];
+    const text = claim.normalizedProposition.toLowerCase();
+    const explicitKeys = new Set(
+      claim.verificationContext
+        .filter((p) => p.origin === 'explicit_claim_text')
+        .map((p) => p.key)
+    );
+    const confirmedUserKeys = new Set(
+      claim.verificationContext
+        .filter((p) => p.origin === 'user_target_context')
+        .map((p) => p.key)
+    );
+
+    // 1. Check if the claim ticket has explicit missingMaterialContext from extraction
+    if (claim.missingMaterialContext && claim.missingMaterialContext.length > 0) {
+      for (const missingKey of claim.missingMaterialContext) {
+        if (explicitKeys.has(missingKey) || confirmedUserKeys.has(missingKey)) continue;
+
+        let question = `Specify the ${missingKey.replace(/_/g, ' ')} for this assertion:`;
+        let options: { label: string; value: string; hint: string }[] = [];
+
+        if (missingKey === 'asOfDate' || missingKey === 'targetDate' || missingKey === 'statedEffectiveDate') {
+          question = `What evaluation timeframe or date applies to "${claim.normalizedProposition.slice(0, 50)}..."?`;
+          options = [
+            { label: 'Present Day (2024–Now)', value: '2024-09-01', hint: 'Evaluates current authoritative state' },
+            { label: 'Historical (Event Year / Past)', value: '2022-09-08', hint: 'Evaluates past historical interval' },
+          ];
+        } else if (missingKey === 'jurisdiction' || missingKey === 'region') {
+          question = `Which jurisdiction or country does this assertion govern?`;
+          options = [
+            { label: 'United States (US)', value: 'US', hint: 'US federal / domestic scope' },
+            { label: 'United Kingdom (UK)', value: 'UK', hint: 'UK domestic territory' },
+            { label: 'European Union (EU)', value: 'EU', hint: 'EU Community framework' },
+            { label: 'Global / International', value: 'Global', hint: 'Worldwide international scope' },
+          ];
+        } else if (missingKey === 'plan_tier' || missingKey === 'tier') {
+          question = `Which service tier applies to this performance or quota claim?`;
+          options = [
+            { label: 'Workers Paid (50ms limit)', value: 'Workers Paid', hint: 'Paid plan resource quotas' },
+            { label: 'Workers Free (10ms limit)', value: 'Workers Free', hint: 'Free plan resource quotas' },
+          ];
+        } else if (missingKey === 'apiVersion' || missingKey === 'version') {
+          question = `Which API specification version does this method behavior target?`;
+          options = [
+            { label: 'Modern API (2024-06-20+)', value: '2024-06-20', hint: 'Current API behavior' },
+            { label: 'Legacy API (2020-08-27)', value: '2020-08-27', hint: 'Pre-v2 API behavior' },
+          ];
+        } else {
+          question = `Specify the ${missingKey.replace(/_/g, ' ')} for "${claim.normalizedProposition.slice(0, 50)}...":`;
+          options = [
+            { label: `Standard ${missingKey.replace(/_/g, ' ')}`, value: 'standard', hint: 'Standard applicable qualifier' },
+          ];
+        }
+
+        dynamicQuestions.push({
+          claimIndex: i,
+          claimProposition: claim.normalizedProposition,
+          question,
+          reason: `Verification outcome depends on knowing the specific ${missingKey.replace(/_/g, ' ')}.`,
+          targetKey: missingKey,
+          options,
+        });
+      }
+      continue;
+    }
+
+    // 2. Dynamic content-aware detection for ambiguous claims lacking explicit qualifiers
+    if (
+      (text.includes('ceo') || text.includes('reign') || text.includes('monarch') || text.includes('president') || text.includes('leader')) &&
+      !explicitKeys.has('statedEffectiveDate') &&
+      !explicitKeys.has('targetDate') &&
+      !explicitKeys.has('asOfDate') &&
+      !confirmedUserKeys.has('asOfDate') &&
+      !confirmedUserKeys.has('targetDate')
+    ) {
+      const isRoyal = text.includes('queen') || text.includes('monarch') || text.includes('king') || text.includes('elizabeth');
+      dynamicQuestions.push({
+        claimIndex: i,
+        claimProposition: claim.normalizedProposition,
+        question: isRoyal
+          ? `Specify the evaluation time horizon for Queen Elizabeth II's royal reign:`
+          : `Specify the evaluation time horizon for this leadership assertion:`,
+        reason: 'Leadership, tenure, and governance assertions depend on whether evaluation targets present or historical eras.',
+        targetKey: 'asOfDate',
+        options: isRoyal
+          ? [
+              { label: 'Present Day (2024–Now / King Charles III)', value: '2024-09-01', hint: 'Evaluates current constitutional state' },
+              { label: 'Historical Reign (1952–2022)', value: '2022-09-08', hint: 'Evaluates reign during Queen Elizabeth II’s lifetime' },
+            ]
+          : [
+              { label: 'Present Day (2024–Now)', value: '2024-09-01', hint: 'Current corporate / executive state' },
+              { label: 'Historical Appointment (2021)', value: '2021-12-01', hint: 'Historical executive appointment era' },
+            ],
+      });
+    } else if (
+      (text.includes('wife') || text.includes('husband') || text.includes('married') || text.includes('boyfriend') || text.includes('partner')) &&
+      !explicitKeys.has('targetDate') &&
+      !explicitKeys.has('asOfDate') &&
+      !confirmedUserKeys.has('asOfDate') &&
+      !confirmedUserKeys.has('targetDate')
+    ) {
+      dynamicQuestions.push({
+        claimIndex: i,
+        claimProposition: claim.normalizedProposition,
+        question: `Specify the target timeframe or legal scope for this relationship claim:`,
+        reason: 'Biographical marital and relationship assertions can vary across historical periods and legal jurisdictions.',
+        targetKey: 'asOfDate',
+        options: [
+          { label: 'Present Day Status (2024)', value: '2024-09-01', hint: 'Verifies current official marriage record' },
+          { label: 'Historical Records', value: '2022-01-01', hint: 'Verifies past official relationship records' },
+        ],
+      });
+    } else if (
+      (text.includes('stripe') || text.includes('payment_method_types') || text.includes('payment intent')) &&
+      !explicitKeys.has('apiVersion') &&
+      !explicitKeys.has('version') &&
+      !confirmedUserKeys.has('apiVersion')
+    ) {
+      dynamicQuestions.push({
+        claimIndex: i,
+        claimProposition: claim.normalizedProposition,
+        question: `Specify the Stripe API version for payment method configuration:`,
+        reason: 'Payment intent behaviors changed from implicit default methods to explicit types in modern versions.',
+        targetKey: 'apiVersion',
+        options: [
+          { label: 'Modern Stripe API (2024-06-20+)', value: '2024-06-20', hint: 'Requires manual payment_method_types' },
+          { label: 'Legacy Stripe API (2020-08-27)', value: '2020-08-27', hint: 'Permitted automatic payment method defaults' },
+        ],
+      });
+    } else if (
+      (text.includes('cloudflare') || text.includes('workers')) &&
+      text.includes('execution time') &&
+      !explicitKeys.has('plan_tier') &&
+      !explicitKeys.has('tier') &&
+      !confirmedUserKeys.has('plan_tier')
+    ) {
+      dynamicQuestions.push({
+        claimIndex: i,
+        claimProposition: claim.normalizedProposition,
+        question: `Which Cloudflare Workers subscription plan tier applies?`,
+        reason: 'Execution CPU time limits differ substantially between Free (10ms) and Paid (50ms) plan tiers.',
+        targetKey: 'plan_tier',
+        options: [
+          { label: 'Workers Paid Tier (50ms limit)', value: 'Workers Paid', hint: 'Permits up to 50 milliseconds CPU time' },
+          { label: 'Workers Free Tier (10ms limit)', value: 'Workers Free', hint: 'Strict 10 milliseconds CPU limit' },
+        ],
+      });
+    }
+  }
+
+  return dynamicQuestions;
+}
+
 export function InputComposer({
   initialAnswerText = '',
   initialMode = 'paste',
@@ -86,11 +252,9 @@ export function InputComposer({
   const [editingProposition, setEditingProposition] = useState('');
   const [isAddingClaim, setIsAddingClaim] = useState(false);
   const [newClaimText, setNewClaimText] = useState('');
-  const [showPreparationContext, setShowPreparationContext] = useState(false);
-  const [prepContextKey, setPrepContextKey] = useState<string>('asOfDate');
-  const [prepContextValue, setPrepContextValue] = useState<string>('');
-  const [prepCustomKey, setPrepCustomKey] = useState<string>('');
-  const [prepCustomValue, setPrepCustomValue] = useState<string>('');
+  const [selectedQuestionIdx, setSelectedQuestionIdx] = useState<number>(0);
+  const [prepAnswerValue, setPrepAnswerValue] = useState<string>('');
+  const [prepCustomText, setPrepCustomText] = useState<string>('');
   const [prepContextNotice, setPrepContextNotice] = useState<string | null>(null);
 
   const resetAll = () => {
@@ -100,17 +264,20 @@ export function InputComposer({
     setSplittingIndex(null);
     setEditingIndex(null);
     setIsAddingClaim(false);
-    setShowPreparationContext(false);
+    setSelectedQuestionIdx(0);
+    setPrepAnswerValue('');
+    setPrepCustomText('');
     setPrepContextNotice(null);
     setActionError(null);
     setError(null);
     setStatusNotice(null);
   };
 
-  const handleApplyPreparationContext = () => {
-    const key = prepContextKey === 'custom' ? prepCustomKey.trim() : prepContextKey;
-    const value = prepCustomValue.trim() || prepContextValue.trim();
-    if (!key || !value) return;
+  const handleApplyQuestionAnswer = (question: DynamicClaimQuestion) => {
+    const value = prepCustomText.trim() || prepAnswerValue.trim();
+    if (!value) return;
+
+    const key = question.targetKey;
 
     // Update parent context
     setContext((prev) => ({
@@ -118,13 +285,16 @@ export function InputComposer({
       [key]: value,
     }));
 
-    // Update each editable claim's verificationContext with the new qualifier
+    // Update specific claim's verificationContext and clean its missingMaterialContext
     setEditableClaims((prev) => {
       const source = prev.length > 0 ? prev : (preparation?.claims || []);
-      return source.map((c) => {
+      return source.map((c, idx) => {
+        if (idx !== question.claimIndex) return c;
         const existing = c.verificationContext.filter((p) => p.key !== key);
+        const updatedMissing = (c.missingMaterialContext || []).filter((k) => k !== key);
         return {
           ...c,
+          missingMaterialContext: updatedMissing,
           verificationContext: [
             ...existing,
             {
@@ -141,9 +311,9 @@ export function InputComposer({
       });
     });
 
-    setPrepContextNotice(`Applied qualifier "${key} = ${value}" to all candidate claims.`);
-    setPrepCustomValue('');
-    setPrepContextValue('');
+    setPrepContextNotice(`Applied "${key} = ${value}" to Claim #${question.claimIndex + 1}.`);
+    setPrepAnswerValue('');
+    setPrepCustomText('');
     setTimeout(() => setPrepContextNotice(null), 4000);
   };
 
@@ -507,6 +677,7 @@ export function InputComposer({
   // State 2: Preparation Review State
   if (preparation) {
     const claimsToDisplay = editableClaims.length > 0 ? editableClaims : preparation.claims;
+    const dynamicQuestions = deriveDynamicQuestionsForClaims(claimsToDisplay);
 
     return (
       <div className={`w-full max-w-3xl mx-auto space-y-6 ${className}`}>
@@ -725,169 +896,145 @@ export function InputComposer({
               </button>
             )}
 
-            {/* More Context Needed for Better Claims? (MCQs + Custom Textfield) */}
-            <div className="rounded-xl border border-accent/35 bg-surface-raised/80 p-4 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                  <span className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
-                    More Context Needed for Better Claims?
+            {/* Dynamic Claim Clarification (Visible ONLY when AI needs more context) */}
+            {dynamicQuestions.length > 0 && (
+              <div className="rounded-xl border border-amber-500/40 bg-surface-raised p-4 space-y-3.5 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
+                      More Context Needed to Refine Claims
+                    </span>
+                  </div>
+                  <span className="rounded-xs bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-300">
+                    {dynamicQuestions.length} pending clarification{dynamicQuestions.length > 1 ? 's' : ''}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPreparationContext(!showPreparationContext)}
-                  className="px-2.5 py-1 rounded text-xs font-mono font-medium text-accent bg-accent/10 hover:bg-accent/20 border border-accent/25 transition-colors"
-                >
-                  {showPreparationContext ? '▲ Hide Context Form' : '+ Provide Context Qualifiers (MCQs)'}
-                </button>
-              </div>
 
-              <p className="text-xs text-text-secondary leading-relaxed">
-                Provide target dates, jurisdictions, versions, or plan tiers to eliminate ambiguities and improve claim decomposition and verification accuracy.
-              </p>
-
-              {prepContextNotice && (
-                <div className="p-2.5 rounded border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text">
-                  ✓ {prepContextNotice}
-                </div>
-              )}
-
-              {showPreparationContext && (
-                <div className="space-y-3.5 pt-2 border-t border-border-subtle">
-                  {/* Dimension selector pills */}
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-mono text-text-muted uppercase">
-                      Select Qualifier Dimension:
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { id: 'asOfDate', label: 'Target Date / As-Of' },
-                        { id: 'jurisdiction', label: 'Jurisdiction / Region' },
-                        { id: 'apiVersion', label: 'API Version' },
-                        { id: 'plan_tier', label: 'Execution Tier' },
-                        { id: 'custom', label: 'Custom Key' },
-                      ].map((dim) => (
-                        <button
-                          key={dim.id}
-                          type="button"
-                          onClick={() => {
-                            setPrepContextKey(dim.id);
-                            setPrepContextValue('');
-                          }}
-                          className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
-                            prepContextKey === dim.id
-                              ? 'bg-accent text-accent-contrast font-semibold shadow-xs'
-                              : 'bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-strong'
-                          }`}
-                        >
-                          {dim.label}
-                        </button>
-                      ))}
-                    </div>
+                {prepContextNotice && (
+                  <div className="p-2.5 rounded border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text">
+                    ✓ {prepContextNotice}
                   </div>
+                )}
 
-                  {/* Custom key field */}
-                  {prepContextKey === 'custom' && (
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-mono text-text-muted uppercase">
-                        Custom Qualifier Key
-                      </label>
-                      <input
-                        type="text"
-                        value={prepCustomKey}
-                        onChange={(e) => setPrepCustomKey(e.target.value)}
-                        placeholder="e.g. relation, modelFamily, currency..."
-                        className="w-full rounded border border-border-subtle bg-surface px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
-                      />
-                    </div>
-                  )}
+                {(() => {
+                  const safeIdx = Math.min(selectedQuestionIdx, dynamicQuestions.length - 1);
+                  const currentQ = dynamicQuestions[safeIdx] || dynamicQuestions[0];
+                  if (!currentQ) return null;
 
-                  {/* MCQs quick selection */}
-                  {prepContextKey !== 'custom' && (
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-mono text-text-muted uppercase">
-                        Quick Choices (MCQs):
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(prepContextKey === 'asOfDate'
-                          ? [
-                              { label: '2024-09-01 (Present)', value: '2024-09-01', hint: 'Current / modern state' },
-                              { label: '2022-09-08 (Historical 2022)', value: '2022-09-08', hint: 'State prior to transition' },
-                              { label: '2021-11-29 (Historical 2021)', value: '2021-11-29', hint: 'Initial appointment period' },
-                            ]
-                          : prepContextKey === 'jurisdiction'
-                          ? [
-                              { label: 'United States (US)', value: 'US', hint: 'Federal / domestic scope' },
-                              { label: 'United Kingdom (UK)', value: 'UK', hint: 'UK domestic jurisdiction' },
-                              { label: 'European Union (EU)', value: 'EU', hint: 'EU regulatory boundaries' },
-                              { label: 'Global / International', value: 'Global', hint: 'Worldwide international scope' },
-                            ]
-                          : prepContextKey === 'apiVersion'
-                          ? [
-                              { label: '2024-06-20 (Modern)', value: '2024-06-20', hint: 'Modern API version' },
-                              { label: '2020-08-27 (Legacy)', value: '2020-08-27', hint: 'Legacy API version' },
-                            ]
-                          : [
-                              { label: 'Workers Paid', value: 'Workers Paid', hint: '50ms CPU execution time' },
-                              { label: 'Workers Free', value: 'Workers Free', hint: '10ms CPU execution limit' },
-                            ]
-                        ).map((opt) => {
-                          const isSel = (prepCustomValue || prepContextValue) === opt.value;
-                          return (
+                  return (
+                    <div className="space-y-4 pt-1">
+                      {/* If multiple pending questions, let user switch between them */}
+                      {dynamicQuestions.length > 1 && (
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                          <span className="text-[10px] font-mono uppercase text-text-muted mr-1">Questions:</span>
+                          {dynamicQuestions.map((q, idx) => (
                             <button
-                              key={opt.value}
+                              key={`${q.claimIndex}-${q.targetKey}`}
                               type="button"
                               onClick={() => {
-                                setPrepContextValue(opt.value);
-                                setPrepCustomValue('');
+                                setSelectedQuestionIdx(idx);
+                                setPrepAnswerValue('');
+                                setPrepCustomText('');
                               }}
-                              className={`p-2 rounded border text-left text-xs transition-colors ${
-                                isSel
-                                  ? 'border-accent bg-accent/10 text-text-primary'
-                                  : 'border-border-subtle bg-surface hover:border-border-strong text-text-secondary'
+                              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                                idx === safeIdx
+                                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-semibold'
+                                  : 'bg-surface border border-border-subtle text-text-muted hover:text-text-primary'
                               }`}
                             >
-                              <div className="font-semibold">{opt.label}</div>
-                              <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
+                              Claim #{q.claimIndex + 1}: {q.targetKey}
                             </button>
-                          );
-                        })}
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Focused Question Details */}
+                      <div className="rounded-lg bg-surface/60 border border-border-subtle p-3 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
+                          <span>Target Proposition (Claim #{currentQ.claimIndex + 1}):</span>
+                          <span className="text-accent">{currentQ.targetKey}</span>
+                        </div>
+                        <p className="text-xs text-text-secondary italic">
+                          "{currentQ.claimProposition}"
+                        </p>
+                        <p className="text-xs font-medium text-text-primary">
+                          {currentQ.question}
+                        </p>
+                        <p className="text-[11px] text-text-muted">
+                          {currentQ.reason}
+                        </p>
+                      </div>
+
+                      {/* Dynamic MCQ Choices based on the specific claim */}
+                      {currentQ.options && currentQ.options.length > 0 && (
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-mono text-text-muted uppercase">
+                            Suggested Options (MCQs):
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {currentQ.options.map((opt) => {
+                              const isSelected = prepAnswerValue === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setPrepAnswerValue(opt.value);
+                                    setPrepCustomText('');
+                                  }}
+                                  className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
+                                    isSelected
+                                      ? 'border-amber-400/80 bg-amber-500/15 text-text-primary shadow-xs'
+                                      : 'border-border-subtle bg-surface hover:border-border-strong text-text-secondary'
+                                  }`}
+                                >
+                                  <div className="font-semibold text-text-primary">{opt.label}</div>
+                                  <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Custom textfield for user */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-mono text-text-muted uppercase">
+                          Or Enter Custom Qualifier Value:
+                        </label>
+                        <input
+                          type="text"
+                          value={prepCustomText}
+                          onChange={(e) => {
+                            setPrepCustomText(e.target.value);
+                            setPrepAnswerValue('');
+                          }}
+                          placeholder={`Specify custom value for ${currentQ.targetKey}...`}
+                          className="w-full rounded border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+                        />
+                      </div>
+
+                      {/* Apply button */}
+                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle/60">
+                        <span className="text-[11px] font-mono text-text-muted">
+                          Applies to <strong className="text-text-primary">Claim #{currentQ.claimIndex + 1}</strong>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          disabled={!(prepCustomText.trim() || prepAnswerValue.trim())}
+                          onClick={() => handleApplyQuestionAnswer(currentQ)}
+                        >
+                          Apply to Claim #{currentQ.claimIndex + 1}
+                        </Button>
                       </div>
                     </div>
-                  )}
-
-                  {/* Custom Textfield for value */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-text-muted uppercase">
-                      {prepContextKey === 'custom' ? 'Qualifier Value' : 'Or Enter Custom Qualifier Value'}
-                    </label>
-                    <input
-                      type="text"
-                      value={prepCustomValue}
-                      onChange={(e) => setPrepCustomValue(e.target.value)}
-                      placeholder={`e.g. custom ${prepContextKey === 'custom' ? (prepCustomKey || 'qualifier') : prepContextKey} value...`}
-                      className="w-full rounded border border-border-subtle bg-surface px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-mono text-text-muted">
-                      Will apply to: <code className="text-accent">{claimsToDisplay.length} claim(s)</code>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      disabled={!(prepCustomValue.trim() || prepContextValue.trim())}
-                      onClick={handleApplyPreparationContext}
-                    >
-                      Apply Context to Claims
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {actionError && <InlineError message={actionError} className="mt-2" />}
 
