@@ -252,9 +252,11 @@ export function InputComposer({
   const [editingProposition, setEditingProposition] = useState('');
   const [isAddingClaim, setIsAddingClaim] = useState(false);
   const [newClaimText, setNewClaimText] = useState('');
-  const [selectedQuestionIdx, setSelectedQuestionIdx] = useState<number>(0);
-  const [prepAnswerValue, setPrepAnswerValue] = useState<string>('');
-  const [prepCustomText, setPrepCustomText] = useState<string>('');
+  // Per-question state for dynamic clarification questions (isolated textfields and MCQ selections)
+  const [questionAnswers, setQuestionAnswers] = useState<
+    Record<string, { selectedOption: string; customText: string }>
+  >({});
+  const [questionNotices, setQuestionNotices] = useState<Record<string, string>>({});
   const [prepContextNotice, setPrepContextNotice] = useState<string | null>(null);
 
   const resetAll = () => {
@@ -264,17 +266,18 @@ export function InputComposer({
     setSplittingIndex(null);
     setEditingIndex(null);
     setIsAddingClaim(false);
-    setSelectedQuestionIdx(0);
-    setPrepAnswerValue('');
-    setPrepCustomText('');
+    setQuestionAnswers({});
+    setQuestionNotices({});
     setPrepContextNotice(null);
     setActionError(null);
     setError(null);
     setStatusNotice(null);
   };
 
-  const handleApplyQuestionAnswer = (question: DynamicClaimQuestion) => {
-    const value = prepCustomText.trim() || prepAnswerValue.trim();
+  const handleApplySingleQuestionAnswer = (question: DynamicClaimQuestion) => {
+    const qKey = `${question.claimIndex}-${question.targetKey}`;
+    const qState = questionAnswers[qKey] || { selectedOption: '', customText: '' };
+    const value = qState.customText.trim() || qState.selectedOption.trim();
     if (!value) return;
 
     const key = question.targetKey;
@@ -311,10 +314,42 @@ export function InputComposer({
       });
     });
 
+    setQuestionNotices((prev) => ({
+      ...prev,
+      [qKey]: `Applied to Claim #${question.claimIndex + 1}`,
+    }));
+
+    setQuestionAnswers((prev) => {
+      const copy = { ...prev };
+      delete copy[qKey];
+      return copy;
+    });
+
     setPrepContextNotice(`Applied "${key} = ${value}" to Claim #${question.claimIndex + 1}.`);
-    setPrepAnswerValue('');
-    setPrepCustomText('');
-    setTimeout(() => setPrepContextNotice(null), 4000);
+    setTimeout(() => {
+      setPrepContextNotice(null);
+      setQuestionNotices((prev) => {
+        const copy = { ...prev };
+        delete copy[qKey];
+        return copy;
+      });
+    }, 4000);
+  };
+
+  const handleApplyAllAnswered = (questions: DynamicClaimQuestion[]) => {
+    let appliedCount = 0;
+    questions.forEach((q) => {
+      const qKey = `${q.claimIndex}-${q.targetKey}`;
+      const qState = questionAnswers[qKey];
+      const val = qState?.customText.trim() || qState?.selectedOption.trim();
+      if (val) {
+        handleApplySingleQuestionAnswer(q);
+        appliedCount++;
+      }
+    });
+    if (appliedCount > 0) {
+      setPrepContextNotice(`Applied ${appliedCount} context clarification(s) across claims.`);
+    }
   };
 
   const handlePasteSubmit = async (e: React.FormEvent) => {
@@ -898,141 +933,165 @@ export function InputComposer({
 
             {/* Dynamic Claim Clarification (Visible ONLY when AI needs more context) */}
             {dynamicQuestions.length > 0 && (
-              <div className="rounded-xl border border-amber-500/40 bg-surface-raised p-4 space-y-3.5 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle/80 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                    <span className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
-                      More Context Needed to Refine Claims
-                    </span>
+              <div className="rounded-xl border border-amber-500/40 bg-surface-raised p-4 sm:p-5 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-subtle/80 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                    <div>
+                      <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
+                        More Context Needed to Refine Claims
+                      </h4>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        Answer individual questions below or provide custom values to resolve ambiguities before running verification.
+                      </p>
+                    </div>
                   </div>
-                  <span className="rounded-xs bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-300">
-                    {dynamicQuestions.length} pending clarification{dynamicQuestions.length > 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="rounded bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[10px] font-mono text-amber-300">
+                      {dynamicQuestions.length} pending clarification{dynamicQuestions.length > 1 ? 's' : ''}
+                    </span>
+                    {dynamicQuestions.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleApplyAllAnswered(dynamicQuestions)}
+                        className="text-[11px] py-1 px-2.5 h-auto font-mono"
+                      >
+                        Apply All Answered
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {prepContextNotice && (
-                  <div className="p-2.5 rounded border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text">
-                    ✓ {prepContextNotice}
+                  <div className="p-3 rounded-lg border border-status-supported-border bg-status-supported-bg text-xs font-mono text-status-supported-text flex items-center justify-between">
+                    <span>✓ {prepContextNotice}</span>
                   </div>
                 )}
 
-                {(() => {
-                  const safeIdx = Math.min(selectedQuestionIdx, dynamicQuestions.length - 1);
-                  const currentQ = dynamicQuestions[safeIdx] || dynamicQuestions[0];
-                  if (!currentQ) return null;
+                {/* Per-Question Separated Cards List */}
+                <div className="space-y-4 pt-1">
+                  {dynamicQuestions.map((q) => {
+                    const qKey = `${q.claimIndex}-${q.targetKey}`;
+                    const currentAnswer = questionAnswers[qKey] || { selectedOption: '', customText: '' };
+                    const notice = questionNotices[qKey];
+                    const effectiveValue = currentAnswer.customText.trim() || currentAnswer.selectedOption.trim();
 
-                  return (
-                    <div className="space-y-4 pt-1">
-                      {/* If multiple pending questions, let user switch between them */}
-                      {dynamicQuestions.length > 1 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                          <span className="text-[10px] font-mono uppercase text-text-muted mr-1">Questions:</span>
-                          {dynamicQuestions.map((q, idx) => (
-                            <button
-                              key={`${q.claimIndex}-${q.targetKey}`}
-                              type="button"
-                              onClick={() => {
-                                setSelectedQuestionIdx(idx);
-                                setPrepAnswerValue('');
-                                setPrepCustomText('');
-                              }}
-                              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
-                                idx === safeIdx
-                                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 font-semibold'
-                                  : 'bg-surface border border-border-subtle text-text-muted hover:text-text-primary'
-                              }`}
-                            >
-                              Claim #{q.claimIndex + 1}: {q.targetKey}
-                            </button>
-                          ))}
+                    return (
+                      <div
+                        key={qKey}
+                        className="rounded-lg border border-border-subtle bg-surface p-4 space-y-3.5 hover:border-amber-500/40 transition-colors shadow-xs"
+                      >
+                        {/* Question Header & Context Scope */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle/50 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono font-semibold text-text-primary uppercase tracking-wider">
+                              Claim #{q.claimIndex + 1} Scope
+                            </span>
+                            <span className="rounded bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 text-[10px] font-mono text-amber-300">
+                              {q.targetKey}
+                            </span>
+                          </div>
+                          {notice && (
+                            <span className="text-[10px] font-mono text-status-supported-text bg-status-supported-bg border border-status-supported-border px-2 py-0.5 rounded">
+                              ✓ {notice}
+                            </span>
+                          )}
                         </div>
-                      )}
 
-                      {/* Focused Question Details */}
-                      <div className="rounded-lg bg-surface/60 border border-border-subtle p-3 space-y-2">
-                        <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
-                          <span>Target Proposition (Claim #{currentQ.claimIndex + 1}):</span>
-                          <span className="text-accent">{currentQ.targetKey}</span>
-                        </div>
-                        <p className="text-xs text-text-secondary italic">
-                          "{currentQ.claimProposition}"
-                        </p>
-                        <p className="text-xs font-medium text-text-primary">
-                          {currentQ.question}
-                        </p>
-                        <p className="text-[11px] text-text-muted">
-                          {currentQ.reason}
-                        </p>
-                      </div>
-
-                      {/* Dynamic MCQ Choices based on the specific claim */}
-                      {currentQ.options && currentQ.options.length > 0 && (
+                        {/* Target Assertion & Contextual Reason */}
                         <div className="space-y-1.5">
-                          <label className="block text-[10px] font-mono text-text-muted uppercase">
-                            Suggested Options (MCQs):
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {currentQ.options.map((opt) => {
-                              const isSelected = prepAnswerValue === opt.value;
-                              return (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => {
-                                    setPrepAnswerValue(opt.value);
-                                    setPrepCustomText('');
-                                  }}
-                                  className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
-                                    isSelected
-                                      ? 'border-amber-400/80 bg-amber-500/15 text-text-primary shadow-xs'
-                                      : 'border-border-subtle bg-surface hover:border-border-strong text-text-secondary'
-                                  }`}
-                                >
-                                  <div className="font-semibold text-text-primary">{opt.label}</div>
-                                  <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
-                                </button>
-                              );
-                            })}
+                          <div className="text-xs text-text-secondary italic bg-surface-raised/60 rounded px-2.5 py-1.5 border border-border-subtle/40">
+                            "{q.claimProposition}"
+                          </div>
+                          <div className="text-xs font-medium text-text-primary">
+                            {q.question}
+                          </div>
+                          <div className="text-[11px] text-text-muted">
+                            {q.reason}
                           </div>
                         </div>
-                      )}
 
-                      {/* Custom textfield for user */}
-                      <div className="space-y-1">
-                        <label className="block text-[10px] font-mono text-text-muted uppercase">
-                          Or Enter Custom Qualifier Value:
-                        </label>
-                        <input
-                          type="text"
-                          value={prepCustomText}
-                          onChange={(e) => {
-                            setPrepCustomText(e.target.value);
-                            setPrepAnswerValue('');
-                          }}
-                          placeholder={`Specify custom value for ${currentQ.targetKey}...`}
-                          className="w-full rounded border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
-                        />
-                      </div>
+                        {/* MCQ Choices for this question */}
+                        {q.options && q.options.length > 0 && (
+                          <div className="space-y-1.5">
+                            <label className="block text-[10px] font-mono text-text-muted uppercase tracking-wider">
+                              Select from Quick Choices (MCQs):
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {q.options.map((opt) => {
+                                const isSelected =
+                                  currentAnswer.selectedOption === opt.value && !currentAnswer.customText.trim();
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => {
+                                      setQuestionAnswers((prev) => ({
+                                        ...prev,
+                                        [qKey]: {
+                                          selectedOption: opt.value,
+                                          customText: '',
+                                        },
+                                      }));
+                                    }}
+                                    className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                                      isSelected
+                                        ? 'border-amber-400 bg-amber-500/15 text-text-primary shadow-xs ring-1 ring-amber-400/40'
+                                        : 'border-border-subtle bg-surface-raised hover:border-border-strong text-text-secondary'
+                                    }`}
+                                  >
+                                    <div className="font-semibold text-text-primary flex items-center justify-between">
+                                      <span>{opt.label}</span>
+                                      {isSelected && <span className="text-amber-400 text-xs">✓</span>}
+                                    </div>
+                                    <div className="text-[10px] text-text-muted mt-0.5">{opt.hint}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
-                      {/* Apply button */}
-                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle/60">
-                        <span className="text-[11px] font-mono text-text-muted">
-                          Applies to <strong className="text-text-primary">Claim #{currentQ.claimIndex + 1}</strong>
-                        </span>
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="sm"
-                          disabled={!(prepCustomText.trim() || prepAnswerValue.trim())}
-                          onClick={() => handleApplyQuestionAnswer(currentQ)}
-                        >
-                          Apply to Claim #{currentQ.claimIndex + 1}
-                        </Button>
+                        {/* Separated Custom Textfield for this Question */}
+                        <div className="space-y-1.5 pt-1">
+                          <label className="block text-[10px] font-mono text-text-muted uppercase tracking-wider">
+                            Or Enter Custom {q.targetKey} for Claim #{q.claimIndex + 1}:
+                          </label>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <input
+                              type="text"
+                              value={currentAnswer.customText}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setQuestionAnswers((prev) => ({
+                                  ...prev,
+                                  [qKey]: {
+                                    selectedOption: '',
+                                    customText: val,
+                                  },
+                                }));
+                              }}
+                              placeholder={`Specify custom ${q.targetKey} value (e.g. 2024-09-01, US, Workers Paid)...`}
+                              className="flex-1 rounded-md border border-border-subtle bg-surface-raised px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                            />
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              disabled={!effectiveValue}
+                              onClick={() => handleApplySingleQuestionAnswer(q)}
+                              className="whitespace-nowrap px-3 py-2 text-xs font-mono"
+                            >
+                              Apply to Claim #{q.claimIndex + 1}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })}
+                </div>
               </div>
             )}
 

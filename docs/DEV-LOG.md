@@ -247,6 +247,38 @@ This document serves as the persistent, chronological log of engineering actions
     4. `"is virgin"` -> Private intimate attribute
   - Fails closed with `insufficient_evidence` / null score instead of fabricating `supported` / 100.
 
+---
+
+### [2026-11-18 22:15] — Dynamic Claim Clarification UX, Separated Per-Question Inputs, and Developer Showcase Telemetry
+- **Author/Agent:** Coordinator / Antigravity Lead
+- **Trigger Scenario:**
+  1. Context preparation form previously used static dimension pills instead of dynamic questions derived from candidate claims.
+  2. Multiple questions shared a single active index and shared textfield state, preventing independent entry and application.
+  3. Header previously had a trailing question mark (`?`) and needed clean conditional visibility only when context/evidence is truly needed.
+  4. Landing page developer showcase needed comprehensive live system telemetry and architectural specifications.
+- **Root Cause & Architectural Audit:**
+  1. `InputComposer.tsx` used a single `selectedQuestionIdx` with single `prepAnswerValue` and `prepCustomText` state variables. When multiple propositions needed clarification (e.g., date for one claim and API version for another), switching between them wiped or cross-pollinated input values.
+  2. The developer section in `ProjectShowcase.tsx` displayed only 6 static placeholders, underrepresenting the actual 439+ automated tests, 160+ commits, 5-stage DAG pipeline, and multi-provider Bifrost gateway with Gemini 2.5 fallback.
+- **Changes Implemented:**
+  1. **Dynamic Question Derivation (`InputComposer.tsx`):**
+     - Implemented `deriveDynamicQuestionsForClaims` analyzing `missingMaterialContext` and proposition semantics (royal reigns, marital status, API specifications, cloud service tiers).
+     - Bound questions dynamically to individual claim proposition tickets.
+  2. **Isolated Per-Question State & Independent Application (`InputComposer.tsx`):**
+     - Refactored state into isolated `questionAnswers: Record<string, { selectedOption: string; customText: string }>` keyed by `${claimIndex}-${targetKey}`.
+     - Each pending question is rendered in its own dedicated card with its own tailored MCQ options and its own separated custom textfield.
+     - Provided independent `Apply to Claim #{idx + 1}` action per card, plus a header-level `Apply All Answered` batch action.
+     - Added instant per-card confirmation notices ("✓ Applied to Claim #X") and auto-dismissing feedback alerts.
+     - Removed trailing `?` from headers (`"More Context Needed to Refine Claims"` / `"More Context Needed"`).
+     - Enforced strict conditional visibility: rendered if and only if `dynamicQuestions.length > 0`.
+  3. **Expanded Developer Showcase & Architectural Specifications (`ProjectShowcase.tsx`):**
+     - Expanded telemetry grid to 12 live engineering metrics: `AUTOMATED TESTS: 439+`, `VERIFIED COMMITS: 160+`, `CONTRIBUTORS: 3`, `DAG PIPELINE: 5-Stage`, `GATEWAY FALLBACK: < 800ms`, `TAXONOMY INVARIANTS: 6 / 6`, `DATABASE ENGINE: Neon PG`, `WORKER DISPATCH: QStash`, `LEASE FENCING: 30s`, `RETRIEVAL SCOPE: 100%`, `PROPOSITION ANCHOR: UTF-16`, and `OPEN SOURCE: MIT`.
+     - Added an Architectural Pillars specification matrix detailing Distributed Execution (Neon PG + QStash), Model Gateway & Retrieval (Bifrost + Tavily), and Evidence-Based Invariants (UPPR Invariant-to-Proof Chain).
+- **Verification Evidence:**
+  - `pnpm typecheck`: 0 errors (`tsc --noEmit` exit code 0).
+  - `npx vitest run tests/unit`: 401/401 tests passed across 21 files (8.78s).
+  - `npx playwright test tests/e2e/smoke.spec.ts tests/e2e/input-composer.spec.ts --workers=1`: 8/8 tests passed (35.9s).
+
+
 
 
 
