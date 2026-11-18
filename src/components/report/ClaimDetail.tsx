@@ -162,7 +162,7 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
             More Context Needed
           </h4>
           <span className="rounded-xs bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-300">
-            {claim.verdict || 'insufficient_evidence'}
+            {claim.verdict || 'depends_on_context'}
           </span>
         </div>
         <button
@@ -175,7 +175,7 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
       </div>
 
       <p className="text-xs text-text-secondary leading-relaxed">
-        Factual verification was inconclusive or dependent on missing parameters ({claim.reasonCode || 'INSUFFICIENT_RETRIEVAL_DATA'}).
+        Factual verification was dependent on missing parameters ({claim.reasonCode || 'ESSENTIAL_CONTEXT_MISSING'}).
         Select a qualifier category and choice below or enter custom text to re-evaluate deterministically.
       </p>
 
@@ -523,10 +523,12 @@ export function ClaimDetail({
         />
       )}
 
-      {/* Interactive Missing Context Resolution Form (Shown only when verification depends on context or missing parameters) */}
-      {((('verdict' in claim && claim.verdict === 'depends_on_context') ||
-        ('reasonCode' in claim && claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING') ||
-        Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0))) && (
+      {/* Interactive Missing Context Resolution Form (Shown only when context is genuinely missing and claim is unresolved) */}
+      {(claim.verdict === 'depends_on_context' ||
+        claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
+        (claim.verdict !== 'supported' &&
+          claim.verdict !== 'contradicted' &&
+          Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0))) && (
         <MissingContextResolver claim={claim} runId={runId} />
       )}
 
