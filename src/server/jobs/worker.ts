@@ -333,7 +333,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           }
         }
 
-        let docs: RawSourceDoc[] = [];
+        const docs: RawSourceDoc[] = [];
         const seenUrls = new Set<string>();
 
         for (const q of queriesToRun) {

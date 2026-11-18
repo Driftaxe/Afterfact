@@ -1003,7 +1003,7 @@ export function InputComposer({
                         {/* Target Assertion & Contextual Reason */}
                         <div className="space-y-1.5">
                           <div className="text-xs text-text-secondary italic bg-surface-raised/60 rounded px-2.5 py-1.5 border border-border-subtle/40">
-                            "{q.claimProposition}"
+                            &ldquo;{q.claimProposition}&rdquo;
                           </div>
                           <div className="text-xs font-medium text-text-primary">
                             {q.question}

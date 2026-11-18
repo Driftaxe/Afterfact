@@ -127,7 +127,8 @@ export async function startPreparationAction(
         : undefined,
     });
 
-    // Bound interactive UI preview latency to 25000ms for live model extraction with retries
+    // Bound interactive UI preview latency to 10000ms for live model extraction with retries
+    const previewTimeoutMs = process.env.NODE_ENV === 'test' ? 8000 : 10000;
     const timeoutPromise = new Promise<{
       status: 'failed';
       tickets: [];
@@ -144,7 +145,7 @@ export async function startPreparationAction(
               retryable: false,
             },
           }),
-        25000
+        previewTimeoutMs
       )
     );
 

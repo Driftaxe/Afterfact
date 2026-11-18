@@ -147,7 +147,7 @@ export function ProjectShowcase() {
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-accent font-semibold">{pillar.step} //</span>
+                    <span className="font-mono text-xs text-accent font-semibold">{`${pillar.step} //`}</span>
                     <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
                       {pillar.subtitle}
                     </span>
