@@ -452,6 +452,30 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       expect(mislabeledDecision.score).toBe(0);
     });
 
+    it('AC05c: grounded credible-secondary contradiction with zero support yields contradicted (not insufficient_evidence)', () => {
+      const input = emptyInput();
+      addEvidence(input, {
+        evidenceId: 'evi_secondary_contradiction',
+        documentId: 'doc_secondary_contradiction',
+        sourceRole: 'reputable_secondary',
+        authorityBasis: 'independent_secondary_report',
+        text: 'Salman Khan has never been married and remains a bachelor with no spouse.',
+        relationship: 'contradicts',
+        scopeMatching: 'match',
+        propertyMatchStatus: {
+          matching: ['jurisdiction', 'plan_tier', 'billing_term'],
+          mismatched: ['price'],
+          missingInEvidence: [],
+        },
+      });
+
+      const decision = expectDecided(decideClaim(input));
+      expect(decision.verdict).toBe('contradicted');
+      expect(decision.score).toBe(0);
+      expect(decision.reasonCode).toBe('DECISIVE_CONTRADICTION');
+      expect(decision.primaryEvidenceIds).toEqual(['asm_secondary_contradiction']);
+    });
+
     it('AC06: a different jurisdiction cannot directly contradict the UK claim', () => {
       const input = emptyInput();
       addEvidence(input, {

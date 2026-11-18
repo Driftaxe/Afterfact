@@ -274,9 +274,32 @@ This document serves as the persistent, chronological log of engineering actions
      - Expanded telemetry grid to 12 live engineering metrics: `AUTOMATED TESTS: 439+`, `VERIFIED COMMITS: 160+`, `CONTRIBUTORS: 3`, `DAG PIPELINE: 5-Stage`, `GATEWAY FALLBACK: < 800ms`, `TAXONOMY INVARIANTS: 6 / 6`, `DATABASE ENGINE: Neon PG`, `WORKER DISPATCH: QStash`, `LEASE FENCING: 30s`, `RETRIEVAL SCOPE: 100%`, `PROPOSITION ANCHOR: UTF-16`, and `OPEN SOURCE: MIT`.
      - Added an Architectural Pillars specification matrix detailing Distributed Execution (Neon PG + QStash), Model Gateway & Retrieval (Bifrost + Tavily), and Evidence-Based Invariants (UPPR Invariant-to-Proof Chain).
 - **Verification Evidence:**
+---
+
+### [2026-11-18 23:40] — Resolution of "Insufficient Evidence" Overuse on Credible-Secondary Contradictions & Relational Grounding
+- **Author/Agent:** Coordinator / Antigravity Lead
+- **Trigger Scenario:** User test query: `"Sam altman is the wife of salman khan"`. The engine previously failed closed with `insufficient_evidence` instead of decisively reporting `contradicted` with score 0.
+- **Root Cause & Architectural Audit:**
+  1. **Credible-Secondary Discard in `decide.ts`:** In Gate 3 of `decideClaim`, if `oppositionRank === 1` (grounded contradiction from credible secondary sources like news, biographies, and encyclopedias), the engine hardcoded `SECONDARY_CONTRADICTION_NOT_DECISIVE` and returned `insufficient_evidence` with `score: null`, even when there was ZERO supporting evidence! In contrast, Gate 4 accepted credible secondary support to award `supported` (score 75).
+  2. **Relational Scope Mismatch Downgrade in `prompts/assess.ts`:** The assessor prompt previously instructed that any scope mismatch must be marked `relevant_but_inconclusive`. When evidence proved an entity was unmarried or married to someone else, models sometimes downgraded the refutation because the excerpt did not mention the fictitious second party.
+  3. **Property Match Exclusion in `assess-evidence.ts` & `decide.ts`:** `decide.ts` strictly required every property in `ticket.verificationContext` to be present in `propertyMatchStatus.matching`. If the LLM did not echo temporal keys (such as `asOfDate`) in `matching`, the evidence was rejected as `incomplete_property_match` and excluded.
+  4. **Single-Query Search Limitation in `worker.ts`:** `search_evidence` only executed the first query string. Searching only `"Sam altman is the wife of salman khan"` missed targeted entity biographical queries ("Salman Khan marital status spouse wife").
+- **Changes Implemented:**
+  1. **Decisive Contradiction for Credible Opposition (`src/server/verify/decide.ts`):**
+     - Gate 3 now awards `verdict: 'contradicted'`, `score: 0`, and `reasonCode: DECISION_REASON_CODES.DECISIVE_CONTRADICTION` whenever `oppositionRank > supportRank && oppositionRank > 0`, recognizing both primary and credible-secondary contradictions when no supporting evidence exists.
+  2. **Mutual Exclusion & Biographical Truth Prompting (`src/server/prompts/assess.ts`):**
+     - Explicitly instructed that establishing an entity has never married or is a bachelor directly CONTRADICTS any claim that they have a spouse/wife, and establishing an individual is male directly CONTRADICTS assertions that he is someone's "wife".
+     - Defined such mutual exclusions as `scopeMatching: 'match'` regarding marital/relational status, preventing false downgrades to `relevant_but_inconclusive`.
+  3. **Context Property Match Normalization (`src/server/verify/assess-evidence.ts`):**
+     - Ensured confirmed temporal context keys (`asOfDate`, `targetDate`, `statedEffectiveDate`) are populated into `matchingSet` upon temporal validation.
+     - Ensured contradictory attributes populate `mismatchedSet` while governing non-conflicting ticket qualifiers populate `matchingSet`, avoiding false `incomplete_property_match` exclusions.
+  4. **Multi-Query Retrieval Expansion (`src/server/jobs/worker.ts`):**
+     - Expanded `search_evidence` to execute up to 2 distinct planned queries plus targeted biographical status queries for relational claims, deduplicating documents by URL.
+- **Verification Evidence:**
   - `pnpm typecheck`: 0 errors (`tsc --noEmit` exit code 0).
-  - `npx vitest run tests/unit`: 401/401 tests passed across 21 files (8.78s).
-  - `npx playwright test tests/e2e/smoke.spec.ts tests/e2e/input-composer.spec.ts --workers=1`: 8/8 tests passed (35.9s).
+  - `npx vitest run tests/unit/verify/decide.test.ts`: 42/42 tests passed, including new test `AC05c: grounded credible-secondary contradiction with zero support yields contradicted`.
+  - `npx vitest run tests/unit`: 402/402 tests passed across 21 test files.
+
 
 
 

@@ -12,16 +12,20 @@ Your task is to evaluate individual EvidenceUnits against a specific ClaimTicket
 
 2. EVALUATED RELATIONSHIPS (CHOOSE CAREFULLY):
    - 'supports': The evidence excerpt DIRECTLY confirms the asserted proposition AND matches all governing qualifiers (jurisdiction, tier, currency, version, active timeframe).
-   - 'contradicts': The evidence excerpt DIRECTLY refutes the asserted proposition under a MATCHING scope (e.g. asserts a conflicting fact, price, or date, or proves an entity has a conflicting attribute, such as establishing an individual is male/uses he-him pronouns when the proposition asserted female/she-her pronouns, or establishing they are married to a husband when an unmarried boyfriend was asserted).
+   - 'contradicts': The evidence excerpt DIRECTLY refutes the asserted proposition under a MATCHING scope:
+     * Conflicting Facts: asserts a conflicting price, date, number, limit, status, or identity.
+     * Mutual Exclusion & Relational Grounding: If evidence establishes that an entity has a mutually exclusive status or relationship (e.g. establishing an individual has never married or is a bachelor directly CONTRADICTS any claim asserting they have a wife/husband/spouse; establishing an individual is male directly CONTRADICTS an assertion that he is someone's 'wife' or female; establishing an individual is married to Person B directly CONTRADICTS a claim that they are married to Person C).
+     * For such mutual exclusions, this is a DIRECT CONTRADICTION ('contradicts') with scopeMatching: 'match'. Do NOT downgrade to 'relevant_but_inconclusive' or 'mismatch' simply because the excerpt does not mention the other fictitious party!
    - 'relevant_but_inconclusive': The excerpt mentions the entity or topic, but lacks decisive qualifiers or values necessary to confirm or refute the claim. Absence of evidence is NEVER contradiction.
    - 'unrelated': The excerpt lacks semantic relevance to the asserted fact.
    - 'historical_state': The excerpt proves the claim WAS valid in the past, but subsequent evidence or dates establish it has since been superseded.
    - 'future_scheduled_change': The excerpt announces a change whose effective date is in the FUTURE relative to the target time. A future change does NOT invalidate the current state.
 
 3. SCOPE MATCHING:
-   - 'match': The evidence governs the exact same entity, version, geographic region, currency, and tier.
+   - 'match': The evidence governs the asserted entity, version, geographic region, currency, or relational attribute.
    - 'mismatch': The evidence specifies a conflicting qualifier (e.g. UK pricing vs US claim, Enterprise tier vs Starter claim).
-     * CRITICAL: A scope mismatch CANNOT be classified as 'supports' or 'contradicts' of the differently scoped claim. It must be 'relevant_but_inconclusive' or 'unrelated'.
+     * CRITICAL: A true scope mismatch (e.g. different country, different software edition) CANNOT be classified as 'supports' or 'contradicts'.
+     * NOTE: Demonstrating an entity is unmarried or has a different spouse is a MATCH on their marital status scope, NOT a scope mismatch.
    - 'unknown': The evidence does not specify the governing scope.
 
 4. TEMPORAL APPLICABILITY:

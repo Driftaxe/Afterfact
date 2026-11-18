@@ -267,10 +267,45 @@ export async function assessEvidenceAgainstClaim(
         ? (rawAsm.propertyMatchStatus as Record<string, unknown>)
         : {};
 
+    const matchingList = Array.isArray(rawProps.matching) ? rawProps.matching.map(String) : [];
+    const mismatchedList = Array.isArray(rawProps.mismatched) ? rawProps.mismatched.map(String) : [];
+    const missingInEvidenceList = Array.isArray(rawProps.missingInEvidence) ? rawProps.missingInEvidence.map(String) : [];
+
+    const matchingSet = new Set(matchingList);
+    const mismatchedSet = new Set(mismatchedList);
+    const missingInEvidenceSet = new Set(missingInEvidenceList);
+
+    // If temporal applicability is confirmed, ensure temporal context keys are counted as matching
+    if (temporalApplicability === 'active_at_target_time' || temporalApplicability === 'historical_prior') {
+      for (const p of ticket.verificationContext) {
+        if (
+          p.key === 'asOfDate' ||
+          p.key === 'targetDate' ||
+          p.key === 'statedEffectiveDate' ||
+          p.key === 'effective_date'
+        ) {
+          matchingSet.add(p.key);
+        }
+      }
+    }
+
+    // For contradictions, ensure the contradictory attribute is represented in mismatched
+    if (relationship === 'contradicts') {
+      if (mismatchedSet.size === 0) {
+        mismatchedSet.add('asserted_attribute');
+      }
+      // Ensure non-conflicting governing context qualifiers from the ticket are not marked missing
+      for (const p of ticket.verificationContext) {
+        if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
+          matchingSet.add(p.key);
+        }
+      }
+    }
+
     const propertyMatchStatus = {
-      matching: Array.isArray(rawProps.matching) ? rawProps.matching.map(String) : [],
-      mismatched: Array.isArray(rawProps.mismatched) ? rawProps.mismatched.map(String) : [],
-      missingInEvidence: Array.isArray(rawProps.missingInEvidence) ? rawProps.missingInEvidence.map(String) : [],
+      matching: Array.from(matchingSet),
+      mismatched: Array.from(mismatchedSet),
+      missingInEvidence: Array.from(missingInEvidenceSet),
     };
 
     // Source suitability

@@ -1378,79 +1378,63 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
 
   // Gate 3: decisive contradiction or proven outdated transition.
   if (oppositionRank > supportRank && oppositionRank > 0) {
-    if (oppositionRank === 2) {
-      const transitionMatch = historicalClaim
-        ? null
-        : findValidTransition(
-            aggregate,
-            historicalSupports,
-            currentOppositions
-          );
+    const isPrimaryContradiction = oppositionRank === 2;
+    const transitionMatch = historicalClaim
+      ? null
+      : findValidTransition(
+          aggregate,
+          historicalSupports,
+          currentOppositions
+        );
 
-      if (transitionMatch) {
-        for (const evaluation of supports) {
-          evaluation.limitationCodes.push(
-            'LOWER_RANKED_SUPPORT_RESOLVED_BY_TRANSITION'
-          );
-        }
-        return makeDecision(aggregate, evaluations, {
-          verdict: 'outdated',
-          score: 0,
-          reasonCode: DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
-          scoreReason: `Earlier validity of the proposition was established, and a documented matching-scope transition effective ${transitionMatch.transition.effectiveDate} superseded it by the target time; a current primary assessment confirms the superseding state.`,
-          primary: [transitionMatch.prior, transitionMatch.superseding],
-          counter: supports,
-          transition: transitionMatch.transition,
-        });
-      }
-
+    if (transitionMatch) {
       for (const evaluation of supports) {
         evaluation.limitationCodes.push(
-          'LOWER_RANKED_SUPPORT_RESOLVED_BY_AUTHORITY'
+          'LOWER_RANKED_SUPPORT_RESOLVED_BY_TRANSITION'
         );
       }
-
-      // Earlier validity can make the more specific `outdated` classification
-      // available, but a missing transition proof does not weaken a current
-      // contradiction that is independently sufficient. Preserve the earlier
-      // validity as a limitation rather than pretending it was never there.
-      if (!historicalClaim && historicalSupports.length > 0) {
-        for (const evaluation of historicalSupports) {
-          evaluation.limitationCodes.push(
-            'PRIOR_VALIDITY_TRANSITION_UNESTABLISHED'
-          );
-        }
-      }
-
       return makeDecision(aggregate, evaluations, {
-        verdict: 'contradicted',
+        verdict: 'outdated',
         score: 0,
-        reasonCode: DECISION_REASON_CODES.DECISIVE_CONTRADICTION,
-        scoreReason: `A grounded claim-applicable primary assessment directly contradicts the proposition under matching scope and applicable time; no equal-authority support remained unresolved.${
-          !historicalClaim && historicalSupports.length > 0
-            ? ' Earlier validity of the proposition is retained in the limitations, but no complete documented transition establishes that the claim became outdated; the unavailable transition proof does not invalidate the independently sufficient current contradiction.'
-            : ''
-        }`,
-        primary: oppositions,
+        reasonCode: DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
+        scoreReason: `Earlier validity of the proposition was established, and a documented matching-scope transition effective ${transitionMatch.transition.effectiveDate} superseded it by the target time; a current primary assessment confirms the superseding state.`,
+        primary: [transitionMatch.prior, transitionMatch.superseding],
         counter: supports,
-        transition: null,
+        transition: transitionMatch.transition,
       });
     }
 
-    // A credible-secondary contradiction is not decisive enough for score 0.
-    for (const evaluation of oppositions) {
+    for (const evaluation of supports) {
       evaluation.limitationCodes.push(
-        'SECONDARY_CONTRADICTION_NOT_DECISIVE'
+        'LOWER_RANKED_SUPPORT_RESOLVED_BY_AUTHORITY'
       );
     }
+
+    // Earlier validity can make the more specific `outdated` classification
+    // available, but a missing transition proof does not weaken a current
+    // contradiction that is independently sufficient. Preserve the earlier
+    // validity as a limitation rather than pretending it was never there.
+    if (!historicalClaim && historicalSupports.length > 0) {
+      for (const evaluation of historicalSupports) {
+        evaluation.limitationCodes.push(
+          'PRIOR_VALIDITY_TRANSITION_UNESTABLISHED'
+        );
+      }
+    }
+
     return makeDecision(aggregate, evaluations, {
-      verdict: 'insufficient_evidence',
-      score: null,
-      reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
-      scoreReason:
-        'A credible-secondary assessment contradicts the proposition, but no claim-applicable primary authority establishes a decisive contradiction and no equal-authority support resolves the question; no score is assigned.',
-      primary: [],
-      counter: oppositions,
+      verdict: 'contradicted',
+      score: 0,
+      reasonCode: DECISION_REASON_CODES.DECISIVE_CONTRADICTION,
+      scoreReason: isPrimaryContradiction
+        ? `A grounded claim-applicable primary assessment directly contradicts the proposition under matching scope and applicable time; no equal-authority support remained unresolved.${
+            !historicalClaim && historicalSupports.length > 0
+              ? ' Earlier validity of the proposition is retained in the limitations, but no complete documented transition establishes that the claim became outdated; the unavailable transition proof does not invalidate the independently sufficient current contradiction.'
+              : ''
+          }`
+        : `Grounded credible-secondary assessments directly contradict the proposition under matching scope and applicable time; no supporting evidence was found to substantiate the assertion.`,
+      primary: oppositions,
+      counter: supports,
       transition: null,
     });
   }

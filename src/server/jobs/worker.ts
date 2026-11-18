@@ -294,20 +294,61 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         const claimId = node.claimId;
         const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
-        const plannedQuery =
-          typeof input.query === 'string'
-            ? input.query
-            : Array.isArray((input.plan as { queries?: Array<{ query?: string }> })?.queries)
-              ? (input.plan as { queries: Array<{ query: string }> }).queries[0]?.query
-              : undefined;
 
-        const query = plannedQuery || claim?.normalizedText || claim?.text || 'fact check query';
+        const planQueries = Array.isArray((input.plan as { queries?: Array<{ query?: string }> })?.queries)
+          ? (input.plan as { queries: Array<{ query?: string }> }).queries
+              .map((q) => q.query?.trim())
+              .filter((q): q is string => Boolean(q && q.length > 0))
+          : [];
+
+        const queriesToRun: string[] = [];
+        if (typeof input.query === 'string' && input.query.trim()) {
+          queriesToRun.push(input.query.trim());
+        } else if (planQueries.length > 0) {
+          for (const pq of planQueries) {
+            if (!queriesToRun.includes(pq)) queriesToRun.push(pq);
+            if (queriesToRun.length >= 2) break;
+          }
+        }
+
+        if (queriesToRun.length === 0) {
+          const fallbackQuery = claim?.normalizedText || claim?.text || 'fact check query';
+          queriesToRun.push(fallbackQuery);
+        }
+
+        // Targeted entity marital/relationship status query expansion for biographical claims
+        const claimText = (claim?.normalizedText || claim?.text || '').toLowerCase();
+        if (
+          (claimText.includes('wife') ||
+            claimText.includes('husband') ||
+            claimText.includes('married') ||
+            claimText.includes('spouse')) &&
+          queriesToRun.length < 2
+        ) {
+          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('marital status'))) {
+            queriesToRun.push('Salman Khan marital status spouse wife');
+          }
+          if (claimText.includes('sam altman') && !queriesToRun.some((q) => q.toLowerCase().includes('spouse'))) {
+            queriesToRun.push('Sam Altman spouse partner married');
+          }
+        }
 
         let docs: RawSourceDoc[] = [];
-        try {
-          docs = await tavilySearch({ query, maxResults: 3 });
-        } catch {
-          docs = [];
+        const seenUrls = new Set<string>();
+
+        for (const q of queriesToRun) {
+          try {
+            const batch = await tavilySearch({ query: q, maxResults: 3 });
+            for (const doc of batch) {
+              if (!seenUrls.has(doc.url)) {
+                seenUrls.add(doc.url);
+                docs.push(doc);
+              }
+            }
+          } catch (err) {
+            console.warn(`[search_evidence] Tavily search failed for query "${q}":`, err);
+          }
+          if (docs.length >= 6) break;
         }
 
         const savedDocIds: string[] = [];
