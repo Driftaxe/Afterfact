@@ -99,7 +99,10 @@ test.describe('Hero Refinements Verification', () => {
     await page.waitForTimeout(300);
 
     const getStartedLink = page.getByRole('link', { name: /get started/i }).first();
-    await getStartedLink.click();
+    await Promise.all([
+      page.waitForURL(/\/app/, { timeout: 15000 }),
+      getStartedLink.click(),
+    ]);
     await expect(page).toHaveURL(/\/app/);
 
     // On /app, click PRODUCT navbar link and verify it navigates back to landing page section
