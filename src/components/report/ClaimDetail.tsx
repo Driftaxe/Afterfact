@@ -523,17 +523,10 @@ export function ClaimDetail({
         />
       )}
 
-      {/* Interactive Missing Context Resolution Form */}
-      {(('verdict' in claim &&
-        (claim.verdict === 'depends_on_context' ||
-          claim.verdict === 'insufficient_evidence')) ||
-        claim.state === 'failed' ||
-        ('score' in claim && claim.score === null) ||
-        ('reasonCode' in claim &&
-          (claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
-            claim.reasonCode === 'INSUFFICIENT_RETRIEVAL_DATA' ||
-            claim.reasonCode === 'INSUFFICIENT_EVIDENCE')) ||
-        Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0)) && (
+      {/* Interactive Missing Context Resolution Form (Shown only when verification depends on context or missing parameters) */}
+      {((('verdict' in claim && claim.verdict === 'depends_on_context') ||
+        ('reasonCode' in claim && claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING') ||
+        Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0))) && (
         <MissingContextResolver claim={claim} runId={runId} />
       )}
 

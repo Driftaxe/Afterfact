@@ -121,85 +121,31 @@ function deriveDynamicQuestionsForClaims(claims: ClaimTicket[]): DynamicClaimQue
       continue;
     }
 
-    // 2. Dynamic content-aware detection for ambiguous claims lacking explicit qualifiers
+    // 2. Only prompt if the claim contains explicit relative temporal ambiguity (e.g. "currently", "at present")
+    // without any explicit target date or user-provided date. Clear factual claims do not require extra context.
+    const hasRelativeTemporalWord =
+      text.includes('currently') ||
+      text.includes('at present') ||
+      text.includes('as of now') ||
+      text.includes('as of today');
+
     if (
-      (text.includes('ceo') || text.includes('reign') || text.includes('monarch') || text.includes('president') || text.includes('leader')) &&
+      hasRelativeTemporalWord &&
       !explicitKeys.has('statedEffectiveDate') &&
       !explicitKeys.has('targetDate') &&
       !explicitKeys.has('asOfDate') &&
       !confirmedUserKeys.has('asOfDate') &&
       !confirmedUserKeys.has('targetDate')
     ) {
-      const isRoyal = text.includes('queen') || text.includes('monarch') || text.includes('king') || text.includes('elizabeth');
       dynamicQuestions.push({
         claimIndex: i,
         claimProposition: claim.normalizedProposition,
-        question: isRoyal
-          ? `Specify the evaluation time horizon for Queen Elizabeth II's royal reign:`
-          : `Specify the evaluation time horizon for this leadership assertion:`,
-        reason: 'Leadership, tenure, and governance assertions depend on whether evaluation targets present or historical eras.',
-        targetKey: 'asOfDate',
-        options: isRoyal
-          ? [
-              { label: 'Present Day (2024–Now / King Charles III)', value: '2024-09-01', hint: 'Evaluates current constitutional state' },
-              { label: 'Historical Reign (1952–2022)', value: '2022-09-08', hint: 'Evaluates reign during Queen Elizabeth II’s lifetime' },
-            ]
-          : [
-              { label: 'Present Day (2024–Now)', value: '2024-09-01', hint: 'Current corporate / executive state' },
-              { label: 'Historical Appointment (2021)', value: '2021-12-01', hint: 'Historical executive appointment era' },
-            ],
-      });
-    } else if (
-      (text.includes('wife') || text.includes('husband') || text.includes('married') || text.includes('boyfriend') || text.includes('partner')) &&
-      !explicitKeys.has('targetDate') &&
-      !explicitKeys.has('asOfDate') &&
-      !confirmedUserKeys.has('asOfDate') &&
-      !confirmedUserKeys.has('targetDate')
-    ) {
-      dynamicQuestions.push({
-        claimIndex: i,
-        claimProposition: claim.normalizedProposition,
-        question: `Specify the target timeframe or legal scope for this relationship claim:`,
-        reason: 'Biographical marital and relationship assertions can vary across historical periods and legal jurisdictions.',
+        question: `Specify the evaluation time horizon for "${claim.normalizedProposition.slice(0, 50)}...":`,
+        reason: 'Relative temporal terms ("currently", "at present") depend on an anchored evaluation date.',
         targetKey: 'asOfDate',
         options: [
-          { label: 'Present Day Status (2024)', value: '2024-09-01', hint: 'Verifies current official marriage record' },
-          { label: 'Historical Records', value: '2022-01-01', hint: 'Verifies past official relationship records' },
-        ],
-      });
-    } else if (
-      (text.includes('stripe') || text.includes('payment_method_types') || text.includes('payment intent')) &&
-      !explicitKeys.has('apiVersion') &&
-      !explicitKeys.has('version') &&
-      !confirmedUserKeys.has('apiVersion')
-    ) {
-      dynamicQuestions.push({
-        claimIndex: i,
-        claimProposition: claim.normalizedProposition,
-        question: `Specify the Stripe API version for payment method configuration:`,
-        reason: 'Payment intent behaviors changed from implicit default methods to explicit types in modern versions.',
-        targetKey: 'apiVersion',
-        options: [
-          { label: 'Modern Stripe API (2024-06-20+)', value: '2024-06-20', hint: 'Requires manual payment_method_types' },
-          { label: 'Legacy Stripe API (2020-08-27)', value: '2020-08-27', hint: 'Permitted automatic payment method defaults' },
-        ],
-      });
-    } else if (
-      (text.includes('cloudflare') || text.includes('workers')) &&
-      text.includes('execution time') &&
-      !explicitKeys.has('plan_tier') &&
-      !explicitKeys.has('tier') &&
-      !confirmedUserKeys.has('plan_tier')
-    ) {
-      dynamicQuestions.push({
-        claimIndex: i,
-        claimProposition: claim.normalizedProposition,
-        question: `Which Cloudflare Workers subscription plan tier applies?`,
-        reason: 'Execution CPU time limits differ substantially between Free (10ms) and Paid (50ms) plan tiers.',
-        targetKey: 'plan_tier',
-        options: [
-          { label: 'Workers Paid Tier (50ms limit)', value: 'Workers Paid', hint: 'Permits up to 50 milliseconds CPU time' },
-          { label: 'Workers Free Tier (10ms limit)', value: 'Workers Free', hint: 'Strict 10 milliseconds CPU limit' },
+          { label: 'Present Day (2024–Now)', value: '2024-09-01', hint: 'Evaluates current authoritative state' },
+          { label: 'Historical Record (2021–2022)', value: '2022-09-08', hint: 'Evaluates historical era record' },
         ],
       });
     }

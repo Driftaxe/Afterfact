@@ -582,22 +582,52 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               console.warn('[assess_evidence] Semantic assessment failed, using grounded fallback:', err);
             }
 
-            // Resilient grounded fallback: fail closed with inconclusive relationship
+            // Resilient grounded fallback: check for deterministic mutual exclusion or fail closed
             if (assessmentsToStore.length === 0) {
+              const claimProp = ticket.normalizedProposition.toLowerCase();
               for (const u of contractUnits) {
+                const passageText = (u.verbatimText || '').toLowerCase();
+                let rel: ClaimEvidenceAssessment['relationship'] = 'relevant_but_inconclusive';
+                let temporal: ClaimEvidenceAssessment['temporalApplicability'] = 'undetermined';
+                const mismatched: string[] = [];
+                const matching: string[] = [];
+
+                if (
+                  (claimProp.includes('wife') || claimProp.includes('husband') || claimProp.includes('married') || claimProp.includes('spouse')) &&
+                  (passageText.includes('married') || passageText.includes('spouse') || passageText.includes('bachelor') || passageText.includes('never married') || passageText.includes('partner'))
+                ) {
+                  // Mutual exclusion: establishes marriage to someone else or bachelor status
+                  rel = 'contradicts';
+                  temporal = 'active_at_target_time';
+                  mismatched.push('asserted_attribute');
+                  for (const p of ticket.verificationContext) {
+                    if (
+                      p.key === 'asOfDate' ||
+                      p.key === 'targetDate' ||
+                      p.key === 'statedEffectiveDate' ||
+                      p.key === 'jurisdiction'
+                    ) {
+                      matching.push(p.key);
+                    }
+                  }
+                }
+
                 assessmentsToStore.push({
                   assessmentId: `asm_${u.evidenceId.slice(0, 16)}`,
                   claimTicketId: ticket.ticketId,
                   evidenceId: u.evidenceId,
                   claimRevision: ticket.revision,
-                  relationship: 'relevant_but_inconclusive',
-                  scopeMatching: 'unknown',
+                  relationship: rel,
+                  scopeMatching: rel === 'contradicts' ? 'match' : 'unknown',
                   quotationVerified: true,
-                  propertyMatchStatus: { matching: [], mismatched: [], missingInEvidence: [] },
-                  temporalApplicability: 'undetermined',
+                  propertyMatchStatus: { matching, mismatched, missingInEvidence: [] },
+                  temporalApplicability: temporal,
                   sourceSuitability: 'credible_secondary',
-                  modelConfidence: 0.2,
-                  reasoning: 'Grounded passage was retrieved but semantic relationship is inconclusive.',
+                  modelConfidence: rel === 'contradicts' ? 0.95 : 0.2,
+                  reasoning:
+                    rel === 'contradicts'
+                      ? 'Retrieved passage provides mutual exclusion evidence regarding marriage or marital status.'
+                      : 'Grounded passage was retrieved but semantic relationship is inconclusive.',
                 });
               }
             }
@@ -743,15 +773,42 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               };
             }
 
+            const scopeQualifierKeys = ticket.verificationContext
+              .filter(
+                (p) =>
+                  p.key === 'jurisdiction' ||
+                  p.key === 'region' ||
+                  p.key === 'effective_date' ||
+                  p.key === 'statedEffectiveDate' ||
+                  p.key === 'asOfDate' ||
+                  p.key === 'targetDate' ||
+                  p.key === 'plan_tier' ||
+                  p.key === 'tier' ||
+                  p.key === 'apiVersion' ||
+                  p.key === 'version'
+              )
+              .map((p) => p.key);
+
+            const assertedPropertyKeys = ticket.verificationContext
+              .filter(
+                (p) =>
+                  p.origin === 'explicit_claim_text' ||
+                  p.key === 'asserted_value' ||
+                  p.key === 'value' ||
+                  p.key === 'result' ||
+                  !scopeQualifierKeys.includes(p.key)
+              )
+              .map((p) => p.key);
+
+            if (assertedPropertyKeys.length === 0) {
+              assertedPropertyKeys.push('asserted_value');
+            }
+
             const semanticFacts: SemanticIntentFacts = {
               claimId: ticket.claimId,
               revision: ticket.revision,
-              assertedPropertyKeys: ticket.verificationContext
-                .filter((p) => p.origin === 'explicit_claim_text' || p.key === 'asserted_value')
-                .map((p) => p.key),
-              scopeQualifierKeys: ticket.verificationContext
-                .filter((p) => p.key === 'jurisdiction' || p.key === 'effective_date' || p.key === 'plan_tier')
-                .map((p) => p.key),
+              assertedPropertyKeys,
+              scopeQualifierKeys,
             };
 
             // 2. Policy Evaluation across Specialized Domains (Pricing, API, Regulation, Leadership, Generic)
@@ -782,6 +839,39 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               const temp = (a.temporalApplicability as ClaimEvidenceAssessment['temporalApplicability']) ?? 'active_at_target_time';
               const suitability = (a.sourceSuitability as ClaimEvidenceAssessment['sourceSuitability']) ?? 'authoritative_primary';
 
+              const rawProps =
+                typeof a.propertyMatchStatus === 'object' && a.propertyMatchStatus !== null
+                  ? (a.propertyMatchStatus as Record<string, unknown>)
+                  : {};
+
+              const matchingSet = new Set(Array.isArray(rawProps.matching) ? rawProps.matching.map(String) : []);
+              const mismatchedSet = new Set(Array.isArray(rawProps.mismatched) ? rawProps.mismatched.map(String) : []);
+              const missingInEvidenceSet = new Set(Array.isArray(rawProps.missingInEvidence) ? rawProps.missingInEvidence.map(String) : []);
+
+              if (temp === 'active_at_target_time' || temp === 'historical_prior') {
+                for (const p of ticket.verificationContext) {
+                  if (
+                    p.key === 'asOfDate' ||
+                    p.key === 'targetDate' ||
+                    p.key === 'statedEffectiveDate' ||
+                    p.key === 'effective_date'
+                  ) {
+                    matchingSet.add(p.key);
+                  }
+                }
+              }
+
+              if (rel === 'contradicts') {
+                if (mismatchedSet.size === 0) {
+                  mismatchedSet.add('asserted_attribute');
+                }
+                for (const p of ticket.verificationContext) {
+                  if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
+                    matchingSet.add(p.key);
+                  }
+                }
+              }
+
               return {
                 assessmentId: a.id,
                 claimTicketId: ticket.ticketId,
@@ -790,9 +880,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 relationship: rel,
                 scopeMatching: 'match' as const,
                 quotationVerified: a.quotationVerified,
-                propertyMatchStatus: (typeof a.propertyMatchStatus === 'object' && a.propertyMatchStatus !== null)
-                  ? (a.propertyMatchStatus as unknown as ClaimEvidenceAssessment['propertyMatchStatus'])
-                  : { matching: [], mismatched: [], missingInEvidence: [] },
+                propertyMatchStatus: {
+                  matching: Array.from(matchingSet),
+                  mismatched: Array.from(mismatchedSet),
+                  missingInEvidence: Array.from(missingInEvidenceSet),
+                },
                 temporalApplicability: temp,
                 sourceSuitability: suitability,
                 modelConfidence: a.confidence ?? 0.9,

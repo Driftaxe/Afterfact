@@ -573,6 +573,20 @@ function evaluateScopeAndProperties(
       };
     }
     if (!matching.has(property.key)) {
+      const isTemporalKey =
+        property.key === 'asOfDate' ||
+        property.key === 'targetDate' ||
+        property.key === 'statedEffectiveDate' ||
+        property.key === 'effective_date';
+      if (
+        isTemporalKey &&
+        (assessment.temporalApplicability === 'active_at_target_time' ||
+          assessment.temporalApplicability === 'historical_prior')
+      ) {
+        // Temporal validity confirms active applicability of this temporal qualifier
+        continue;
+      }
+
       return {
         exclusion: 'incomplete_property_match',
         codes: ['PROPERTY_MATCH_UNDETERMINED'],

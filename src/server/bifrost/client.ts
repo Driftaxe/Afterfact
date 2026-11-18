@@ -117,7 +117,7 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
   }
 
   const fallbackModel = getModelProfile('fallback');
-  if (options.enableFallback && modelToUse !== fallbackModel) {
+  if (options.enableFallback !== false && modelToUse !== fallbackModel) {
     console.warn(`[Bifrost] Primary model ${modelToUse} failed. Trying Bifrost fallback to ${fallbackModel}...`);
     try {
       return await bifrostChat({

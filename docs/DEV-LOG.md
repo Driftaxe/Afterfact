@@ -309,6 +309,47 @@ This document serves as the persistent, chronological log of engineering actions
 - **Branch Synchronization:**
   - `origin/fix/gemini-fallback-and-extraction` and `origin/feat/wire-frontend-ai-extraction` are identical, up to date, and verified clean.
 
+---
+
+## 2026-11-19 — Resolution of Overzealous Context Prompts & Decisive Contradiction Grounding
+
+- **Context / Problem:**
+  - Users reported that the composer and claim detail view repeatedly displayed "More Context Needed" even when the claim was completely clear and unambiguous (e.g. "Sam altman is the wife of salman khan").
+  - Live inspection of run `cmwmhiw9b002jgcds8csdyf04` / claim `cmwmhiwdv002lgcds1fgb5grn` revealed that:
+    1. `InputComposer.tsx` had heuristic keyword triggers on `wife`, `husband`, `ceo`, etc., injecting dynamic clarification questions even when `missingMaterialContext` was empty `[]`.
+    2. `ClaimDetail.tsx` rendered the `MissingContextResolver` form on any claim returning `INSUFFICIENT_RETRIEVAL_DATA` or `score: null`, confusing data limitations with missing context.
+    3. In `decide.ts`, `evaluatePropertyMatch` excluded valid contradiction assessments with `incomplete_property_match` / `PROPERTY_MATCH_UNDETERMINED` whenever `asOfDate` was present in `verificationContext` but absent from `matchingSet`, ignoring confirmed `temporalApplicability === 'active_at_target_time'`.
+    4. In `worker.ts`, `scopeQualifierKeys` was missing temporal keys (`asOfDate`, `targetDate`, `apiVersion`), leading to `PROPERTY_ROLE_UNCLASSIFIED` and unresolved roles.
+    5. In `bifrostChat`, `enableFallback` was not defaulted to `true`, preventing automatic fallback to secondary models or direct Google Gemini API when the gateway returned 503 capacity spikes.
+
+- **Architectural & Logic Fixes:**
+  1. **Strict Context Triggering (`src/components/composer/InputComposer.tsx`):**
+     - Removed aggressive keyword heuristics (`wife`, `husband`, `ceo`, `president`) from `deriveDynamicQuestionsForClaims`.
+     - Dynamic clarification questions are generated strictly when `claim.missingMaterialContext` contains unresolved parameters or when the claim contains explicit relative temporal ambiguity without an anchored date.
+  2. **Scoped Missing Context Resolution (`src/components/report/ClaimDetail.tsx`):**
+     - Restricted `MissingContextResolver` rendering to claims that truly depend on context (`verdict === 'depends_on_context'` or `reasonCode === 'ESSENTIAL_CONTEXT_MISSING'` or non-empty `missingMaterialContext`).
+  3. **Universal Model Fallback (`src/server/bifrost/client.ts`):**
+     - Set `options.enableFallback !== false` by default, ensuring automatic zero-downtime routing to secondary models and direct Google Gemini fallback whenever Bifrost encounters 503 high-demand spikes.
+  4. **Temporal Scope Qualifier Binding (`src/server/jobs/worker.ts`):**
+     - Correctly categorized all temporal and version keys (`asOfDate`, `targetDate`, `statedEffectiveDate`, `apiVersion`, `version`, `region`) into `scopeQualifierKeys`.
+     - Provided fallback mutual exclusion handling for marriage/spouse assertions.
+     - Synchronized `propertyMatchStatus` across loaded assessments in `decide_claim`.
+  5. **Temporal Qualifier Grounding in Decisions (`src/server/verify/decide.ts`):**
+     - Updated `evaluatePropertyMatch` to treat temporal qualifier properties as satisfied when `temporalApplicability === 'active_at_target_time'` or `historical_prior`, preventing false `PROPERTY_MATCH_UNDETERMINED` exclusions.
+
+- **Observed Results for "Sam altman is the wife of salman khan":**
+  - **Verdict:** `contradicted` (Score: `0`, ReasonCode: `DECISIVE_CONTRADICTION`).
+  - **Cited Evidence:** 6 authoritative/secondary passages establishing Sam Altman is married to Oliver Mulherin.
+  - **Excluded Evidence:** 0 (clean property match under matching scope).
+  - **More Context Needed:** Not rendered (claim is clear and definitively refuted).
+
+- **Verification Evidence:**
+  - `pnpm typecheck`: 0 errors.
+  - `pnpm lint`: 0 errors.
+  - `npx vitest run tests/unit`: 402/402 tests passed across 21 test suites.
+  - `npx playwright test tests/e2e/design-reference.spec.ts`: 9/9 passed.
+
+
 
 
 
