@@ -297,8 +297,17 @@ This document serves as the persistent, chronological log of engineering actions
      - Expanded `search_evidence` to execute up to 2 distinct planned queries plus targeted biographical status queries for relational claims, deduplicating documents by URL.
 - **Verification Evidence:**
   - `pnpm typecheck`: 0 errors (`tsc --noEmit` exit code 0).
+  - `pnpm lint`: 0 errors (`eslint .` exit code 0).
   - `npx vitest run tests/unit/verify/decide.test.ts`: 42/42 tests passed, including new test `AC05c: grounded credible-secondary contradiction with zero support yields contradicted`.
   - `npx vitest run tests/unit`: 402/402 tests passed across 21 test files.
+  - `pnpm test:e2e`: 24/24 Playwright E2E tests passed across all feature suites under 4-worker concurrent execution.
+- **Commits:**
+  - `18a35b6`: `feat(landing): expand developer telemetry showcase and isolate per-question dynamic inputs`
+  - `d29e412`: `fix(verify): decisive contradiction on credible opposition and relational grounding`
+  - `5aa960d`: `fix(composer): optimize preview timeout and resolve jsx entity and typing warnings`
+  - `53d406f`: `test(e2e): robust navigation assertion in hero refinement spec`
+- **Branch Synchronization:**
+  - `origin/fix/gemini-fallback-and-extraction` and `origin/feat/wire-frontend-ai-extraction` are identical, up to date, and verified clean.
 
 
 
