@@ -160,7 +160,7 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
  * Direct Google Gemini API caller for zero-downtime gateway fallback.
  */
 async function callDirectGemini(options: BifrostChatOptions, apiKey: string): Promise<string> {
-  const model = process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.8-flash';
   const controller = new AbortController();
   const timeoutMs = Math.max(options.timeoutMs ?? 30000, 15000);
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

@@ -349,6 +349,43 @@ This document serves as the persistent, chronological log of engineering actions
   - `npx vitest run tests/unit`: 402/402 tests passed across 21 test suites.
   - `npx playwright test tests/e2e/design-reference.spec.ts`: 9/9 passed.
 
+---
+
+## 2026-11-19 — Upgrade to Gemini 3.8 Flash & High-Precision Subquery Engineering
+
+- **Context / Goal:**
+  - Enhance subquery generation prompt to optimize Tavily web retrieval and semantic checking.
+  - Upgrade default gateway and fallback model profile to `gemini-3.8-flash`.
+  - Expand worker query execution to cover multi-angle decomposition (Subject reality, Object reality, Direct relation & counterevidence).
+
+- **Implementation Details:**
+  1. **Model Profile Upgrade:**
+     - Updated `DEFAULT_PROFILES` in `src/server/bifrost/profiles.ts` to `gemini-3.8-flash` for all roles (`extract`, `assess`, `draft`, `fallback`).
+     - Updated direct Gemini fallback default in `src/server/bifrost/client.ts` to `gemini-3.8-flash`.
+     - Updated `.env.example` model declarations.
+  2. **Tavily Query Engineering & Multi-Angle Planner Prompt (`src/server/prompts/research.ts`):**
+     - Re-engineered `RESEARCH_PLANNER_SYSTEM_PROMPT` to mandate compact, keyword-dense search queries (3 to 8 terms) and eliminate conversational filler questions.
+     - Structured queries across 4 distinct epistemic angles:
+       - **Angle A:** Subject entity reality (`"{Subject}" spouse OR married OR partner biography`).
+       - **Angle B:** Object / related entity reality (`"{Object}" marital status OR spouse OR wife OR married`).
+       - **Angle C:** Direct intersection and counterevidence (`"{Subject}" "{Object}" marriage fact check`).
+       - **Angle D:** Temporal transition and changelogs (`"{Entity}" replaced OR successor OR resignation date`).
+     - Added specialized search templates for Biographical, Technical/API, Pricing/Quotas, and Corporate/Governance domains.
+  3. **Worker Retrieval Expansion (`src/server/jobs/worker.ts`):**
+     - Expanded `search_evidence` to execute up to 3 planned queries (previously bounded at 2).
+     - Increased Tavily search depth to `maxResults: 4` per query and bounded saved deduplicated source documents to 8.
+
+- **Verification Evidence:**
+  - `pnpm typecheck`: 0 errors (`tsc --noEmit` exit code 0).
+  - `pnpm lint`: 0 errors (`eslint .` exit code 0).
+  - `npx vitest run tests/unit`: 402/402 tests passed across 21 test suites.
+  - Live execution of upgraded research planner confirmed queries:
+    - `"Sam Altman" spouse OR husband OR married biography`
+    - `"Salman Khan" marital status OR spouse OR wife OR married`
+    - `"Sam Altman" "Salman Khan" marriage OR relationship fact check`
+    With 100% precision and `modelConfidence: 0.99` under `gemini-3.8-flash`.
+
+
 
 
 

@@ -304,10 +304,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         const queriesToRun: string[] = [];
         if (typeof input.query === 'string' && input.query.trim()) {
           queriesToRun.push(input.query.trim());
-        } else if (planQueries.length > 0) {
+        }
+        if (planQueries.length > 0) {
           for (const pq of planQueries) {
             if (!queriesToRun.includes(pq)) queriesToRun.push(pq);
-            if (queriesToRun.length >= 2) break;
+            if (queriesToRun.length >= 3) break;
           }
         }
 
@@ -323,7 +324,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             claimText.includes('husband') ||
             claimText.includes('married') ||
             claimText.includes('spouse')) &&
-          queriesToRun.length < 2
+          queriesToRun.length < 3
         ) {
           if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('marital status'))) {
             queriesToRun.push('Salman Khan marital status spouse wife');
@@ -338,7 +339,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
         for (const q of queriesToRun) {
           try {
-            const batch = await tavilySearch({ query: q, maxResults: 3 });
+            const batch = await tavilySearch({ query: q, maxResults: 4 });
             for (const doc of batch) {
               if (!seenUrls.has(doc.url)) {
                 seenUrls.add(doc.url);
@@ -348,7 +349,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           } catch (err) {
             console.warn(`[search_evidence] Tavily search failed for query "${q}":`, err);
           }
-          if (docs.length >= 6) break;
+          if (docs.length >= 8) break;
         }
 
         const savedDocIds: string[] = [];
