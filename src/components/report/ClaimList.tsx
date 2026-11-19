@@ -135,6 +135,12 @@ export function ClaimList({
                 {claim.rawText}
               </p>
 
+              {claim.normalizedProposition && claim.normalizedProposition.trim() !== claim.rawText.trim() && (
+                <p className="mt-1 text-[11px] font-sans italic text-text-muted line-clamp-1">
+                  ↳ Normalized: {claim.normalizedProposition}
+                </p>
+              )}
+
               {claim.state === 'assessed' && claim.scoreReason && (
                 <p className="mt-1.5 text-[11px] font-mono text-text-muted/80 line-clamp-1">
                   {claim.scoreReason}

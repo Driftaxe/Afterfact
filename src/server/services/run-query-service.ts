@@ -35,7 +35,8 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
           errorMessage: true,
           startedAt: true,
           finishedAt: true,
-          // leaseToken, leaseUntil, outputReference, leaseOwner, input, output are STRICTLY EXCLUDED!
+          input: true,
+          // leaseToken, leaseUntil, outputReference, leaseOwner, output are STRICTLY EXCLUDED!
         },
       },
       sourceDocs: {
@@ -141,6 +142,27 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       ? (spec.missingMaterialContext as string[])
       : [];
 
+    const normalizedProp =
+      (typeof claim.normalizedText === 'string' && claim.normalizedText.trim().length > 0
+        ? claim.normalizedText
+        : typeof spec.normalizedProposition === 'string' && spec.normalizedProposition.trim().length > 0
+          ? spec.normalizedProposition
+          : null);
+
+    const extractedQualifiers = Array.isArray(decRecord?.extractedQualifiers)
+      ? decRecord.extractedQualifiers
+      : Array.isArray(claim.qualifiers)
+        ? claim.qualifiers
+        : Array.isArray(spec.verificationContext)
+          ? spec.verificationContext
+          : [];
+
+    const verificationContext = Array.isArray(spec.verificationContext)
+      ? spec.verificationContext
+      : Array.isArray(claim.qualifiers)
+        ? claim.qualifiers
+        : extractedQualifiers;
+
     return {
       ...claim,
       id: claim.id,
@@ -153,6 +175,10 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       statement:
         claim.text ||
         (typeof spec.originalStatement === 'string' ? spec.originalStatement : ''),
+      normalizedText: normalizedProp,
+      normalizedProposition: normalizedProp,
+      extractedQualifiers,
+      verificationContext,
       span,
       state: isAssessed ? 'assessed' : isFailed ? 'failed' : 'pending',
       verdict:
@@ -184,6 +210,54 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
     };
   });
 
+  const claimMap = new Map<string, { rawText: string; normalizedProposition?: string | null }>();
+  for (const c of mappedClaims) {
+    claimMap.set(c.id, {
+      rawText: c.rawText,
+      normalizedProposition: c.normalizedProposition,
+    });
+  }
+
+  const mappedDagNodes = run.dagNodes.map((n) => {
+    const input = (n.input as Record<string, unknown>) ?? null;
+    const plan = (input?.plan as Record<string, unknown>) ?? null;
+    const planQueries = Array.isArray(plan?.queries) ? plan.queries : null;
+
+    const queryList: string[] = [];
+    if (planQueries) {
+      for (const q of planQueries) {
+        if (typeof (q as Record<string, unknown>)?.query === 'string' && ((q as Record<string, unknown>).query as string).trim()) {
+          queryList.push(((q as Record<string, unknown>).query as string).trim());
+        }
+      }
+    } else if (typeof input?.query === 'string' && input.query.trim()) {
+      queryList.push(input.query.trim());
+    }
+
+    const query = queryList.length > 0 ? queryList[0] : null;
+    const claimMeta = n.claimId ? claimMap.get(n.claimId) : null;
+    const normalizedProp =
+      typeof input?.normalizedProposition === 'string'
+        ? input.normalizedProposition
+        : claimMeta?.normalizedProposition || null;
+
+    return {
+      id: n.id,
+      nodeType: n.nodeType,
+      nodeKey: n.nodeKey,
+      claimId: n.claimId,
+      state: n.state,
+      status: n.status,
+      attempt: n.attempt,
+      errorMessage: n.errorMessage,
+      startedAt: n.startedAt,
+      finishedAt: n.finishedAt,
+      query,
+      queries: queryList.length > 0 ? queryList : null,
+      normalizedProposition: normalizedProp,
+    };
+  });
+
   return {
     id: run.id,
     reportId: run.id, // For useRun.ts hook compatibility
@@ -207,7 +281,7 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
     claims: mappedClaims,
     evidence: Array.from(evidenceMap.values()),
     sourceDocuments: run.sourceDocs,
-    dagNodes: run.dagNodes,
+    dagNodes: mappedDagNodes,
     clarifications: run.clarifications || [],
     dag: {
       totalNodes,
