@@ -282,6 +282,7 @@ export async function extractClaimsFromText(
         sourceSpan: qSpan,
         status: 'confirmed',
         applicability: 'claim_level',
+        role: q.role,
       });
 
       if (!propParsed.success) {
@@ -313,6 +314,7 @@ export async function extractClaimsFromText(
         status: 'pending_review',
         applicability: 'claim_level',
         confidence: inf.confidence ?? null,
+        role: inf.role,
       });
 
       if (!propParsed.success) {
@@ -348,7 +350,18 @@ export async function extractClaimsFromText(
     // Remove any qualifier that is now known from explicit text or confirmed user context
     const missingKeys = claim.missingMaterialQualifiers.filter((k) => {
       const matched = effectiveContext.find((p) => p.key === k);
-      return !matched || matched.origin === 'model_inferred' || matched.origin === 'unknown' || matched.value === null;
+      if (!matched || matched.origin === 'model_inferred' || matched.origin === 'unknown' || matched.value === null) {
+        return true;
+      }
+      const isDate =
+        k.toLowerCase().includes('date') ||
+        k.toLowerCase().includes('time') ||
+        k.toLowerCase().includes('month') ||
+        k === 'year';
+      if (isDate && String(matched.value).length <= 7) {
+        return claim.timeSensitivity === 'high';
+      }
+      return false;
     });
 
     // Incorporate trusted execution identity (runId/prepId), candidate ordinal, and statement hash
