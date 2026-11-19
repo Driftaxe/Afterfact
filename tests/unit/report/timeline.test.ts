@@ -14,6 +14,12 @@ vi.mock('@/components/report/EvidenceCard', () => ({
     React.createElement('div', { id: `evidence-${evidence.id}` }, evidence.passage),
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 // Mock ContextComparison to isolate ClaimDetail from interactive hook-based diff component
 vi.mock('@/components/ContextComparison', () => ({
   ContextComparison: ({ originalText, discoveredText }: { originalText?: string; discoveredText?: string }) =>
@@ -274,6 +280,113 @@ describe('Task C05: Then vs. Now Timeline & Scheduled Changes', () => {
       expect(html).toContain('(2025-08-02)');
       expect(html).toContain('Then vs. Now Chronology');
       expect(html).toContain('Upcoming (Scheduled Change)');
+    });
+  });
+
+  describe('ClaimDetail Context Form & Proposition Visibility Gate', () => {
+    const baseClaim = {
+      id: 'test_claim_1',
+      claimId: 'test_claim_1',
+      parentClaimId: null,
+      ordinal: 0,
+      rawText: 'Sam altman is the wife of salman khan',
+      statement: 'Sam altman is the wife of salman khan',
+      state: 'assessed' as const,
+      evidenceIds: [],
+    };
+
+    it('does NOT show "More Context Needed" on insufficient_evidence without missing context', () => {
+      const claim = {
+        ...baseClaim,
+        verdict: 'insufficient_evidence' as const,
+        score: null,
+        reasonCode: 'INSUFFICIENT_RETRIEVAL_DATA',
+        scoreReason: 'No eligible assessment satisfied conditions.',
+        missingMaterialContext: [],
+      };
+
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim,
+          evidenceMap: new Map(),
+        })
+      );
+
+      expect(html).not.toContain('More Context Needed');
+      expect(html).not.toContain('Expand Context Form');
+    });
+
+    it('does NOT show "More Context Needed" on contradicted claims', () => {
+      const claim = {
+        ...baseClaim,
+        rawText: 'most Korean hates ramen noodles',
+        verdict: 'contradicted' as const,
+        score: 0,
+        reasonCode: 'DECISIVE_CONTRADICTION',
+        scoreReason: 'Refuted by consumption statistics.',
+        missingMaterialContext: [],
+      };
+
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim,
+          evidenceMap: new Map(),
+        })
+      );
+
+      expect(html).not.toContain('More Context Needed');
+      expect(html).not.toContain('Expand Context Form');
+    });
+
+    it('DOES show "More Context Needed" when verdict is depends_on_context with ESSENTIAL_CONTEXT_MISSING', () => {
+      const claim = {
+        ...baseClaim,
+        rawText: 'Cloudflare Workers CPU execution time limit is 10ms',
+        verdict: 'depends_on_context' as const,
+        score: null,
+        reasonCode: 'ESSENTIAL_CONTEXT_MISSING',
+        scoreReason: 'Material context plan_tier is required.',
+        missingMaterialContext: ['plan_tier'],
+      };
+
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim,
+          evidenceMap: new Map(),
+        })
+      );
+
+      expect(html).toContain('More Context Needed');
+      expect(html).toContain('Collapse Form');
+    });
+
+    it('displays Evaluated Proposition and Attached Verification Context chips when present', () => {
+      const claim = {
+        ...baseClaim,
+        rawText: 'most Korean hates ramen noodles',
+        normalizedProposition: 'The majority of Korean people hold negative feelings toward ramen noodles.',
+        verificationContext: [
+          { category: 'demographic', value: 'Korean', origin: 'explicit_claim_text' },
+          { category: 'geographicRegion', value: 'standard', origin: 'user_target_context' },
+        ],
+        verdict: 'contradicted' as const,
+        score: 0,
+        reasonCode: 'DECISIVE_CONTRADICTION',
+      };
+
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim,
+          evidenceMap: new Map(),
+        })
+      );
+
+      expect(html).toContain('Evaluated Proposition (Normalized)');
+      expect(html).toContain('The majority of Korean people hold negative feelings toward ramen noodles.');
+      expect(html).toContain('Attached Verification Context');
+      expect(html).toContain('demographic');
+      expect(html).toContain('Korean');
+      expect(html).toContain('(User Context)');
     });
   });
 });

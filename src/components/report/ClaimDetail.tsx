@@ -573,6 +573,7 @@ export function ClaimDetail({
         claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
         (claim.verdict !== 'supported' &&
           claim.verdict !== 'contradicted' &&
+          claim.verdict !== 'outdated' &&
           Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0))) && (
         <MissingContextResolver claim={claim} runId={runId} />
       )}
