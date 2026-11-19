@@ -404,4 +404,96 @@ describe('Stage 3: Claim–Evidence Semantic Assessment (assessEvidenceAgainstCl
       expect(result.assessments[0].temporalApplicability).toBe('undetermined');
     }
   });
+
+  it('stratifies candidate evidence units across distinct documents and entity qualifiers when bounding candidates', async () => {
+    // Construct 3 distinct documents: Doc A with 8 units, Doc B with 4 units, Doc C with 4 units
+    const textA = 'Alpha text confirming product version v2.';
+    const textB = 'Beta text discussing alternative pricing tier.';
+
+    const docA: SourceDocument = {
+      ...sampleDoc,
+      documentId: 'doc_alpha',
+      url: 'https://source-alpha.com',
+      rawText: textA,
+    };
+    const docB: SourceDocument = {
+      ...sampleDoc,
+      documentId: 'doc_beta',
+      url: 'https://source-beta.com',
+      rawText: textB,
+    };
+
+    const unitsDocA: EvidenceUnit[] = Array.from({ length: 8 }, (_, i) => ({
+      evidenceId: `unit_a_${i}`,
+      documentId: docA.documentId,
+      verbatimText: textA,
+      locator: { charOffsetStart: 0, charOffsetEnd: textA.length },
+      surroundingHeaders: [],
+      footnotes: [],
+      extractedProperties: [],
+      extractionLimitations: [],
+    }));
+
+    const unitsDocB: EvidenceUnit[] = Array.from({ length: 4 }, (_, i) => ({
+      evidenceId: `unit_b_${i}`,
+      documentId: docB.documentId,
+      verbatimText: textB,
+      locator: { charOffsetStart: 0, charOffsetEnd: textB.length },
+      surroundingHeaders: [],
+      footnotes: [],
+      extractedProperties: [],
+      extractionLimitations: [],
+    }));
+
+    const allUnits = [...unitsDocA, ...unitsDocB];
+
+    // Mock bifrostChat to inspect the units passed in user prompt
+    let evaluatedEvidenceIds: string[] = [];
+    vi.mocked(bifrostClient.bifrostChat).mockImplementationOnce(async (opts) => {
+      const userMsg = opts.messages.find((m) => m.role === 'user')?.content ?? '';
+      const parsedUserPrompt = JSON.parse(userMsg);
+      evaluatedEvidenceIds = (
+        parsedUserPrompt.candidateEvidenceUnits ||
+        parsedUserPrompt.evidenceUnits ||
+        parsedUserPrompt.evidence ||
+        []
+      ).map((u: any) => u.evidenceId);
+
+      return JSON.stringify({
+        assessments: evaluatedEvidenceIds.map((id) => ({
+          evidenceId: id,
+          relationship: 'supports',
+          scopeMatching: 'match',
+          propertyMatchStatus: {
+            matching: ['jurisdiction', 'version'],
+            mismatched: [],
+            missingInEvidence: [],
+          },
+          temporalApplicability: 'active_at_target_time',
+          sourceSuitability: 'authoritative_primary',
+          modelConfidence: 0.95,
+          reasoning: 'Grounded.',
+        })),
+        requiresAdditionalResearch: false,
+      });
+    });
+
+    const result = await assessEvidenceAgainstClaim({
+      ticket: baseTicket,
+      evidenceUnits: allUnits,
+      sourceDocuments: new Map([
+        [docA.documentId, docA],
+        [docB.documentId, docB],
+      ]),
+    });
+
+    expect(result.status).toBe('success');
+    // Bounded to MAX_CANDIDATE_UNITS (12)
+    expect(evaluatedEvidenceIds.length).toBe(12);
+    // Crucially: Doc B must not be starved by Doc A!
+    const fromDocB = evaluatedEvidenceIds.filter((id) => id.startsWith('unit_b_'));
+    const fromDocA = evaluatedEvidenceIds.filter((id) => id.startsWith('unit_a_'));
+    expect(fromDocB.length).toBeGreaterThan(0);
+    expect(fromDocA.length).toBeGreaterThan(0);
+  });
 });
