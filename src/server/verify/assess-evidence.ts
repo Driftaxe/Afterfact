@@ -255,7 +255,13 @@ export async function assessEvidenceAgainstClaim(
 
   // Extract explicit claim temporal qualifier if present
   const claimTimeProp = ticket.verificationContext.find(
-    (p) => (p.key === 'year' || p.key === 'effectiveDate' || p.key === 'targetDate') && p.value !== null
+    (p) =>
+      (p.key === 'year' ||
+        p.key === 'effectiveDate' ||
+        p.key === 'statedEffectiveDate' ||
+        p.key === 'asOfDate' ||
+        p.key === 'targetDate') &&
+      p.value !== null
   );
   const claimTimeStr = claimTimeProp ? String(claimTimeProp.value) : null;
 
@@ -359,9 +365,45 @@ export async function assessEvidenceAgainstClaim(
           p.key === 'asOfDate' ||
           p.key === 'targetDate' ||
           p.key === 'statedEffectiveDate' ||
-          p.key === 'effective_date'
+          p.key === 'effective_date' ||
+          p.key === 'year' ||
+          p.key === 'effectiveDate'
         ) {
           matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        }
+      }
+    }
+
+    // Grounded document metadata: if entity/manufacturer is established by doc content/title, mark matching
+    for (const p of ticket.verificationContext) {
+      if (
+        p.key === 'manufacturer' ||
+        p.key === 'company' ||
+        p.key === 'organization' ||
+        p.key === 'vendor'
+      ) {
+        const entityVal = String(p.value).toLowerCase();
+        // DEF-002 Fix: Do NOT include parentDoc?.publisher to prevent competitor reporting
+        // from falsely satisfying the manufacturer of the subject entity.
+        const docText = [
+          parentDoc?.title,
+          unit.verbatimText,
+          ...(unit.surroundingHeaders || []),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (docText.includes(entityVal)) {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        }
+      } else if (p.key === 'publisher' || p.key === 'source_organization') {
+        const pubVal = String(p.value).toLowerCase();
+        if (parentDoc?.publisher && parentDoc.publisher.toLowerCase().includes(pubVal)) {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
         }
       }
     }
@@ -371,7 +413,7 @@ export async function assessEvidenceAgainstClaim(
       if (mismatchedSet.size === 0) {
         mismatchedSet.add('asserted_attribute');
       }
-      // Ensure non-conflicting governing context qualifiers from the ticket are not marked missing
+      // Ensure non-conflicting governing context qualifiers from the ticket are in matchingSet
       for (const p of ticket.verificationContext) {
         if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
           matchingSet.add(p.key);
