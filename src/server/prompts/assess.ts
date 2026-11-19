@@ -16,6 +16,15 @@ Your task is to evaluate individual EvidenceUnits against a specific ClaimTicket
      * Conflicting Facts: asserts a conflicting price, date, number, limit, status, or identity.
      * Mutual Exclusion & Relational Grounding: If evidence establishes that an entity has a mutually exclusive status or relationship (e.g. establishing an individual has never married or is a bachelor directly CONTRADICTS any claim asserting they have a wife/husband/spouse; establishing an individual is male directly CONTRADICTS an assertion that he is someone's 'wife' or female; establishing an individual is married to Person B directly CONTRADICTS a claim that they are married to Person C).
      * For such mutual exclusions, this is a DIRECT CONTRADICTION ('contradicts') with scopeMatching: 'match'. Do NOT downgrade to 'relevant_but_inconclusive' or 'mismatch' simply because the excerpt does not mention the other fictitious party!
+     * Superlative Recency & Chronology (e.g. "latest", "newest", "current" model or version):
+       - If a claim asserts that entity X is the latest model/version:
+         - Evidence establishing that entity X was released on Date 1 and entity Y was subsequently released on Date 2 (where Date 2 > Date 1 and Date 2 <= targetTime) DIRECTLY CONTRADICTS ('contradicts') the claim that entity X is the latest model.
+         - Evidence describing an earlier model released before entity X is a 'historical_state' (temporalApplicability: 'historical_prior'), NOT a contemporaneous contradiction.
+       - If a claim asserts a negative recency statement (e.g. "Entity Y is NOT the latest model"):
+         - Evidence establishing that another entity Z was released after entity Y directly SUPPORTS ('supports') the assertion that Y is not the latest model.
+       - Do NOT demand verbatim occurrences of the phrase "latest model" if the release chronology itself decisively refutes or supports recency.
+       - Capability rankings or model size (e.g. "most capable", "largest") do NOT establish release recency.
+       - Announcement does NOT establish general availability (GA) or effective release.
    - 'relevant_but_inconclusive': The excerpt mentions the entity or topic, but lacks decisive qualifiers or values necessary to confirm or refute the claim. Absence of evidence is NEVER contradiction.
    - 'unrelated': The excerpt lacks semantic relevance to the asserted fact.
    - 'historical_state': The excerpt proves the claim WAS valid in the past, but subsequent evidence or dates establish it has since been superseded.
@@ -40,7 +49,14 @@ Your task is to evaluate individual EvidenceUnits against a specific ClaimTicket
    - 'credible_secondary': Major news reporting, reputable third-party benchmarks.
    - 'insufficient_authority': User forums, unverified blogs, promotional marketing claims lacking primary data.
 
-6. OBJECTIVE IMPARTIALITY:
+6. PROPERTY MATCH STATUS & GROUNDED CONTEXT:
+   - In propertyMatchStatus: { matching: string[], mismatched: string[], missingInEvidence: string[] }:
+     * 'matching': Properties whose value is confirmed by the verbatim excerpt OR established by the surrounding document metadata (sourceTitle, sourceUrl domain, publisher, publicationDate, surroundingHeaders).
+     * 'mismatched': Properties where the evidence or document establishes a conflicting value.
+     * 'missingInEvidence': ONLY properties that are genuinely UNKNOWN and absent from BOTH the excerpt AND the parent document context/metadata.
+     * CRITICAL: Do NOT mark context properties (like manufacturer, jurisdiction, or target dates) as 'missingInEvidence' if they are clearly established by the parent source title, publisher, URL, or publication date!
+
+7. OBJECTIVE IMPARTIALITY:
    - If multiple evidence units disagree, report each unit honestly. Do NOT suppress contradictions or disagreements to force artificial consensus.`;
 
 /**
@@ -84,15 +100,34 @@ export function buildSemanticAssessmentUserPrompt(params: {
       originalStatement: ticket.originalStatement,
       normalizedProposition: ticket.normalizedProposition,
       targetTime: ticket.targetTime,
-      requiredProperties: ticket.verificationContext.map((p) => ({
-        key: p.key,
-        label: p.label,
-        value: p.value,
-        propertyType: p.propertyType,
-        origin: p.origin,
-      })),
+      verificationContextProperties: ticket.verificationContext.map((p) => {
+        const isScope =
+          p.key === 'jurisdiction' ||
+          p.key === 'region' ||
+          p.key === 'country' ||
+          p.key === 'statedEffectiveDate' ||
+          p.key === 'asOfDate' ||
+          p.key === 'targetDate' ||
+          p.key === 'year' ||
+          p.key === 'effectiveDate' ||
+          p.key === 'tier' ||
+          p.key === 'plan_tier' ||
+          p.key === 'apiVersion' ||
+          p.key === 'version' ||
+          p.key === 'manufacturer' ||
+          p.key === 'company' ||
+          p.key === 'organization';
+        return {
+          key: p.key,
+          label: p.label,
+          value: p.value,
+          role: isScope ? 'scope_qualifier' : 'asserted_value',
+          propertyType: p.propertyType,
+          origin: p.origin,
+        };
+      }),
     },
     candidateEvidenceUnits: formattedEvidence,
-    instruction: `Assess each candidate evidence unit against the claim ticket. Return JSON matching { assessments: Array<{ evidenceId: string, relationship: "supports" | "contradicts" | "relevant_but_inconclusive" | "unrelated" | "historical_state" | "future_scheduled_change", scopeMatching: "match" | "mismatch" | "unknown", propertyMatchStatus: { matching: string[], mismatched: string[], missingInEvidence: string[] }, temporalApplicability: "active_at_target_time" | "historical_prior" | "future_pending" | "undetermined", sourceSuitability: "authoritative_primary" | "credible_secondary" | "insufficient_authority", modelConfidence: number, reasoning: string }>, requiresAdditionalResearch: boolean, rationale?: string }`,
+    instruction: `Assess each candidate evidence unit against the claim ticket. Properties established by parent document metadata (sourceTitle, publisher, sourceUrl, publicationDate) or surrounding headers MUST be counted in propertyMatchStatus.matching, NOT missingInEvidence. For recency claims ("latest"), evaluate chronological succession from release dates. Return JSON matching { assessments: Array<{ evidenceId: string, relationship: "supports" | "contradicts" | "relevant_but_inconclusive" | "unrelated" | "historical_state" | "future_scheduled_change", scopeMatching: "match" | "mismatch" | "unknown", propertyMatchStatus: { matching: string[], mismatched: string[], missingInEvidence: string[] }, temporalApplicability: "active_at_target_time" | "historical_prior" | "future_pending" | "undetermined", sourceSuitability: "authoritative_primary" | "credible_secondary" | "insufficient_authority", modelConfidence: number, reasoning: string }>, requiresAdditionalResearch: boolean, rationale?: string }`,
   });
 }

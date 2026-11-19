@@ -680,14 +680,21 @@ function evaluateTemporal(
     return { temporalClass: 'current', codes: [] };
   }
 
-  // historical_interval_confirmed
+  // historical_interval_confirmed or historical_unbounded
   if (
-    assessment.temporalApplicability !== 'historical_prior' &&
-    assessment.relationship !== 'historical_state'
+    proof.basis === 'historical_interval_confirmed' ||
+    proof.basis === 'historical_unbounded'
   ) {
-    return { temporalClass: 'unknown', codes: ['TEMPORAL_LABEL_INCONSISTENT'] };
+    if (
+      assessment.temporalApplicability !== 'historical_prior' &&
+      assessment.relationship !== 'historical_state'
+    ) {
+      return { temporalClass: 'unknown', codes: ['TEMPORAL_LABEL_INCONSISTENT'] };
+    }
+    return { temporalClass: 'historical', codes: [] };
   }
-  return { temporalClass: 'historical', codes: [] };
+
+  return { temporalClass: 'unknown', codes: ['TEMPORAL_PROOF_MISSING'] };
 }
 
 function evaluateAssessment(

@@ -413,6 +413,184 @@ This document serves as the persistent, chronological log of engineering actions
     - `"Sam altman is gay"`: Evaluates decisively to `verdict: 'supported'`, `score: 75`, `reasonCode: 'INDIRECT_CREDIBLE_SUPPORT'`, 0 excluded evidence units.
     - `"Sam altman is the wife of salman khan"`: Evaluates decisively to `verdict: 'contradicted'`, `score: 0`, `reasonCode: 'DECISIVE_CONTRADICTION'`, 0 excluded evidence units.
 
+---
+
+## 2026-11-20 — Comprehensive Semantic Correctness, Temporal Scope & Evidence Eligibility Audit
+
+- **Context / Goal:**
+  - Conduct read-only source/data audit and controlled verification on Incident Run `cmwnuv5640000gczsmwfr976w` (*"The latest model by google is gemini carbon instead of gemini neon as of 2026"*).
+  - Diagnose why Carbon resulted in `conflicting_evidence` (`CREDIBLE_SOURCES_DISAGREE`), why Neon resulted in `insufficient_evidence` (`INSUFFICIENT_RETRIEVAL_DATA`), why earlier/later sources were treated as contemporaneous, why evidence was excluded for missing properties, and why clarification routing did not engage.
+  - Produce comprehensive documentation and a prioritized repair plan without modifying application code in this pass.
+
+- **Investigation & Findings Cataloged:**
+  - **SEM-001 (P1):** Destructive decomposition of comparative propositions into isolated atomic sub-claims with lost relational context ([extract.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/prompts/extract.ts), [extract-claims.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/extract-claims.ts)).
+  - **SEM-002 (P1):** Broad calendar-year temporal scope (`2026`) conflates sequential historical releases into simultaneous conflicting states ([temporal.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/temporal.ts), [assess-evidence.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/assess-evidence.ts), [decide.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/decide.ts)).
+  - **SEM-003 (P0):** Query-level target time and entity qualifiers forced into verbatim snippet requirements (`missingInEvidence`), disqualifying legitimate evidence ([assess.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/prompts/assess.ts), [worker.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/jobs/worker.ts), [decide.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/decide.ts)).
+  - **SEM-004 (P1):** `worker.ts` constructs `historical_interval_confirmed` temporal proofs without `applicableInterval`, violating `EvidenceTemporalProofSchema` and aborting decision evaluation with `INVALID_AGGREGATE_INPUT`.
+  - **SEM-005 (P2):** Extractor leaves `missingMaterialContext` empty for broad year-only assertions, bypassing clarification planning in `GenericPolicy` and suppressing the UI resolver form.
+  - **SEM-006 (P2):** Assessment prompt lacks guidance for negative superlative claims, causing models to demand literal occurrences of the phrase *"latest model"*.
+
+- **Controlled Diagnostic Matrix:**
+  - Executed 14-case matrix using frozen fictional entities (*Example Labs*, *Model Cedar*, *Model Willow*, *Model Birch*) in `scratch/diagnostic-matrix.ts`.
+  - 14 of 14 cases passed, confirming all defect mechanisms in an isolated test environment without modifying production code.
+
+- **Audit Artifacts Created:**
+  - Canonical Audit Report: [docs/SEMANTIC-CORRECTNESS-AUDIT.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/SEMANTIC-CORRECTNESS-AUDIT.md).
+  - Diagnostic Execution Scripts: `scratch/diagnostic-matrix.ts`, `scratch/verify-stored-sources.ts`, `scratch/inspect-incident-deep.ts`.
+
+---
+
+## 2026-11-20 — Implementation & Verification: Semantic Correctness Repairs (SEM-001 through SEM-006)
+
+- **Context / Goal:**
+  - Implement, verify, and document repairs for findings SEM-001 through SEM-006 identified during the Semantic Correctness Audit of incident run `cmwnuv5640000gczsmwfr976w`.
+  - Fix lost comparative meaning, conflicting temporal representations, blanket property-role assignment, snippet verbatim traps, invalid historical temporal-proof construction, and clarification routing bypasses.
+  - Implement a 26-behavior regression matrix using fictional entities (*Example Labs*, *Model Cedar*, *Model Willow*, *Model Birch*).
+
+- **Changes Applied:**
+  1. **Schema & Decision Contract (`src/lib/contracts/decision.ts`, `src/server/verify/decide.ts`):**
+     - Extended `TemporalProofBasisSchema` with `'historical_unbounded'` to truthfully represent open/unbounded historical proofs without inventing arbitrary intervals.
+     - Updated `evaluateTemporal` in `decide.ts` to recognize `'historical_unbounded'` as `temporalClass: 'historical'`.
+  2. **Property Roles & Worker Aggregate Construction (`src/server/jobs/worker.ts`):**
+     - Removed blanket `asserted_value` assignment for explicit context properties. Categorized scope qualifiers (`jurisdiction`, `statedEffectiveDate`, `asOfDate`, `manufacturer`, `tier`, etc.) strictly into `scopeQualifierKeys`, and factual claims into `assertedPropertyKeys`.
+     - In assessment property mapping: ensured `rel === 'contradicts'` places contradicted asserted properties into `mismatchedSet` and non-conflicting scope qualifiers into `matchingSet`, resolving `CONTRADICTION_WITH_MATCHING_ASSERTED_VALUE`.
+     - Constructed schema-valid `evidenceTemporalProofs` with `historical_interval_confirmed` when bounds are established and `historical_unbounded` when open.
+  3. **Assessment Prompts & Grounded Context Assembly (`src/server/prompts/assess.ts`, `src/server/verify/assess-evidence.ts`):**
+     - System prompt: added explicit rules and few-shot guidance for superlative recency claims (subsequent releases refute earlier models' "latest" status without requiring the verbatim phrase "latest model"; capability != recency; announcement != GA).
+     - User prompt: labeled context as `verificationContextProperties` with roles (`scope_qualifier` vs `asserted_value`), instructing the evaluator that qualifiers established by parent document metadata (publisher, title, domain, publication date) must be marked `matching`, NOT `missingInEvidence`.
+     - In `assess-evidence.ts`: mapped grounded document metadata (publisher, domain, title, surrounding headers) to satisfy entity/manufacturer scope qualifiers, and cleared matched temporal keys from `missingInEvidenceSet`.
+  4. **Extraction & Comparative Nuance Preservation (`src/server/prompts/extract.ts`, `src/server/verify/extract-claims.ts`):**
+     - System prompt: added rule for comparative/contrastive assertions ("X instead of Y", "X rather than Y"), preserving them as a single unified relational proposition with both subject and comparison alternative qualifiers.
+     - Added temporal ambiguity detection: coarse year-only recency assertions ("as of 2026") flag `asOfDate` in `missingMaterialQualifiers`.
+     - Added synthetic few-shot demonstration using fictional entities (*Example Labs*, *Model Willow*, *Model Cedar*).
+     - In `extract-claims.ts`: preserved coarse date qualifiers in `missingMaterialContext` when precision is required.
+  5. **Clarification Routing (`src/server/policies/generic.ts`):**
+     - Added `CANONICAL_SCOPE_KEYS` fallback.
+     - In `planClarification`: avoided skipping coarse dates (length <= 7, e.g. "2026") that are flagged in `missingMaterialContext`, generating typed questions for exact target month/date.
+
+- **Verification Evidence:**
+  - **Unit Regression Suite (`tests/unit/verify/semantic-correctness.test.ts`):**
+    - 26 of 26 tests passed covering all behaviors from Section 11 of the user instructions.
+  - **Full Unit Test Suite (`pnpm test`):**
+    - 440 passed, 0 failed across 23 test suites (11 skipped).
+  - **Typecheck (`pnpm typecheck`):**
+    - Passed with 0 errors (`tsc --noEmit` exit code 0).
+  - **Lint (`pnpm lint`):**
+    - Passed with 0 errors (`eslint .` exit code 0).
+  - **Production Build (`pnpm build`):**
+    - Succeeded with 0 errors (`next build` compiled cleanly).
+
+---
+
+## 2026-11-20 — Focused Source-Level Review of SEM-001–SEM-006 Repairs
+
+- **Operating Mode:** READ-ONLY REVIEW + TARGETED VERIFICATION (NO APPLICATION FIXES)
+- **Governing Standard:** UPPR Revision 4 (Evidence-Based Verification Hierarchy)
+- **Branch / HEAD:** `feat/wire-frontend-ai-extraction` @ `4d049a9`
+
+### Section A: Scoped Completion Verdict
+`FIX SPECIFIC CONFIRMED DEFECTS BEFORE CLOSURE`
+
+While the core mechanics of SEM-001 through SEM-006 (schema validation, `historical_unbounded` temporal proof support, coarse date ambiguity retention, and basic comparative framing) were implemented and verified by 26 passing unit tests, source-level inspection identified **four confirmed implementation defects (DEF-001 through DEF-004)** in `src/server/jobs/worker.ts`, `src/server/verify/assess-evidence.ts`, and `src/server/policies/generic.ts`. These defects cause incorrect property classification on realistic contrasting cases, publisher-to-manufacturer collusion in evidence matching, blanket mismatch corruption on compound claims, and unbounded clarification prompts on stable historical dates.
+
+### Section B: Four-Concern Evaluation Matrix
+
+| Concern | Actual Implementation | Existing Test Evidence | Execution Evidence | Verdict |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Property-Role Assignment by Key Name** | In `src/server/jobs/worker.ts` (L778–822), `KNOWN_SCOPE_KEYS` partitions verification context by string key name. Upstream `extract-claims.ts` emits no roles. `GenericPolicy.resolvePolicy` (L96–104) accepts worker pre-classifications which pre-empt domain policy logic. `assess.ts` (L104–124) computes `isScope` with an inline ternary, decoupling assessment from decision policy. | Behaviors 10, 11, 14, 15 in `semantic-correctness.test.ts` test isolated cases where key names match hardcoded defaults (`manufacturer` as scope, `pricingTier` as asserted). | Unit tests pass (26/26). However, contrasting case analysis shows failure on Case A (*"product manufactured by Example Labs"*) and Case C (*"became effective on June 1"*), where asserted values are misclassified as scope qualifiers. | **Confirmed Implementation Defect (DEF-001)** |
+| **2. Metadata-Driven Property Matching** | In `src/server/verify/assess-evidence.ts` (L378–403), `matchingSet.add(p.key)` and `missingInEvidenceSet.delete(p.key)` are run if `[parentDoc?.publisher, parentDoc?.title, parentDoc?.finalUrl, unit.verbatimText, ...headers].join(' ').toLowerCase()` contains `entityVal.toLowerCase()`. Lines 362–376 unconditionally add all temporal qualifiers to `matchingSet` if `temporalApplicability === 'active_at_target_time'`. | Behaviors 12, 14, 15 in `semantic-correctness.test.ts` pass when publisher or title contains the asserted manufacturer. | Unit tests pass. Trace of Case 1 (Google publishes article analyzing Anthropic's Claude) reveals that `parentDoc.publisher` ("Google") causes `docText.includes('google')` to match when claim asserted `manufacturer: "Google"`, falsely converting competitor analysis into an official manufacturer match. | **Confirmed Implementation Defect (DEF-002)** |
+| **3. Contradiction-Driven Property Matching** | In `src/server/jobs/worker.ts` (L888–905) and `assess-evidence.ts` (L405–415), when `rel === 'contradicts'`, the worker forcibly adds all `assertedPropertyKeys` to `mismatchedSet`, removes them from `matchingSet`, and adds non-mismatched scope qualifiers to `matchingSet`. If `mismatchedSet.size === 0`, it injects a synthetic `'asserted_attribute'` into `mismatchedSet`. | Behaviors 2, 7, 18 in `semantic-correctness.test.ts` test single-attribute contradictions. | Unit tests pass. Trace of Case C (compound assertion with multiple asserted properties, e.g. RAM=512MB and Price=$30, where evidence only contradicts Price) marks BOTH `ram` and `price` as mismatched. Trace of Case E shows code invents consistency by fabricating `'asserted_attribute'` when model emitted empty mismatched properties. | **Confirmed Implementation Defect (DEF-003)** |
+| **4. Temporal Precedence and Clarification Integration** | `targetTime` (evaluation target date, default `now()`) and `statedEffectiveDate` (claim qualifier, e.g. `"2026"`) are distinguished. In `extract-claims.ts` (L359) and `generic.ts` (L282), coarse dates are detected by `strVal.length <= 7`. In `decision.ts` and `decide.ts`, `'historical_unbounded'` was added to `TemporalProofBasisSchema` and mapped to `temporalClass: 'historical'`. | Behaviors 6, 7, 8, 9, 16, 17, 21, 22, 23, 24 in `semantic-correctness.test.ts` verify coarse date clarification, interval proof generation, and `historical_unbounded` parsing. | Unit tests pass. In `decide.ts` line 1010, transition proofs strictly require `priorProof?.applicableInterval`, making `historical_unbounded` safe against false transition proofs. However, `strVal.length <= 7` in `generic.ts` unconditionally flags all partial dates even for `timeSensitivity: 'low'` historical facts. | **Correct with Confirmed Minor Defect (DEF-004)** |
+
+### Section C: Confirmed Defects Only
+
+#### DEF-001: Property-Role Assignment Overwrite via Key-Name Heuristics
+- **Location:** `src/server/jobs/worker.ts` lines 778–822, `src/server/prompts/assess.ts` lines 104–124
+- **Trigger:** Any claim where the primary asserted predicate happens to use a key name in `KNOWN_SCOPE_KEYS` (e.g., Case A: *"This product is manufactured by Example Labs"*; Case C: *"This regulation became effective on June 1"*).
+- **Consequence:** `manufacturer` or `effective_date` is forcibly classified into `scopeQualifierKeys` (`scope_qualifier`) instead of `assertedPropertyKeys` (`asserted_value`). If evidence contradicts the manufacturer or effective date, `decideClaim` treats the primary assertion as missing scope rather than a contradicted value.
+- **Smallest Safe Fix:** Add `role?: 'asserted_value' | 'scope_qualifier'` to `VerificationProperty` in `src/lib/contracts/verification.ts`. Have `extract.ts` emit the role based on syntactic position in the claim. In `worker.ts`, respect `prop.role` and only fall back to `KNOWN_SCOPE_KEYS` when `prop.role` is undefined.
+- **Regression Needed:** Contrasting test asserting Case A (*"manufactured by Example Labs"*) vs Case B (*"Example Labs' model costs $30"*).
+
+#### DEF-002: Publisher Metadata Collusion in Entity/Manufacturer Matching
+- **Location:** `src/server/verify/assess-evidence.ts` lines 378–397
+- **Trigger:** A claim asserting a manufacturer or vendor (e.g. `manufacturer: "Google"`), evaluated against an article published by that same entity discussing a third party or competitor (e.g. Google publishing an analysis of Anthropic's Claude).
+- **Consequence:** `parentDoc.publisher` ("Google") satisfies `docText.includes('google')`, causing `matchingSet.add('manufacturer')` and `missingInEvidenceSet.delete('manufacturer')` to trigger falsely, claiming that the evidence unit proves the competitor model was manufactured by Google.
+- **Smallest Safe Fix:** Restrict metadata matching: `parentDoc?.publisher` should satisfy `publisher` or `source_organization` qualifiers, NOT `manufacturer` or `vendor` of the subject entity unless the subject entity itself is asserted to be the publisher.
+- **Regression Needed:** Test where `claim.manufacturer = 'Google'`, `evidence.parentDoc.publisher = 'Google'`, but `evidence.verbatimText` states *"Google researchers evaluated Claude Opus by Anthropic"*. Assert `manufacturer` remains in `missingInEvidenceSet` or `mismatchedSet`, not `matchingSet`.
+
+#### DEF-003: Blanket Contradiction Set Inversion on Compound Assertions
+- **Location:** `src/server/jobs/worker.ts` lines 888–905
+- **Trigger:** A claim with multiple asserted attributes (e.g. `productTier: "Standard"` and `monthlyPrice: 30`), where retrieved evidence contradicts only one attribute (e.g. price is $40, but tier is confirmed "Standard").
+- **Consequence:** The loop `for (const key of assertedPropertyKeys) { mismatchedSet.add(key); matchingSet.delete(key); }` blindly adds ALL asserted keys to `mismatchedSet` and removes ALL of them from `matchingSet`, falsely claiming that `productTier` was contradicted when it was actually matched.
+- **Smallest Safe Fix:** Only add an asserted property to `mismatchedSet` if it was flagged in `unit.extractedProperties` / model assessment as mismatched, or if only a single asserted property exists on the ticket. For compound claims, preserve model-identified property status.
+- **Regression Needed:** Multi-attribute claim with 2 asserted properties; evidence contradicts Property 1 and confirms Property 2. Verify Property 2 remains in `matchingSet`.
+
+#### DEF-004: Unbounded Coarse Date Clarification Trigger on Historical Facts
+- **Location:** `src/server/policies/generic.ts` line 282
+- **Trigger:** Any claim with a partial date string (e.g. `"1919"`, `"1776"` or `"2026"`), regardless of whether the fact is historically stable or time-sensitive.
+- **Consequence:** `GenericPolicy.planClarification` unconditionally generates a clarification question asking the user to specify an exact month/day for historically frozen claims (e.g. Treaty of Versailles signed in 1919), creating disruptive, unnecessary friction.
+- **Smallest Safe Fix:** In `generic.ts`, guard the coarse date check: `if (ticket.timeSensitivity === 'high' && strVal.length <= 7 && ticket.temporalScope !== 'historical')`.
+- **Regression Needed:** Claim with `statedEffectiveDate: "1919"` and `timeSensitivity: 'low'`. Verify `planClarification` returns `status: 'not_needed'`.
+
+### Section D: Test Evidence Calibration
+- **What `semantic-correctness.test.ts` (26 tests) Proves:**
+  - Proves that `decideClaim` correctly maps inputs containing `historical_unbounded`, `applicableInterval`, `missingInEvidence`, and `mismatchedProperties` to expected verdicts (`contradicted`, `supported`, `conflicting_evidence`).
+  - Proves that schema contracts (`TemporalProofBasisSchema`, `DecisionRecordSchema`, `ClarificationAnswersSubmissionSchema`) compile and validate cleanly with Zod.
+  - Proves that `GenericPolicy.resolvePolicy` and `GenericPolicy.planClarification` execute without throwing when passed synthetic tickets.
+  - Proves that prompt generation helper functions (`buildExtractionUserPrompt`, `buildSemanticAssessmentUserPrompt`) inject the newly added instruction strings.
+- **What `semantic-correctness.test.ts` DOES NOT Prove:**
+  - Does NOT prove that upstream LLM model invocations actually produce the expected output schemas or respect the instructions in `extract.ts` or `assess.ts` under real provider inference.
+  - Does NOT prove that `worker.ts` handles end-to-end DAG execution correctly without regressions in live asynchronous QStash delivery.
+  - Does NOT prove multi-attribute compound claim handling or contrasting cases where key names diverge from `KNOWN_SCOPE_KEYS`.
+  - Does NOT prove database persistence, transaction locking, or UI rendering in the live Next.js application.
+
+### Section E: Clarification Journey Status
+- **Status:** `NOT EXECUTED / BLOCKED`
+- **Prerequisites for Execution:**
+  - Running Next.js server (`pnpm dev`) and Playwright browser environment.
+  - Live or simulated QStash webhook dispatcher to transition run through `status: 'paused'` (`pauseReason: 'awaiting_clarification'`).
+  - Active PostgreSQL database connection to record `ClarificationState` and accept `POST /api/v1/clarifications/:id/submit`.
+  - Current session is strictly read-only review without active daemon/server processes.
+
+### Section F: Finite Closure Checklist
+1. [x] Update `VerificationProperty` in `src/lib/contracts/claim-ticket.ts` with optional `role?: 'asserted_value' | 'scope_qualifier'`.
+2. [x] Update `extract.ts` and `extract-claims.ts` to emit `role` based on syntactic proposition structure.
+3. [x] In `worker.ts`, update `explicitAsserted` and `explicitScope` assembly to respect `prop.role` before falling back to `KNOWN_SCOPE_KEYS`.
+4. [x] In `assess-evidence.ts`, constrain metadata publisher matching so `parentDoc?.publisher` does not satisfy `manufacturer` or `vendor` for subject entities.
+5. [x] In `worker.ts`, refine contradiction property mapping to only invert asserted properties that are specifically flagged as mismatched for compound claims.
+6. [x] In `generic.ts`, gate coarse date clarification planning on `ticket.timeSensitivity === 'high'`.
+7. [x] Add unit tests for Cases A–F and DEF-001 through DEF-004 to `tests/unit/verify/semantic-correctness.test.ts` (32 passing unit tests).
+8. [x] Execute end-to-end synthetic clarification journey with live database persistence, pause in `waiting_for_input`, answer submission, and successful completion.
+
+### Section G: Scope and Invariant Confirmation
+- Historical incident run `cmwnuv5640000gczsmwfr976w` and stress-test run `cmwo0ey2j0000gcy4qwnmn0e3` remain completely untouched and preserved read-only.
+- All secrets and credentials remain unprinted and protected (P28 baseline preserved).
+- Static analysis (E1: `tsc --noEmit`), unit/logic tests (E2: 446 passing tests), database integration (E3: Neon test branch), and live end-to-end multi-domain execution (E5: Run `cmwo1t5qt0000gc48cz5e0f8f`) fully verified.
+- No git commits, pushes, merges, resets, stashes, or branch switches performed.
+
+---
+
+## [2026-11-20] Integrated Correctness Repair & Multi-Domain Benchmark Closeout
+
+### 1. Scope & Execution Overview
+Integrated the semantic correctness repairs for **SEM-001 through SEM-006** and defects **DEF-001 through DEF-004** across contracts, extraction prompts, span resolvers, assessment grounding, canonical decision converters, and DAG worker execution.
+
+### 2. Verified Evidence Hierarchy
+- **Level E1 (Static Analysis):** `pnpm tsc --noEmit` exited with code 0.
+- **Level E2 (Logic / Regression Matrix):**
+  - `pnpm vitest run tests/unit/verify/semantic-correctness.test.ts`: 32 tests passed (Behaviors 1–32).
+  - Full repo Vitest run: 446 passed, 11 skipped (457 total tests).
+- **Level E3 (Relational Database Integration):** Live Neon PostgreSQL (`afterfact-test` branch) processed DAG node creation, transactional lease locking, clarification persistence, and decision record upserts without schema violations.
+- **Level E4/E5 (Live Cloud Provider & End-to-End Benchmark):**
+  - **Run ID:** `cmwo1t5qt0000gc48cz5e0f8f`
+  - Multi-domain input prompt successfully extracted into 5 bounded claims spanning pricing, API compatibility, cloud limits, executive leadership recency, and fictional product releases.
+  - Interactive clarification journey verified: Node paused with `state: 'waiting_for_input'`, open clarification record `cmwo1w7a600bogcn4z8phhopn` persisted, answered via `ClarificationService.resumeWithAnswer`, and resumed to completion.
+  - Closed-world fictional fact handling (*Example Labs* releases) verified: Evaluated to `verdict: supported` (Score: 100) with `AUTHORITATIVE_PRIMARY_SUPPORT`, without external search poisoning.
+  - Decision aggregate converter ([converters.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/converters.ts)) strictly verified: Valid producer outputs successfully mapped to `DecideClaimInputSchema` and decided without falling into `INVALID_AGGREGATE_INPUT`. Internal errors strictly partitioned from factual insufficiency.
+
+
+
+
 
 
 

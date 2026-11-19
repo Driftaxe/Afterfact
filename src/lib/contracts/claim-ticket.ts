@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AtomicClaimSpec, ClaimSpanSchema, TimeSensitivity } from './claim';
+import { AtomicClaimSpec, ClaimSpanSchema, TimeSensitivity, TimeSensitivitySchema } from './claim';
 import { isValidCalendarDate, isValidCalendarDateOrPartial, isValidIsoTimestamp } from './dates';
 
 /**
@@ -59,6 +59,12 @@ export const PropertyValueSchema = z.union([
 export type PropertyValue = z.infer<typeof PropertyValueSchema>;
 
 /**
+ * Role of a verification context property in the proposition under test.
+ */
+export const ContextPropertyRoleSchema = z.enum(['scope_qualifier', 'asserted_value']);
+export type ContextPropertyRole = z.infer<typeof ContextPropertyRoleSchema>;
+
+/**
  * Strongly typed context property governing claim validity conditions.
  */
 export const VerificationPropertySchema = z
@@ -73,6 +79,7 @@ export const VerificationPropertySchema = z
     status: PropertyStatusSchema,
     applicability: PropertyApplicabilitySchema,
     confidence: z.number().min(0).max(1).nullable().optional(),
+    role: ContextPropertyRoleSchema.optional(),
   })
   .superRefine((prop, ctx) => {
     // 1. Provenance invariant: origin 'unknown' must have value null
@@ -173,6 +180,7 @@ export const ClaimTicketSchema = z.object({
   sourceSpan: ClaimSpanSchema.nullable().optional(),
   normalizedProposition: z.string().min(1, { message: 'Normalized proposition cannot be empty' }),
   domain: z.string().optional().default('generic'),
+  timeSensitivity: TimeSensitivitySchema.optional(),
   targetTime: z
     .string()
     .refine((v) => isValidCalendarDate(v) || isValidIsoTimestamp(v), {
@@ -270,6 +278,7 @@ export function createClaimTicketFromSpec(
     sourceSpan: spec.span ?? null,
     normalizedProposition,
     domain: options.domain ?? 'generic',
+    timeSensitivity: spec.timeSensitivity ?? 'medium',
     targetTime: options.targetTime,
     verificationContext,
     missingMaterialContext: [],

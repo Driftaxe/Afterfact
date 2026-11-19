@@ -70,6 +70,77 @@ function cleanJsonOutput(text: string): string {
 }
 
 /**
+ * Selects a diverse, representative subset of candidate EvidenceUnits up to maxUnits,
+ * ensuring balanced representation across distinct source documents and key claim entities
+ * rather than allowing a single document or early subquery to crowd out the evaluation window.
+ */
+function selectStratifiedEvidenceUnits(
+  candidates: EvidenceUnit[],
+  ticket: ClaimTicket,
+  maxUnits: number = 12
+): EvidenceUnit[] {
+  if (candidates.length <= maxUnits) {
+    return candidates;
+  }
+
+  // 1. Group candidates by parent document
+  const unitsByDoc = new Map<string, EvidenceUnit[]>();
+  for (const unit of candidates) {
+    const list = unitsByDoc.get(unit.documentId) ?? [];
+    list.push(unit);
+    unitsByDoc.set(unit.documentId, list);
+  }
+
+  // 2. Extract key search terms from claim context (e.g. distinct model names, entities)
+  const claimTerms: string[] = [];
+  for (const prop of ticket.verificationContext) {
+    if (typeof prop.value === 'string' && prop.value.trim().length > 2) {
+      claimTerms.push(prop.value.trim().toLowerCase());
+    }
+  }
+
+  // Sort units within each document: units containing distinct claim terms are prioritized first
+  for (const [, docUnits] of unitsByDoc.entries()) {
+    docUnits.sort((a, b) => {
+      const aText = (a.verbatimText || '').toLowerCase();
+      const bText = (b.verbatimText || '').toLowerCase();
+
+      const aScore = claimTerms.reduce((acc, t) => acc + (aText.includes(t) ? 1 : 0), 0);
+      const bScore = claimTerms.reduce((acc, t) => acc + (bText.includes(t) ? 1 : 0), 0);
+
+      return bScore - aScore;
+    });
+  }
+
+  // 3. Document-stratified round-robin selection across distinct documents
+  const selected: EvidenceUnit[] = [];
+  const selectedIds = new Set<string>();
+  const docIds = Array.from(unitsByDoc.keys());
+
+  let round = 0;
+  let addedInRound = true;
+
+  while (selected.length < maxUnits && addedInRound) {
+    addedInRound = false;
+    for (const docId of docIds) {
+      const docUnits = unitsByDoc.get(docId) ?? [];
+      if (round < docUnits.length) {
+        const candidate = docUnits[round];
+        if (!selectedIds.has(candidate.evidenceId)) {
+          selected.push(candidate);
+          selectedIds.add(candidate.evidenceId);
+          addedInRound = true;
+          if (selected.length >= maxUnits) break;
+        }
+      }
+    }
+    round++;
+  }
+
+  return selected;
+}
+
+/**
  * Assesses a collection of candidate EvidenceUnits against an individual ClaimTicket revision.
  * Enforces deterministic quotation grounding, scope mismatch constraints, and temporal validity rules.
  */
@@ -125,16 +196,16 @@ export async function assessEvidenceAgainstClaim(
     };
   }
 
-  // 2. Candidate shortlisting bound (max 8 candidates sent to Bifrost)
-  const MAX_CANDIDATE_UNITS = 8;
+  // 2. Candidate shortlisting bound (stratified sampling across distinct documents & entities)
+  const MAX_CANDIDATE_UNITS = 12;
   const additionalResearchReasons: string[] = [];
   let evaluatedUnits = validCandidates;
 
   if (validCandidates.length > MAX_CANDIDATE_UNITS) {
     additionalResearchReasons.push(
-      `Candidate units bounded from ${validCandidates.length} to top ${MAX_CANDIDATE_UNITS} for model assessment`
+      `Candidate units bounded from ${validCandidates.length} to top ${MAX_CANDIDATE_UNITS} via stratified source document sampling`
     );
-    evaluatedUnits = validCandidates.slice(0, MAX_CANDIDATE_UNITS);
+    evaluatedUnits = selectStratifiedEvidenceUnits(validCandidates, ticket, MAX_CANDIDATE_UNITS);
   }
 
   // 3. Call Bifrost assessment pass
@@ -154,6 +225,7 @@ export async function assessEvidenceAgainstClaim(
       model: getModelProfile('assess'),
       temperature: 0.1,
       response_format: { type: 'json_object' },
+      timeoutMs: 45000,
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -183,7 +255,13 @@ export async function assessEvidenceAgainstClaim(
 
   // Extract explicit claim temporal qualifier if present
   const claimTimeProp = ticket.verificationContext.find(
-    (p) => (p.key === 'year' || p.key === 'effectiveDate' || p.key === 'targetDate') && p.value !== null
+    (p) =>
+      (p.key === 'year' ||
+        p.key === 'effectiveDate' ||
+        p.key === 'statedEffectiveDate' ||
+        p.key === 'asOfDate' ||
+        p.key === 'targetDate') &&
+      p.value !== null
   );
   const claimTimeStr = claimTimeProp ? String(claimTimeProp.value) : null;
 
@@ -287,9 +365,45 @@ export async function assessEvidenceAgainstClaim(
           p.key === 'asOfDate' ||
           p.key === 'targetDate' ||
           p.key === 'statedEffectiveDate' ||
-          p.key === 'effective_date'
+          p.key === 'effective_date' ||
+          p.key === 'year' ||
+          p.key === 'effectiveDate'
         ) {
           matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        }
+      }
+    }
+
+    // Grounded document metadata: if entity/manufacturer is established by doc content/title, mark matching
+    for (const p of ticket.verificationContext) {
+      if (
+        p.key === 'manufacturer' ||
+        p.key === 'company' ||
+        p.key === 'organization' ||
+        p.key === 'vendor'
+      ) {
+        const entityVal = String(p.value).toLowerCase();
+        // DEF-002 Fix: Do NOT include parentDoc?.publisher to prevent competitor reporting
+        // from falsely satisfying the manufacturer of the subject entity.
+        const docText = [
+          parentDoc?.title,
+          unit.verbatimText,
+          ...(unit.surroundingHeaders || []),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (docText.includes(entityVal)) {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        }
+      } else if (p.key === 'publisher' || p.key === 'source_organization') {
+        const pubVal = String(p.value).toLowerCase();
+        if (parentDoc?.publisher && parentDoc.publisher.toLowerCase().includes(pubVal)) {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
         }
       }
     }
@@ -299,7 +413,7 @@ export async function assessEvidenceAgainstClaim(
       if (mismatchedSet.size === 0) {
         mismatchedSet.add('asserted_attribute');
       }
-      // Ensure non-conflicting governing context qualifiers from the ticket are not marked missing
+      // Ensure non-conflicting governing context qualifiers from the ticket are in matchingSet
       for (const p of ticket.verificationContext) {
         if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
           matchingSet.add(p.key);

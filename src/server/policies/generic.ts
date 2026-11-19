@@ -27,6 +27,33 @@ const CANONICAL_ASSERTED_KEYS = new Set([
   'assertion',
 ]);
 
+const CANONICAL_SCOPE_KEYS = new Set([
+  'jurisdiction',
+  'region',
+  'country',
+  'location',
+  'effective_date',
+  'statedeffectivedate',
+  'asofdate',
+  'targetdate',
+  'year',
+  'effectivedate',
+  'releasedate',
+  'plan_tier',
+  'tier',
+  'apiversion',
+  'version',
+  'edition',
+  'currency',
+  'sdklanguage',
+  'environment',
+  'manufacturer',
+  'company',
+  'organization',
+  'vendor',
+  'subject_entity',
+]);
+
 export class GenericPolicy implements DomainPolicyModule {
   public readonly domainId = 'generic' as const;
   public readonly version = '1.0.0';
@@ -72,6 +99,8 @@ export class GenericPolicy implements DomainPolicyModule {
         role = 'scope_qualifier';
       } else if (CANONICAL_ASSERTED_KEYS.has(prop.key.toLowerCase())) {
         role = 'asserted_value';
+      } else if (CANONICAL_SCOPE_KEYS.has(prop.key.toLowerCase())) {
+        role = 'scope_qualifier';
       }
 
       // If semantic role is undetermined: do NOT guess based on array position!
@@ -235,22 +264,45 @@ export class GenericPolicy implements DomainPolicyModule {
     }
 
     const missingKeys = new Set(ticket.missingMaterialContext);
-    const existingExplicitKeys = new Set(
-      ticket.verificationContext
-        .filter((p) => p.origin === 'explicit_claim_text')
-        .map((p) => p.key)
-    );
 
     const questions: ClarificationQuestion[] = [];
 
     for (const key of missingKeys) {
-      if (existingExplicitKeys.has(key)) continue;
+      const explicitProp = ticket.verificationContext.find(
+        (p) => p.key === key && p.origin === 'explicit_claim_text'
+      );
+
+      // If an explicit value is present and fully specific (not a coarse partial date like YYYY), skip
+      if (explicitProp && explicitProp.value !== null) {
+        const strVal = String(explicitProp.value);
+        const isTemporalKey =
+          key.toLowerCase().includes('date') ||
+          key.toLowerCase().includes('time') ||
+          key.toLowerCase().includes('month') ||
+          key === 'year';
+        // DEF-004 Fix: Only require finer precision than year/month when timeSensitivity is high (fast-moving releases)
+        // and the claim is not a low-cadence historical fact.
+        const requiresFinePrecision = ticket.timeSensitivity === 'high' && ticket.domain !== 'historical';
+        if (!isTemporalKey || strVal.length > 7 || !requiresFinePrecision) {
+          continue;
+        }
+      }
+
+      const isDateQuestion =
+        key.toLowerCase().includes('date') ||
+        key.toLowerCase().includes('time') ||
+        key.toLowerCase().includes('month') ||
+        key === 'year';
 
       questions.push({
         questionId: `q_generic_${key}_${ticket.ticketId}`,
         propertyKey: key,
-        prompt: `Please specify the ${key.replace(/_/g, ' ')} for this assertion:`,
-        reason: `Verification outcome depends on knowing the specific ${key.replace(/_/g, ' ')}.`,
+        prompt: isDateQuestion
+          ? `Please specify the exact target month or date (e.g. YYYY-MM or YYYY-MM-DD) for this assertion:`
+          : `Please specify the ${key.replace(/_/g, ' ')} for this assertion:`,
+        reason: isDateQuestion
+          ? `The assertion references a broad timeframe, but verifying recency requires specific month or date precision.`
+          : `Verification outcome depends on knowing the specific ${key.replace(/_/g, ' ')}.`,
         fieldType: 'short_text',
         required: true,
         allowUnknown: true,

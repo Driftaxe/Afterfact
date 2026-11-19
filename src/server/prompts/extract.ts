@@ -22,9 +22,14 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
    - Relational & Intimate Attributes:
      * When a statement asserts a relationship or partnership status ("her boyfriend", "his husband", "wife"), extract the relationship status as a distinct claim (e.g., "Sam Altman has a boyfriend").
      * When an assertion attributes an intimate or biographical status (e.g., "is virgin"), extract it as an independent claim to verify against authoritative records.
+   - Comparative & Contrastive Assertions (CRITICAL):
+     * When a sentence asserts a comparative relation, replacement, or preference between entities (e.g. "X instead of Y", "X rather than Y", "X over Y", "X replaced Y", "X is newer than Y", "X is latest instead of Y"):
+       - Do NOT destroy the comparative proposition by tearing it into disconnected fragments where one fragment is an unanchored noun phrase (e.g. extracting "Y" as an isolated claim).
+       - Preserve the comparison as a unified relational proposition. The verbatim statement should span the comparative assertion (e.g. "The latest model by google is gemini carbon instead of gemini neon as of 2026"), and normalizedProposition should preserve both entities and the exact comparative relation (e.g., "Google's latest model is Gemini Carbon instead of Gemini Neon as of 2026.").
+       - Extract qualifiers identifying the subject entity (e.g. productName: "Gemini Carbon") and comparison alternative (e.g. comparisonProduct: "Gemini Neon").
    - For every claim:
-     * statement: The verbatim excerpt from the source text representing the assertion or clause. Must match the source text character-for-character.
-     * normalizedProposition: A clear, self-contained, disambiguated natural language statement asserting the fact independently (resolving pronouns, incorporating shared sentence subjects, and stating full context).
+     * statement: The exact verbatim excerpt from the source text representing the assertion or clause. MUST match the source text character-for-character without alterations. NEVER resolve pronouns (e.g. do not change "its" to "Birch" or "he" to a person's name) inside statement. NEVER restore elided verbs or subjects (e.g. if the source says "Cedar on Sep 2, Willow on Nov 10", the statement for Willow is "Willow on Nov 10", NOT "Example Labs released Willow on Nov 10"). Keep statement strictly verbatim!
+     * normalizedProposition: A clear, self-contained, disambiguated natural language statement asserting the fact independently (resolving pronouns, incorporating shared sentence subjects, and stating full context). This is where all pronoun resolution and restored subjects belong.
      * domain: A concise domain category string (e.g., 'pricing', 'api', 'regulation', 'leadership', 'software', 'cloud', 'generic'). Support arbitrary domains.
      * timeSensitivity: 'high' (frequently changing, e.g. prices, leadership, dynamic quotas), 'medium' (e.g. software versions, terms), or 'low' (historical dates, physical constants).
 
@@ -39,9 +44,13 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
      * exactExcerpt: The verbatim substring in the source text where this qualifier is asserted.
      * propertyType: One of 'string', 'number', 'boolean', 'date', 'selection', 'string_list'.
      * value: Typed value matching propertyType. If propertyType is 'date', value must be formatted as an ISO calendar date 'YYYY-MM-DD', partial date 'YYYY-MM' or 'YYYY', or ISO timestamp. Retain the exact asserted precision without artificial padding.
+     * role: 'scope_qualifier' | 'asserted_value'.
+       - 'scope_qualifier': When the property establishes the subject entity, region, version, tier, or condition (e.g. jurisdiction: "US", productName: "Willow", apiVersion: "2024-06-20").
+       - 'asserted_value': When the property IS the asserted predicate/fact itself (e.g. cost: "$20", manufacturer in "This model is manufactured by Example Labs", effectiveDate in "This regulation became effective on June 1").
    - inferredQualifiers: Qualifiers that are NOT explicitly stated in the text but are logically suggested by context, pending review.
      * rationale: Why this qualifier is inferred.
    - missingMaterialQualifiers: Keys of critical qualifiers that are completely unknown and whose absence makes the claim ambiguous (e.g., 'jurisdiction', 'billingTerm', 'sdkLanguage').
+     * Temporal Ambiguity Detection: When a claim makes a recency-sensitive assertion ("latest", "current", "newest") in a high-cadence domain (software versions, models, APIs) with only a coarse calendar year ("as of 2026", "in 2026") lacking month or date precision, add 'asOfDate' to missingMaterialQualifiers so the clarification engine can resolve the exact target time.
 
 5. SUBJECTIVE & ZERO-CLAIM HANDLING:
    - If the input contains purely subjective opinions, personal preferences, greetings, or untestable statements (e.g. "I think TypeScript is wonderful", "Hello world"), return an empty array for claims: [].
@@ -297,6 +306,55 @@ export const SYNTHETIC_EXTRACTION_EXAMPLES = [
     input: 'I believe this is the most enjoyable and elegant programming language ever created.',
     output: {
       claims: [],
+    },
+  },
+  {
+    input: 'The latest model by Example Labs is Model Willow instead of Model Cedar as of 2026.',
+    output: {
+      claims: [
+        {
+          statement: 'The latest model by Example Labs is Model Willow instead of Model Cedar as of 2026',
+          normalizedProposition: "Example Labs' latest model is Model Willow instead of Model Cedar as of 2026.",
+          domain: 'product_version',
+          timeSensitivity: 'high',
+          locationHint: {
+            prefix: '',
+            suffix: '.',
+          },
+          explicitQualifiers: [
+            {
+              key: 'manufacturer',
+              label: 'Manufacturer',
+              value: 'Example Labs',
+              propertyType: 'string',
+              exactExcerpt: 'Example Labs',
+            },
+            {
+              key: 'productName',
+              label: 'Asserted Latest Product',
+              value: 'Model Willow',
+              propertyType: 'string',
+              exactExcerpt: 'Model Willow',
+            },
+            {
+              key: 'comparisonProduct',
+              label: 'Comparison Alternative',
+              value: 'Model Cedar',
+              propertyType: 'string',
+              exactExcerpt: 'Model Cedar',
+            },
+            {
+              key: 'statedEffectiveDate',
+              label: 'Target Year',
+              value: '2026',
+              propertyType: 'string',
+              exactExcerpt: '2026',
+            },
+          ],
+          inferredQualifiers: [],
+          missingMaterialQualifiers: ['asOfDate'],
+        },
+      ],
     },
   },
 ];

@@ -39,6 +39,60 @@ export function resolveClaimSpan(
   const occurrences = findAllOccurrences(sourceText, statement);
 
   if (occurrences.length === 0) {
+    // Bounded Recovery: If the model reconstructed an elided statement or resolved a pronoun
+    // (e.g. statement = "Example Labs released Willow on 10 November 2026" when source says ", Willow on 10 November 2026",
+    // or statement = "Birch general availability starts..." when source says "its general availability starts..."),
+    // find if a unique substantive tail/subphrase from statement exists in sourceText.
+    let recovered: { start: number; end: number; exactText: string } | null = null;
+
+    // Strategy A: Check explicit qualifier excerpts
+    for (const q of claim.explicitQualifiers || []) {
+      if (q.exactExcerpt && sourceText.includes(q.exactExcerpt)) {
+        const qIdxInStmt = statement.indexOf(q.exactExcerpt);
+        if (qIdxInStmt >= 0) {
+          const candidateTail = statement.slice(qIdxInStmt).trim();
+          if (candidateTail.length > 8) {
+            const tailOccurrences = findAllOccurrences(sourceText, candidateTail);
+            if (tailOccurrences.length === 1) {
+              recovered = {
+                start: tailOccurrences[0],
+                end: tailOccurrences[0] + candidateTail.length,
+                exactText: candidateTail,
+              };
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Strategy B: Longest matching suffix/sub-clause of words
+    if (!recovered) {
+      const words = statement.trim().split(/\s+/);
+      for (let w = 1; w < words.length - 2; w++) {
+        const subphrase = words.slice(w).join(' ');
+        if (subphrase.length >= 10) {
+          const subOccurrences = findAllOccurrences(sourceText, subphrase);
+          if (subOccurrences.length === 1) {
+            recovered = {
+              start: subOccurrences[0],
+              end: subOccurrences[0] + subphrase.length,
+              exactText: subphrase,
+            };
+            break;
+          }
+        }
+      }
+    }
+
+    if (recovered) {
+      claim.statement = recovered.exactText;
+      if (isSplittingSurrogate(sourceText, recovered.start) || isSplittingSurrogate(sourceText, recovered.end)) {
+        throw new Error('GROUNDING_FAILURE: Recovered span splits a Unicode surrogate pair');
+      }
+      return { start: recovered.start, end: recovered.end };
+    }
+
     throw new Error('GROUNDING_FAILURE: Claim statement not found in source text');
   }
 

@@ -382,6 +382,12 @@ export function ClaimDetail({
     }
   }
 
+  const supportingEvidence = citedEvidence.filter((evi) => evi.relationship === 'supports');
+  const contradictingEvidence = citedEvidence.filter((evi) => evi.relationship === 'contradicts');
+  const otherEvidence = citedEvidence.filter(
+    (evi) => evi.relationship !== 'supports' && evi.relationship !== 'contradicts'
+  );
+
   // Check if this claim requires word-by-word context drift analysis
   const needsDriftAnalysis =
     Boolean(claim.correction) ||
@@ -588,7 +594,7 @@ export function ClaimDetail({
       )}
 
       {/* Cited Evidence Cards */}
-      <div className="space-y-3.5">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-text-muted" />
@@ -596,12 +602,65 @@ export function ClaimDetail({
               Cited Evidence ({citedEvidence.length})
             </h4>
           </div>
+          {claim.verdict === 'insufficient_evidence' && citedEvidence.length > 0 && (
+            <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+              Mixed / Inconclusive Authority
+            </span>
+          )}
         </div>
 
         {citedEvidence.length === 0 ? (
           <p className="text-xs text-text-muted font-mono">
             No direct web evidence attached to this claim result.
           </p>
+        ) : claim.verdict === 'insufficient_evidence' && (supportingEvidence.length > 0 || contradictingEvidence.length > 0) ? (
+          <div className="space-y-4">
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Factual verification concluded with insufficient evidence. Retrieved passages contain both supporting and contradicting viewpoints that did not satisfy all decisive authority or scope criteria:
+            </p>
+
+            {supportingEvidence.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-mono text-status-supported-text font-semibold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-status-supported-text" />
+                  <span>Supporting Passages ({supportingEvidence.length})</span>
+                </div>
+                <div className="space-y-2.5">
+                  {supportingEvidence.map((evi) => (
+                    <EvidenceCard key={evi.id} evidence={evi} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {contradictingEvidence.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-mono text-status-contradicted-text font-semibold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-status-contradicted-text" />
+                  <span>Contradicting / Counter Passages ({contradictingEvidence.length})</span>
+                </div>
+                <div className="space-y-2.5">
+                  {contradictingEvidence.map((evi) => (
+                    <EvidenceCard key={evi.id} evidence={evi} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {otherEvidence.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-mono text-text-muted font-semibold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-text-muted" />
+                  <span>Other Candidate Passages ({otherEvidence.length})</span>
+                </div>
+                <div className="space-y-2.5">
+                  {otherEvidence.map((evi) => (
+                    <EvidenceCard key={evi.id} evidence={evi} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
             {citedEvidence.map((evi) => (

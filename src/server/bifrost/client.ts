@@ -81,6 +81,16 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
         });
         const isRetryable = res.status === 503 || res.status === 429 || res.status === 502;
         if (isRetryable && attempt < maxRetries) {
+          // If Gemini 3.8 is under high demand (503 / 429), fall back to 3.5 flash lite after 1 try
+          const fallbackModel = getModelProfile('fallback') || 'gemini-3.5-flash-lite';
+          if ((modelToUse.includes('3.8') || modelToUse.includes('flash')) && modelToUse !== fallbackModel) {
+            console.warn(
+              `[Bifrost] Model ${modelToUse} under high demand (${res.status}). Falling back to ${fallbackModel} after 1 try...`
+            );
+            modelToUse = fallbackModel;
+            continue;
+          }
+
           let backoffMs = (attempt + 1) * 2000;
           if (res.status === 429) {
             try {
@@ -160,64 +170,87 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
  * Direct Google Gemini API caller for zero-downtime gateway fallback.
  */
 async function callDirectGemini(options: BifrostChatOptions, apiKey: string): Promise<string> {
-  const model = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.8-flash';
-  const controller = new AbortController();
-  const timeoutMs = Math.max(options.timeoutMs ?? 30000, 15000);
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const candidateModels = Array.from(new Set([
+    process.env.GEMINI_FALLBACK_MODEL,
+    'gemini-3.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-3.8-flash',
+  ])).filter(Boolean) as string[];
 
-  try {
-    const systemMessages = options.messages.filter((m) => m.role === 'system');
-    const systemInstruction =
-      systemMessages.length > 0
-        ? { parts: [{ text: systemMessages.map((m) => m.content).join('\n\n') }] }
-        : undefined;
+  const systemMessages = options.messages.filter((m) => m.role === 'system');
+  const systemInstruction =
+    systemMessages.length > 0
+      ? { parts: [{ text: systemMessages.map((m) => m.content).join('\n\n') }] }
+      : undefined;
 
-    const nonSystemMessages = options.messages.filter((m) => m.role !== 'system');
-    const contents =
-      nonSystemMessages.length > 0
-        ? nonSystemMessages.map((m) => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }],
-          }))
-        : [{ role: 'user', parts: [{ text: 'Begin' }] }];
+  const nonSystemMessages = options.messages.filter((m) => m.role !== 'system');
+  const contents =
+    nonSystemMessages.length > 0
+      ? nonSystemMessages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        }))
+      : [{ role: 'user', parts: [{ text: 'Begin' }] }];
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        ...(systemInstruction ? { systemInstruction } : {}),
-        generationConfig: {
-          temperature: options.temperature ?? 0,
-          ...(options.response_format?.type === 'json_object'
-            ? { responseMimeType: 'application/json' }
-            : {}),
-        },
-      }),
-      signal: controller.signal,
-    });
+  let lastError: Error | null = null;
+  for (const model of candidateModels) {
+    const controller = new AbortController();
+    const timeoutMs = Math.max(options.timeoutMs ?? 30000, 15000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Direct Gemini API HTTP ${res.status}: ${errText}`);
-    }
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          ...(systemInstruction ? { systemInstruction } : {}),
+          generationConfig: {
+            temperature: options.temperature ?? 0,
+            ...(options.response_format?.type === 'json_object'
+              ? { responseMimeType: 'application/json' }
+              : {}),
+          },
+        }),
+        signal: controller.signal,
+      });
 
-    const data = await res.json();
-    const candidate = data.candidates?.[0];
-    const text = candidate?.content?.parts?.[0]?.text;
-    if (typeof text === 'string') {
-      let cleaned = text.trim();
-      if (options.response_format?.type === 'json_object') {
-        const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-        if (fenceMatch) {
-          cleaned = fenceMatch[1].trim();
+      if (!res.ok) {
+        const errText = await res.text();
+        const err = new Error(`Direct Gemini API HTTP ${res.status} on model ${model}: ${errText}`);
+        lastError = err;
+        if (res.status === 429 || res.status === 503) {
+          console.warn(`[Gemini Direct Fallback] Model ${model} returned HTTP ${res.status}. Trying next direct candidate model...`);
+          continue;
         }
+        throw err;
       }
-      return cleaned;
+
+      const data = await res.json();
+      const candidate = data.candidates?.[0];
+      const text = candidate?.content?.parts?.[0]?.text;
+      if (typeof text === 'string') {
+        let cleaned = text.trim();
+        if (options.response_format?.type === 'json_object') {
+          const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+          if (fenceMatch) {
+            cleaned = fenceMatch[1].trim();
+          }
+        }
+        return cleaned;
+      }
+      return '';
+    } catch (err: any) {
+      lastError = err;
+      if (err.name === 'AbortError') {
+        console.warn(`[Gemini Direct Fallback] Model ${model} timed out after ${timeoutMs}ms. Trying next direct candidate model...`);
+        continue;
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return '';
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  throw lastError || new Error('All direct Gemini candidate models failed');
 }
