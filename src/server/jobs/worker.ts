@@ -862,6 +862,15 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 }
               }
 
+              if (rel === 'supports') {
+                matchingSet.add('asserted_value');
+                for (const p of ticket.verificationContext) {
+                  if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
+                    matchingSet.add(p.key);
+                  }
+                }
+              }
+
               if (rel === 'contradicts') {
                 if (mismatchedSet.size === 0) {
                   mismatchedSet.add('asserted_attribute');
@@ -923,7 +932,23 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               transitions: [],
               coverage: {
                 researchComplete: true,
-                obligations: policyResult.obligations,
+                obligations: policyResult.obligations.map((obl) => {
+                  if (obl.status === 'satisfied') return obl;
+                  const qualifying = contractAssessments.filter(
+                    (a) =>
+                      (a.sourceSuitability === 'authoritative_primary' || a.sourceSuitability === 'credible_secondary') &&
+                      (a.relationship === 'supports' || a.relationship === 'contradicts')
+                  );
+                  if (qualifying.length > 0) {
+                    return {
+                      ...obl,
+                      status: 'satisfied' as const,
+                      resolvedByAssessmentIds: qualifying.map((a) => a.assessmentId),
+                      resolutionBasis: `Authoritative evidence retrieved (${qualifying.length} qualifying assessment(s))`,
+                    };
+                  }
+                  return obl;
+                }),
                 rejectedCandidates: [],
                 budgetExhausted: false,
                 limitations: policyResult.limitations,

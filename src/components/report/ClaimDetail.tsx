@@ -162,7 +162,7 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
             More Context Needed
           </h4>
           <span className="rounded-xs bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-300">
-            {claim.verdict || 'insufficient_evidence'}
+            {claim.verdict || 'depends_on_context'}
           </span>
         </div>
         <button
@@ -175,7 +175,7 @@ function MissingContextResolver({ claim, runId }: MissingContextResolverProps) {
       </div>
 
       <p className="text-xs text-text-secondary leading-relaxed">
-        Factual verification was inconclusive or dependent on missing parameters ({claim.reasonCode || 'INSUFFICIENT_RETRIEVAL_DATA'}).
+        Factual verification was dependent on missing parameters ({claim.reasonCode || 'ESSENTIAL_CONTEXT_MISSING'}).
         Select a qualifier category and choice below or enter custom text to re-evaluate deterministically.
       </p>
 
@@ -449,6 +449,51 @@ export function ClaimDetail({
           </p>
         </div>
 
+        {/* Normalized Proposition Evaluated */}
+        {claim.normalizedProposition && claim.normalizedProposition.trim() !== claim.rawText.trim() && (
+          <div className="p-3 rounded-lg bg-surface-raised/70 border border-border-subtle/70 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-muted">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span>Evaluated Proposition (Normalized)</span>
+            </div>
+            <p className="text-xs sm:text-sm text-text-primary font-medium leading-relaxed">
+              {claim.normalizedProposition}
+            </p>
+          </div>
+        )}
+
+        {/* Attached Verification Context Qualifiers */}
+        {((claim.verificationContext && claim.verificationContext.length > 0) ||
+          (claim.extractedQualifiers && claim.extractedQualifiers.length > 0)) && (
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+              Attached Verification Context
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {(claim.verificationContext || claim.extractedQualifiers || []).map((qItem: unknown, idx: number) => {
+                const q = (typeof qItem === 'object' && qItem !== null ? qItem : {}) as Record<string, unknown>;
+                const key = String(q.category || q.key || 'qualifier');
+                const val = String(q.value ?? q.text ?? (typeof qItem === 'string' ? qItem : JSON.stringify(qItem)));
+                const isUser = q.origin === 'user_target_context' || q.source === 'user';
+                return (
+                  <span
+                    key={idx}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono border ${
+                      isUser
+                        ? 'bg-accent/10 border-accent/30 text-accent font-medium'
+                        : 'bg-surface-raised border-border-subtle text-text-secondary'
+                    }`}
+                  >
+                    <span className="text-text-muted">{key}:</span>
+                    <span>{String(val)}</span>
+                    {isUser && <span className="text-[9px] opacity-75">(User Context)</span>}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {claim.state === 'assessed' && claim.scoreReason && (
           <div className="p-3.5 rounded-lg bg-surface-raised/80 border border-border-subtle/80 text-xs text-text-secondary leading-relaxed space-y-1.5">
             <div className="flex items-center gap-2 text-[11px] font-mono text-text-muted">
@@ -523,10 +568,12 @@ export function ClaimDetail({
         />
       )}
 
-      {/* Interactive Missing Context Resolution Form (Shown only when verification depends on context or missing parameters) */}
-      {((('verdict' in claim && claim.verdict === 'depends_on_context') ||
-        ('reasonCode' in claim && claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING') ||
-        Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0))) && (
+      {/* Interactive Missing Context Resolution Form (Shown only when context is genuinely missing and claim is unresolved) */}
+      {(claim.verdict === 'depends_on_context' ||
+        claim.reasonCode === 'ESSENTIAL_CONTEXT_MISSING' ||
+        (claim.verdict !== 'supported' &&
+          claim.verdict !== 'contradicted' &&
+          Boolean(claim.missingMaterialContext && claim.missingMaterialContext.length > 0))) && (
         <MissingContextResolver claim={claim} runId={runId} />
       )}
 

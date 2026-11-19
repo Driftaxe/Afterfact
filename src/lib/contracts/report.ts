@@ -160,6 +160,10 @@ const BaseClaimFields = {
   rawText: z.string().min(1, { message: 'Raw claim text is required' }),
   span: ClaimSpanSchema.nullable().optional(),
   missingMaterialContext: z.array(z.string()).optional(),
+  normalizedText: z.string().nullable().optional(),
+  normalizedProposition: z.string().nullable().optional(),
+  extractedQualifiers: z.array(z.any()).optional(),
+  verificationContext: z.array(z.any()).optional(),
 };
 
 /**
@@ -260,6 +264,7 @@ export const BaseReportSchema = z.object({
   claims: z.array(ClaimResultItemSchema),
   evidence: z.array(EvidenceItemSchema),
   clarifications: z.array(z.any()).optional().default([]),
+  dagNodes: z.array(z.any()).optional(),
   isReplay: z.boolean().optional().default(false),
   replayLabel: z.string().nullable().optional(),
 });

@@ -385,6 +385,34 @@ This document serves as the persistent, chronological log of engineering actions
     - `"Sam Altman" "Salman Khan" marriage OR relationship fact check`
     With 100% precision and `modelConfidence: 0.99` under `gemini-3.8-flash`.
 
+---
+
+## 2026-11-19 — Coverage Obligation Resolution, Temporal Proof Preservation & Context Form Gating
+
+- **Context / Goal:**
+  - Eliminate false `insufficient_evidence` outcomes on supported propositions caused by unresolved coverage obligations (`obl_generic_primary`).
+  - Preserve semantic model temporal judgments for undated web publications in `assess-evidence.ts`.
+  - Ensure the "More Context Needed" form is strictly gated and visible only when material context is genuinely missing (`depends_on_context` or `ESSENTIAL_CONTEXT_MISSING`), never for decisively resolved (`supported` or `contradicted`) claims.
+
+- **Implementation Details:**
+  1. **Coverage Obligation Resolution (`src/server/jobs/worker.ts`):**
+     - Updated `worker.ts` to evaluate `policyResult.obligations` against `contractAssessments`.
+     - When qualifying authoritative or credible-secondary assessments are present with decisive relationships (`supports` or `contradicts`), research obligations are marked `status: 'satisfied'` with `resolvedByAssessmentIds` and explicit `resolutionBasis`.
+     - Connected matching property updates for `supports` assessments (`matchingSet.add('asserted_value')` and claim verification context properties).
+  2. **Temporal Proof Preservation (`src/server/verify/assess-evidence.ts`):**
+     - Refined fallback in `assessEvidenceAgainstClaim`: when document headers lack structured publication or effective metadata (undated web articles/profiles), preserve the model's semantic temporal judgment (`active_at_target_time`) rather than discarding it as `undetermined`.
+     - Maintained strict test invariant: publication date alone without effective date remains `undetermined`.
+  3. **Context Form Visibility Gating (`src/components/report/ClaimDetail.tsx`):**
+     - Restricted `MissingContextResolver` to render only when `verdict === 'depends_on_context'`, `reasonCode === 'ESSENTIAL_CONTEXT_MISSING'`, or for unresolved claims where `missingMaterialContext` is non-empty.
+     - Hardened against rendering for any claim with `verdict === 'supported'` or `verdict === 'contradicted'`.
+
+- **Verification Evidence:**
+  - `pnpm typecheck`: Passed with 0 errors (`tsc --noEmit` exit code 0).
+  - `pnpm test`: 416 passed, 0 failed across 25 test suites (including live Gateway Mode B integration tests).
+  - Live execution on complex query benchmark:
+    - `"Sam altman is gay"`: Evaluates decisively to `verdict: 'supported'`, `score: 75`, `reasonCode: 'INDIRECT_CREDIBLE_SUPPORT'`, 0 excluded evidence units.
+    - `"Sam altman is the wife of salman khan"`: Evaluates decisively to `verdict: 'contradicted'`, `score: 0`, `reasonCode: 'DECISIVE_CONTRADICTION'`, 0 excluded evidence units.
+
 
 
 

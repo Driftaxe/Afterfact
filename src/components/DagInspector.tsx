@@ -17,6 +17,8 @@ export interface SanitizedDagNode {
   startedAt?: string | Date | null;
   finishedAt?: string | Date | null;
   query?: string | null;
+  queries?: string[] | null;
+  normalizedProposition?: string | null;
 }
 
 export interface DagInspectorProps {
@@ -374,11 +376,27 @@ export function DagInspector({
                       )}
                     </div>
 
-                    {node.query && (
+                    {node.normalizedProposition && (
+                      <p className="mt-1.5 text-[11px] text-text-secondary font-sans italic bg-surface/80 p-2 rounded border border-border-subtle truncate">
+                        <span className="font-mono text-accent not-italic">Proposition: </span>
+                        “{node.normalizedProposition}”
+                      </p>
+                    )}
+
+                    {node.queries && node.queries.length > 1 ? (
+                      <div className="mt-1.5 space-y-1 bg-surface p-2 rounded border border-border-subtle">
+                        <span className="text-[10px] font-mono text-text-muted uppercase">Tavily Subqueries ({node.queries.length}):</span>
+                        {node.queries.map((q, qIdx) => (
+                          <div key={qIdx} className="text-xs text-text-secondary font-mono truncate">
+                            • “{q}”
+                          </div>
+                        ))}
+                      </div>
+                    ) : node.query ? (
                       <p className="mt-1.5 text-xs text-text-secondary font-mono bg-surface p-2 rounded border border-border-subtle truncate">
                         Query: “{node.query}”
                       </p>
-                    )}
+                    ) : null}
 
                     {node.errorMessage && (
                       <p className="mt-1.5 text-xs text-status-contradicted-text font-mono bg-status-contradicted-bg/20 p-2 rounded border border-status-contradicted-border">
@@ -388,9 +406,26 @@ export function DagInspector({
 
                     {/* Expandable Technical Attributes */}
                     {isInspected && (
-                      <div className="mt-2.5 pt-2 border-t border-border-subtle text-[11px] font-mono space-y-1 text-text-muted">
+                      <div className="mt-2.5 pt-2 border-t border-border-subtle text-[11px] font-mono space-y-1.5 text-text-muted">
                         <div>Stage: {stage}</div>
                         <div>State: {state}</div>
+                        {node.claimId && <div>Claim ID: {node.claimId}</div>}
+                        {node.normalizedProposition && (
+                          <div className="text-text-primary">
+                            <span className="text-text-muted">Evaluated Proposition: </span>
+                            {node.normalizedProposition}
+                          </div>
+                        )}
+                        {node.queries && node.queries.length > 0 && (
+                          <div className="space-y-1 text-text-primary">
+                            <div className="text-text-muted">All Generated Queries:</div>
+                            {node.queries.map((q, idx) => (
+                              <div key={idx} className="pl-2 border-l border-accent/40 font-mono text-[11px]">
+                                {q}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {node.startedAt && <div>Started: {String(node.startedAt)}</div>}
                         {node.finishedAt && <div>Finished: {String(node.finishedAt)}</div>}
                         <div className="text-[10px] text-text-muted italic pt-0.5">

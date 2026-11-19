@@ -250,10 +250,15 @@ export async function assessEvidenceAgainstClaim(
     } else if (relationship === 'historical_state') {
       temporalApplicability = 'historical_prior';
     } else if (temporalResult.temporalApplicability === 'undetermined') {
-      // Publication date alone or missing markers cannot establish active validity
-      temporalApplicability = (isValidModelTemporal && rawTemporal === 'historical_prior')
-        ? 'historical_prior'
-        : 'undetermined';
+      // Publication date alone cannot establish active validity
+      const hasPublicationDate = Boolean(unit.publicationDate ?? parentDoc?.publicationDate);
+      if (hasPublicationDate) {
+        temporalApplicability = (isValidModelTemporal && rawTemporal === 'historical_prior')
+          ? 'historical_prior'
+          : 'undetermined';
+      } else {
+        temporalApplicability = isValidModelTemporal ? rawTemporal : 'undetermined';
+      }
     } else if (isValidModelTemporal && rawTemporal !== 'active_at_target_time') {
       // Prevent unjustified deterministic override: preserve model's historical or undetermined assessment
       temporalApplicability = rawTemporal;
