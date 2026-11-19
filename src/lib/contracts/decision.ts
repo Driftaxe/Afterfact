@@ -177,6 +177,7 @@ export type AssessmentGrounding = z.infer<typeof AssessmentGroundingSchema>;
 export const TemporalProofBasisSchema = z.enum([
   'current_validity_confirmed',       // source explicitly establishes the state at target time
   'historical_interval_confirmed',    // source applies within a known historical interval
+  'historical_unbounded',             // source applies historically but explicit interval bounds are open
   'effective_start_only',             // only an effective start is known; continued validity unproven
   'publication_only',                 // only a publication date exists; event/effective time unknown
   'future_effective',                 // change is announced for a future effective date

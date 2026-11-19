@@ -83,6 +83,7 @@ export const RawExtractedQualifierSchema = z.object({
   propertyType: PropertyTypeSchema,
   exactExcerpt: z.string().min(1, { message: 'exactExcerpt is required to ground explicit qualifier' }),
   units: z.string().nullable().optional(),
+  role: z.enum(['scope_qualifier', 'asserted_value']).optional(),
 });
 export type RawExtractedQualifier = z.infer<typeof RawExtractedQualifierSchema>;
 
@@ -102,6 +103,7 @@ export const RawInferredQualifierSchema = z.object({
   propertyType: PropertyTypeSchema,
   rationale: z.string().min(1, { message: 'Rationale is required for inferred qualifier' }),
   confidence: z.number().min(0).max(1).optional(),
+  role: z.enum(['scope_qualifier', 'asserted_value']).optional(),
 });
 export type RawInferredQualifier = z.infer<typeof RawInferredQualifierSchema>;
 
