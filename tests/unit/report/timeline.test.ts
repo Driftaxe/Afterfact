@@ -321,7 +321,7 @@ describe('Task C05: Then vs. Now Timeline & Scheduled Changes', () => {
         ...baseClaim,
         rawText: 'most Korean hates ramen noodles',
         verdict: 'contradicted' as const,
-        score: 0,
+        score: 0 as const,
         reasonCode: 'DECISIVE_CONTRADICTION',
         scoreReason: 'Refuted by consumption statistics.',
         missingMaterialContext: [],
@@ -370,8 +370,9 @@ describe('Task C05: Then vs. Now Timeline & Scheduled Changes', () => {
           { category: 'geographicRegion', value: 'standard', origin: 'user_target_context' },
         ],
         verdict: 'contradicted' as const,
-        score: 0,
+        score: 0 as const,
         reasonCode: 'DECISIVE_CONTRADICTION',
+        scoreReason: 'Refuted by authoritative consumption statistics.',
       };
 
       const html = renderToString(
