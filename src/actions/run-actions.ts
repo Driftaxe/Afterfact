@@ -226,7 +226,7 @@ export async function startPreparationAction(
         sourceSpan,
         normalizedProposition: sentence,
         domain: 'generic',
-        targetTime: parsed.data.context?.targetDate ?? '2026-11-12',
+        targetTime: parsed.data.context?.targetDate ?? new Date().toISOString().slice(0, 10),
         verificationContext,
         missingMaterialContext: [],
       };

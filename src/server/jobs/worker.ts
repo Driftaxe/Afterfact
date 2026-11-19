@@ -1083,6 +1083,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               leaseToken: null,
               leaseOwner: null,
               leaseUntil: null,
+              attempt: 0,
             },
           });
           return;
