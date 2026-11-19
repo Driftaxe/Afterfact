@@ -46,6 +46,11 @@ vi.mock('@/server/verify/extract-claims', () => ({
   extractClaimsFromText: (...args: unknown[]) => mockExtractClaimsFromText(...args),
 }));
 
+vi.mock('@/server/bifrost/client', () => ({
+  bifrostChat: vi.fn().mockResolvedValue('Anthropic Claude Pro subscription costs $20 per month in the United States.'),
+  BifrostError: class BifrostError extends Error {},
+}));
+
 describe('Task C03 & C04: run-actions Server Actions', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
