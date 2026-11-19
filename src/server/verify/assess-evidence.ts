@@ -225,6 +225,7 @@ export async function assessEvidenceAgainstClaim(
       model: getModelProfile('assess'),
       temperature: 0.1,
       response_format: { type: 'json_object' },
+      timeoutMs: 45000,
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);

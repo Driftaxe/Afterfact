@@ -172,9 +172,8 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
 async function callDirectGemini(options: BifrostChatOptions, apiKey: string): Promise<string> {
   const candidateModels = Array.from(new Set([
     process.env.GEMINI_FALLBACK_MODEL,
+    'gemini-3.5-flash-lite',
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
     'gemini-3.8-flash',
   ])).filter(Boolean) as string[];
 
@@ -245,7 +244,8 @@ async function callDirectGemini(options: BifrostChatOptions, apiKey: string): Pr
     } catch (err: any) {
       lastError = err;
       if (err.name === 'AbortError') {
-        throw new Error(`Direct Gemini API timed out after ${timeoutMs}ms on model ${model}`);
+        console.warn(`[Gemini Direct Fallback] Model ${model} timed out after ${timeoutMs}ms. Trying next direct candidate model...`);
+        continue;
       }
     } finally {
       clearTimeout(timeoutId);
