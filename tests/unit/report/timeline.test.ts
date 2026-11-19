@@ -389,5 +389,60 @@ describe('Task C05: Then vs. Now Timeline & Scheduled Changes', () => {
       expect(html).toContain('Korean');
       expect(html).toContain('(User Context)');
     });
+
+    it('lists both supporting and contradicting evidence for insufficient_evidence claims', () => {
+      const claim = {
+        ...baseClaim,
+        rawText: 'Sam altman is gay and married to salman khan',
+        verdict: 'insufficient_evidence' as const,
+        score: null,
+        reasonCode: 'INSUFFICIENT_RETRIEVAL_DATA',
+        scoreReason: 'No decisive evidence.',
+        evidenceIds: ['evi_sup_1', 'evi_con_1'],
+        missingMaterialContext: [],
+      };
+
+      const evidenceMap = new Map<string, EvidenceItem>([
+        [
+          'evi_sup_1',
+          {
+            id: 'evi_sup_1',
+            url: 'https://example.com/source1',
+            title: 'Marriage Rumors Article',
+            publisher: 'Tech Daily',
+            sourceType: 'news_report',
+            passage: 'Some blog claimed they were married.',
+            retrievedAt: '2026-11-19T00:00:00Z',
+            relationship: 'supports',
+          },
+        ],
+        [
+          'evi_con_1',
+          {
+            id: 'evi_con_1',
+            url: 'https://example.com/source2',
+            title: 'Biographical Register',
+            publisher: 'Official Bio',
+            sourceType: 'official_documentation',
+            passage: 'Sam Altman is married to Oliver Mulherin.',
+            retrievedAt: '2026-11-19T00:00:00Z',
+            relationship: 'contradicts',
+          },
+        ],
+      ]);
+
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim,
+          evidenceMap,
+        })
+      );
+
+      expect(html).toContain('Supporting Passages');
+      expect(html).toContain('Some blog claimed they were married.');
+      expect(html).toContain('Contradicting / Counter Passages');
+      expect(html).toContain('Sam Altman is married to Oliver Mulherin.');
+      expect(html).toContain('Mixed / Inconclusive Authority');
+    });
   });
 });

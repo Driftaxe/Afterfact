@@ -48,6 +48,9 @@ export const EvidenceItemSchema = z.object({
   effectiveDate: CalendarDateOrTimestampSchema.nullable().optional(),
   scope: z.record(z.string(), z.string().nullable().optional()).nullable().optional(),
   contentHash: z.string().optional().nullable(),
+  relationship: z.string().optional().nullable(),
+  stance: z.string().optional().nullable(),
+  rationale: z.string().optional().nullable(),
 });
 
 export type EvidenceItem = z.infer<typeof EvidenceItemSchema>;

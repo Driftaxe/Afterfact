@@ -81,6 +81,16 @@ export async function bifrostChat(options: BifrostChatOptions): Promise<string> 
         });
         const isRetryable = res.status === 503 || res.status === 429 || res.status === 502;
         if (isRetryable && attempt < maxRetries) {
+          // If Gemini 3.8 is under high demand (503 / 429), fall back to 3.5 flash lite after 1 try
+          const fallbackModel = getModelProfile('fallback') || 'gemini-3.5-flash-lite';
+          if ((modelToUse.includes('3.8') || modelToUse.includes('flash')) && modelToUse !== fallbackModel) {
+            console.warn(
+              `[Bifrost] Model ${modelToUse} under high demand (${res.status}). Falling back to ${fallbackModel} after 1 try...`
+            );
+            modelToUse = fallbackModel;
+            continue;
+          }
+
           let backoffMs = (attempt + 1) * 2000;
           if (res.status === 429) {
             try {

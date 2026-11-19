@@ -51,11 +51,23 @@ export function EvidenceCard({ evidence, className = '' }: EvidenceCardProps) {
           </p>
         </div>
 
-        {evidence.sourceType && (
-          <span className="inline-block rounded-xs bg-surface-raised px-1.5 py-0.5 text-[10px] font-mono text-text-secondary uppercase tracking-wider border border-border-subtle/60">
-            {evidence.sourceType.replace(/_/g, ' ')}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {evidence.relationship === 'supports' && (
+            <span className="inline-block rounded-xs bg-status-supported-bg px-1.5 py-0.5 text-[10px] font-mono text-status-supported-text uppercase tracking-wider border border-status-supported-border">
+              Supports
+            </span>
+          )}
+          {evidence.relationship === 'contradicts' && (
+            <span className="inline-block rounded-xs bg-status-contradicted-bg px-1.5 py-0.5 text-[10px] font-mono text-status-contradicted-text uppercase tracking-wider border border-status-contradicted-border">
+              Contradicts
+            </span>
+          )}
+          {evidence.sourceType && (
+            <span className="inline-block rounded-xs bg-surface-raised px-1.5 py-0.5 text-[10px] font-mono text-text-secondary uppercase tracking-wider border border-border-subtle/60">
+              {evidence.sourceType.replace(/_/g, ' ')}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Quoted Passage in Editorial Blockquote */}

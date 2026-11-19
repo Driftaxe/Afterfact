@@ -103,12 +103,23 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
     const dec = claim.decisionRecord || ((claim.result as Record<string, unknown>) ?? null);
     const spec = (claim.spec as Record<string, unknown>) ?? {};
     const span = (spec.sourceSpan as { start: number; end: number }) ?? null;
-    const evidenceIds: string[] =
-      (dec && 'primaryEvidenceIds' in dec && Array.isArray(dec.primaryEvidenceIds)
-        ? (dec.primaryEvidenceIds as string[])
-        : null) ??
-      claim.assessments?.map((a) => a.evidenceUnitId) ??
-      [];
+    const decRecord = dec as Record<string, unknown> | null;
+    const primaryDecEvidenceIds = Array.isArray(decRecord?.primaryEvidenceIds)
+      ? (decRecord.primaryEvidenceIds as string[])
+      : [];
+    const counterDecEvidenceIds = Array.isArray(decRecord?.counterEvidenceIds)
+      ? (decRecord.counterEvidenceIds as string[])
+      : [];
+    const assessedEvidenceIds: string[] = claim.assessments?.map((a) => a.evidenceUnitId) ?? [];
+
+    // Ensure supporting, contradicting, and candidate evidence are all cited
+    const evidenceIds: string[] = Array.from(
+      new Set([
+        ...primaryDecEvidenceIds,
+        ...counterDecEvidenceIds,
+        ...assessedEvidenceIds,
+      ])
+    );
 
     const isAssessed =
       claim.state === 'assessed' || claim.status === 'ASSESSED' || Boolean(dec && 'verdict' in dec);
@@ -125,6 +136,9 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
           sourceType: unit.document?.sourceRole || 'official_documentation',
           passage: unit.verbatimText || unit.content || unit.quote || '',
           retrievedAt: unit.createdAt?.toISOString() || run.createdAt.toISOString(),
+          relationship: assessment.relationship || undefined,
+          stance: assessment.stance || undefined,
+          rationale: assessment.rationale || assessment.reasoning || undefined,
           publicationDate: unit.document?.publicationDate
             ? unit.document.publicationDate.toISOString().slice(0, 10)
             : undefined,
@@ -135,7 +149,6 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       }
     }
 
-    const decRecord = dec as Record<string, unknown> | null;
     const timeline = Array.isArray(decRecord?.timeline) ? decRecord.timeline : [];
     const correction = (decRecord?.correction as Record<string, unknown>) ?? null;
     const missingMaterialContext = Array.isArray(spec.missingMaterialContext)
