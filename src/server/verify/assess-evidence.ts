@@ -358,17 +358,10 @@ export async function assessEvidenceAgainstClaim(
     const mismatchedSet = new Set(mismatchedList);
     const missingInEvidenceSet = new Set(missingInEvidenceList);
 
-    // If temporal applicability is confirmed, ensure temporal context keys are counted as matching
+    // If temporal applicability is confirmed active at target time, evaluation target dates match
     if (temporalApplicability === 'active_at_target_time' || temporalApplicability === 'historical_prior') {
       for (const p of ticket.verificationContext) {
-        if (
-          p.key === 'asOfDate' ||
-          p.key === 'targetDate' ||
-          p.key === 'statedEffectiveDate' ||
-          p.key === 'effective_date' ||
-          p.key === 'year' ||
-          p.key === 'effectiveDate'
-        ) {
+        if (p.key === 'asOfDate' || p.key === 'targetDate') {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
         }
@@ -408,18 +401,9 @@ export async function assessEvidenceAgainstClaim(
       }
     }
 
-    // For contradictions, ensure the contradictory attribute is represented in mismatched
-    if (relationship === 'contradicts') {
-      if (mismatchedSet.size === 0) {
-        mismatchedSet.add('asserted_attribute');
-      }
-      // Ensure non-conflicting governing context qualifiers from the ticket are in matchingSet
-      for (const p of ticket.verificationContext) {
-        if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
-          matchingSet.add(p.key);
-        }
-      }
-    }
+    // DEF-003: Preserve property-specific matching/mismatching findings without synthetic asserted_attribute
+    // or blanket qualifier inversion
+
 
     const propertyMatchStatus = {
       matching: Array.from(matchingSet),

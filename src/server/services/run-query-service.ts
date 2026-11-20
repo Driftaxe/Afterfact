@@ -194,28 +194,39 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       verificationContext,
       span,
       state: isAssessed ? 'assessed' : isFailed ? 'failed' : 'pending',
+      error: isFailed
+        ? ((decRecord as any)?.error?.message || (decRecord as any)?.error || 'Verification could not finish due to an internal processing error')
+        : undefined,
       verdict:
-        decRecord && typeof decRecord.verdict === 'string'
-          ? decRecord.verdict
-          : isAssessed
-            ? 'insufficient_evidence'
-            : undefined,
+        isFailed
+          ? null
+          : decRecord && typeof decRecord.verdict === 'string'
+            ? decRecord.verdict
+            : isAssessed
+              ? 'insufficient_evidence'
+              : undefined,
       score:
-        decRecord && typeof decRecord.score === 'number'
-          ? decRecord.score
-          : null,
-      scoreReason:
-        decRecord && typeof decRecord.scoreReason === 'string'
-          ? decRecord.scoreReason
-          : isAssessed
-            ? 'Evaluation concluded without conclusive evidence.'
+        isFailed
+          ? null
+          : decRecord && typeof decRecord.score === 'number'
+            ? decRecord.score
             : null,
+      scoreReason:
+        isFailed
+          ? null
+          : decRecord && typeof decRecord.scoreReason === 'string'
+            ? decRecord.scoreReason
+            : isAssessed
+              ? 'Evaluation concluded without conclusive evidence.'
+              : null,
       reasonCode:
-        decRecord && typeof decRecord.reasonCode === 'string'
-          ? decRecord.reasonCode
-          : isAssessed
-            ? 'INSUFFICIENT_EVIDENCE'
-            : 'PENDING',
+        isFailed
+          ? 'PROCESSING_FAILURE'
+          : decRecord && typeof decRecord.reasonCode === 'string'
+            ? decRecord.reasonCode
+            : isAssessed
+              ? 'INSUFFICIENT_EVIDENCE'
+              : 'PENDING',
       evidenceIds,
       timeline,
       correction,

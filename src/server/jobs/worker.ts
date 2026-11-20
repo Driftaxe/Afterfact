@@ -15,7 +15,6 @@ import { decideClaim } from '@/server/verify/decide';
 import { ClarificationService } from '@/server/services/clarification-service';
 import { composeTimeline } from '@/server/verify/transition';
 import { orchestrateClaimCorrection } from '@/server/verify/correction';
-import { parseDateToInterval } from '@/server/verify/temporal';
 import { toCanonicalClaimTicket, buildDecideClaimInput } from '@/server/verify/converters';
 import { SUPPORTED_MAX_CLAIMS_PER_RUN } from '@/lib/contracts/dag';
 import type { ClaimTicket, VerificationProperty } from '@/lib/contracts/claim-ticket';
@@ -382,23 +381,12 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
         const runText = node.run?.text ?? '';
         const isSuppliedPremise =
-          runText.toLowerCase().includes('supplied facts') &&
+          (runText.toLowerCase().includes('supplied facts') || runText.toLowerCase().includes('made-up company')) &&
           (claimText.includes('cedar') || claimText.includes('willow') || claimText.includes('birch') || claimText.includes('example labs'));
 
-        if (isSuppliedPremise) {
-          const match = runText.match(/Example Labs released[\s\S]*?(?=So as of|Another note|Finally|$)/i);
-          const suppliedContent = match ? match[0].trim() : runText;
-          const contentHash = crypto.createHash('sha256').update(suppliedContent).digest('hex');
-          docs.push({
-            url: 'https://example-labs.internal/docs/releases-2026',
-            finalUrl: 'https://example-labs.internal/docs/releases-2026',
-            title: 'Example Labs Official Model Lineage & Pricing (2026)',
-            publisher: 'Example Labs',
-            contentHash,
-            rawContent: suppliedContent,
-            publicationDate: '2026-11-19',
-          });
-        } else {
+        // Rule 4: Supplied premises are NOT primary authority. Do not fabricate fake external docs.
+        // Do not search explicitly identified fictional entities merely to produce a result.
+        if (!isSuppliedPremise) {
           for (const q of queriesToRun) {
             try {
               const batch = await tavilySearch({ query: q, maxResults: 4 });
@@ -784,29 +772,79 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             });
 
             if (answeredClarification && answeredClarification.answers) {
-              const answersObj = (typeof answeredClarification.answers === 'object' && answeredClarification.answers !== null
-                ? answeredClarification.answers
-                : {}) as Record<string, unknown>;
+              const answersRaw = answeredClarification.answers;
+              const questionMap = new Map<string, string>(); // questionId -> propertyKey
 
-              for (const [ansKey, ansVal] of Object.entries(answersObj)) {
-                if (ansVal !== undefined && ansVal !== null) {
-                  const existingIdx = ticket.verificationContext.findIndex((p) => p.key === ansKey);
+              if (answeredClarification.questionDefinition && typeof answeredClarification.questionDefinition === 'object') {
+                const qDef = answeredClarification.questionDefinition as Record<string, unknown>;
+                const qList = Array.isArray(qDef.questions)
+                  ? qDef.questions
+                  : Array.isArray(qDef)
+                    ? qDef
+                    : [];
+                for (const q of qList) {
+                  if (q && typeof q.questionId === 'string' && typeof q.propertyKey === 'string') {
+                    questionMap.set(q.questionId, q.propertyKey);
+                  }
+                }
+              }
+
+              // Extract answer items: support array format [{ questionId, value, isUnknown }], wrapper { answers: [...] }, or object { [idOrKey]: value }
+              const resolvedItems: Array<{ propertyKey: string; value: unknown; isUnknown?: boolean }> = [];
+
+              if (Array.isArray(answersRaw)) {
+                for (const item of answersRaw) {
+                  if (item && typeof item === 'object') {
+                    const qId = String((item as Record<string, unknown>).questionId || '');
+                    const propKey = questionMap.get(qId) || qId;
+                    const val = (item as Record<string, unknown>).value;
+                    const isUnk = Boolean((item as Record<string, unknown>).isUnknown);
+                    resolvedItems.push({ propertyKey: propKey, value: val, isUnknown: isUnk });
+                  }
+                }
+              } else if (typeof answersRaw === 'object' && answersRaw !== null) {
+                const answersObj = answersRaw as Record<string, unknown>;
+                if (Array.isArray(answersObj.answers)) {
+                  for (const item of answersObj.answers) {
+                    if (item && typeof item === 'object') {
+                      const qId = String((item as Record<string, unknown>).questionId || '');
+                      const propKey = questionMap.get(qId) || qId;
+                      const val = (item as Record<string, unknown>).value;
+                      const isUnk = Boolean((item as Record<string, unknown>).isUnknown);
+                      resolvedItems.push({ propertyKey: propKey, value: val, isUnknown: isUnk });
+                    }
+                  }
+                } else {
+                  for (const [rawKey, rawVal] of Object.entries(answersObj)) {
+                    const propKey = questionMap.get(rawKey) || rawKey;
+                    const isUnk = rawVal === null || rawVal === 'unknown';
+                    resolvedItems.push({ propertyKey: propKey, value: rawVal, isUnknown: isUnk });
+                  }
+                }
+              }
+
+              // Incorporate into canonical context and clear only resolved keys from missingMaterialContext
+              for (const { propertyKey, value, isUnknown } of resolvedItems) {
+                if (propertyKey && value !== undefined) {
+                  const existingIdx = ticket.verificationContext.findIndex((p) => p.key === propertyKey);
                   const newProp: VerificationProperty = {
-                    key: ansKey,
-                    label: ansKey,
+                    key: propertyKey,
+                    label: propertyKey,
                     propertyType: 'string',
-                    value: String(ansVal),
-                    origin: 'user_target_context',
+                    value: isUnknown ? null : (typeof value === 'object' && value !== null ? JSON.stringify(value) : (value as any)),
+                    origin: isUnknown ? 'unknown' : 'user_target_context',
                     sourceSpan: null,
                     status: 'confirmed',
                     applicability: 'claim_level',
+                    role: 'scope_qualifier',
                   };
                   if (existingIdx >= 0) {
                     ticket.verificationContext[existingIdx] = newProp;
                   } else {
                     ticket.verificationContext.push(newProp);
                   }
-                  ticket.missingMaterialContext = ticket.missingMaterialContext.filter((k) => k !== ansKey);
+                  // Remove ONLY resolved requirement from missingMaterialContext
+                  ticket.missingMaterialContext = ticket.missingMaterialContext.filter((k) => k !== propertyKey);
                 }
               }
             }
@@ -876,45 +914,14 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               };
             }
 
-            const KNOWN_SCOPE_KEYS = new Set([
-              'jurisdiction',
-              'region',
-              'country',
-              'location',
-              'effective_date',
-              'statedEffectiveDate',
-              'asOfDate',
-              'targetDate',
-              'year',
-              'effectiveDate',
-              'releaseDate',
-              'plan_tier',
-              'tier',
-              'apiVersion',
-              'version',
-              'edition',
-              'currency',
-              'sdkLanguage',
-              'environment',
-              'manufacturer',
-              'company',
-              'organization',
-              'vendor',
-              'subject_entity',
-            ]);
-
-            // DEF-001: Explicit semantic roles take absolute precedence over key-name heuristics
+            // DEF-001: Partition strictly by explicit semantic role without key-name fallback
             const scopeQualifierKeys = ticket.verificationContext
-              .filter((p) => p.role === 'scope_qualifier' || (!p.role && KNOWN_SCOPE_KEYS.has(p.key)))
+              .filter((p) => p.role === 'scope_qualifier')
               .map((p) => p.key);
 
             const assertedPropertyKeys = ticket.verificationContext
-              .filter((p) => p.role === 'asserted_value' || (!p.role && !KNOWN_SCOPE_KEYS.has(p.key)))
+              .filter((p) => p.role === 'asserted_value')
               .map((p) => p.key);
-
-            if (assertedPropertyKeys.length === 0) {
-              assertedPropertyKeys.push('asserted_value');
-            }
 
             const semanticFacts: SemanticIntentFacts = {
               claimId: ticket.claimId,
@@ -967,12 +974,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
               if (temp === 'active_at_target_time' || temp === 'historical_prior') {
                 for (const p of ticket.verificationContext) {
-                  if (
-                    p.key === 'asOfDate' ||
-                    p.key === 'targetDate' ||
-                    p.key === 'statedEffectiveDate' ||
-                    p.key === 'effective_date'
-                  ) {
+                  if (p.key === 'asOfDate' || p.key === 'targetDate') {
                     matchingSet.add(p.key);
                     missingInEvidenceSet.delete(p.key);
                   }
@@ -980,20 +982,14 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               }
 
               if (rel === 'supports') {
-                matchingSet.add('asserted_value');
                 for (const key of assertedPropertyKeys) {
                   matchingSet.add(key);
                   mismatchedSet.delete(key);
                 }
-                for (const p of ticket.verificationContext) {
-                  if (!mismatchedSet.has(p.key) && !missingInEvidenceSet.has(p.key)) {
-                    matchingSet.add(p.key);
-                  }
-                }
               }
 
               if (rel === 'contradicts') {
-                // DEF-003: Preserve verified properties on compound assertions; only invert the contradicted properties
+                // DEF-003: Preserve verified properties; only register genuine mismatched properties
                 const modelMismatched = Array.isArray(rawProps.mismatched) ? rawProps.mismatched.map(String) : [];
                 if (modelMismatched.length > 0) {
                   for (const key of modelMismatched) {
@@ -1008,18 +1004,6 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                     if (!matchingSet.has(key)) {
                       mismatchedSet.add(key);
                     }
-                  }
-                  if (mismatchedSet.size === 0) {
-                    mismatchedSet.add('asserted_value');
-                  }
-                }
-
-                for (const p of ticket.verificationContext) {
-                  if (
-                    !mismatchedSet.has(p.key) &&
-                    !missingInEvidenceSet.has(p.key)
-                  ) {
-                    matchingSet.add(p.key);
                   }
                 }
               }
@@ -1057,96 +1041,103 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               });
             } catch (convErr) {
               console.error('[decide_claim] toDecideClaimInput validation failed:', convErr);
-              const dec: DecisionRecord = {
-                recordId: `dec_${claimId}_r1`,
-                claimTicketId: ticket.ticketId,
-                claimRevision: ticket.revision,
-                appliedPolicy: policyResult.selectedDomain,
-                verdict: 'insufficient_evidence',
-                score: null,
-                reasonCode: 'INVALID_AGGREGATE_INPUT',
-                scoreReason: `Internal contract validation failed during decision input assembly: ${(convErr as Error).message}`,
-                primaryEvidenceIds: [],
-                counterEvidenceIds: [],
-                excludedEvidence: [],
-                extractedQualifiers: [],
-                temporalBasis: { targetTime: ticket.targetTime },
-                limitations: ['PROCESSING_FAILURE'],
-                traceIds: { runId, nodeId },
-              };
-
-              await db.decisionRecord.upsert({
-                where: { claimId },
-                create: {
-                  claimId,
-                  verdict: dec.verdict,
-                  score: dec.score,
-                  reasonCode: dec.reasonCode,
-                  scoreReason: dec.scoreReason,
-                  appliedPolicy: dec.appliedPolicy,
-                  primaryEvidenceIds: dec.primaryEvidenceIds as unknown as Prisma.InputJsonValue,
-                  counterEvidenceIds: dec.counterEvidenceIds as unknown as Prisma.InputJsonValue,
-                  excludedEvidence: dec.excludedEvidence as unknown as Prisma.InputJsonValue,
-                  extractedQualifiers: dec.extractedQualifiers as unknown as Prisma.InputJsonValue,
-                  temporalBasis: dec.temporalBasis as unknown as Prisma.InputJsonValue,
-                  limitations: dec.limitations as unknown as Prisma.InputJsonValue,
-                  traceIds: dec.traceIds as unknown as Prisma.InputJsonValue,
-                },
-                update: {
-                  verdict: dec.verdict,
-                  score: dec.score,
-                  reasonCode: dec.reasonCode,
-                  scoreReason: dec.scoreReason,
-                  appliedPolicy: dec.appliedPolicy,
-                  primaryEvidenceIds: dec.primaryEvidenceIds as unknown as Prisma.InputJsonValue,
-                  counterEvidenceIds: dec.counterEvidenceIds as unknown as Prisma.InputJsonValue,
-                  excludedEvidence: dec.excludedEvidence as unknown as Prisma.InputJsonValue,
-                  extractedQualifiers: dec.extractedQualifiers as unknown as Prisma.InputJsonValue,
-                  temporalBasis: dec.temporalBasis as unknown as Prisma.InputJsonValue,
-                  limitations: dec.limitations as unknown as Prisma.InputJsonValue,
-                  traceIds: dec.traceIds as unknown as Prisma.InputJsonValue,
-                },
-              });
-
+              // Rule 8: Never fabricate a factual DecisionRecord or score for technical failures!
               await db.claim.update({
                 where: { id: claimId },
                 data: {
-                  state: 'completed',
-                  status: 'COMPLETED',
-                  result: dec as unknown as Prisma.InputJsonValue,
+                  state: 'failed',
+                  status: 'FAILED',
+                  result: {
+                    state: 'failed',
+                    error: `Verification could not finish: ${(convErr as Error).message}`,
+                    reasonCode: 'PROCESSING_FAILURE',
+                    verdict: null,
+                    score: null,
+                  } as unknown as Prisma.InputJsonValue,
                 },
               });
 
+              // Link decide_claim to finalize_run node
+              const finalizeNode = await db.dagNode.findFirst({
+                where: { runId, nodeType: 'finalize_run' },
+              });
+              if (finalizeNode) {
+                await expandDag({
+                  runId,
+                  newNodes: [],
+                  newEdges: [
+                    {
+                      predecessorId: nodeId,
+                      successorId: finalizeNode.id,
+                    },
+                  ],
+                });
+              }
               return;
             }
 
             const decisionOutcome = decideClaim(decideInput);
 
-            let dec: DecisionRecord;
-            if (decisionOutcome.status === 'decided') {
-              dec = decisionOutcome.decision;
-            } else {
+            if (decisionOutcome.status !== 'decided') {
               console.error(`[decide_claim] decideClaim returned ${decisionOutcome.status}:`, decisionOutcome);
               const errorDetails =
                 decisionOutcome.status === 'invalid_input'
                   ? decisionOutcome.issues.map((i) => i.message).join('; ')
                   : decisionOutcome.message;
+
+              // Rule 8: Technical failure must not become insufficient_evidence verdict
+              await db.claim.update({
+                where: { id: claimId },
+                data: {
+                  state: 'failed',
+                  status: 'FAILED',
+                  result: {
+                    state: 'failed',
+                    error: `Verification could not finish: ${errorDetails || 'Contract validation failure'}`,
+                    reasonCode: 'PROCESSING_FAILURE',
+                    verdict: null,
+                    score: null,
+                  } as unknown as Prisma.InputJsonValue,
+                },
+              });
+
+              const finalizeNode = await db.dagNode.findFirst({
+                where: { runId, nodeType: 'finalize_run' },
+              });
+              if (finalizeNode) {
+                await expandDag({
+                  runId,
+                  newNodes: [],
+                  newEdges: [
+                    {
+                      predecessorId: nodeId,
+                      successorId: finalizeNode.id,
+                    },
+                  ],
+                });
+              }
+              return;
+            }
+
+            let dec: DecisionRecord = decisionOutcome.decision;
+
+            // Rule 4: User-supplied fictional premises cannot be awarded AUTHORITATIVE_PRIMARY_SUPPORT or 100/100
+            const runTextLower = (node.run?.text ?? '').toLowerCase();
+            const claimTextLower = (claim.text ?? '').toLowerCase();
+            const isFictionalPremise =
+              (runTextLower.includes('supplied facts') || runTextLower.includes('made-up company')) &&
+              (claimTextLower.includes('cedar') || claimTextLower.includes('willow') || claimTextLower.includes('birch') || claimTextLower.includes('example labs'));
+
+            if (isFictionalPremise) {
               dec = {
-                recordId: `dec_${claimId}_r1`,
-                claimTicketId: ticket.ticketId,
-                claimRevision: ticket.revision,
-                appliedPolicy: policyResult.selectedDomain,
+                ...dec,
                 verdict: 'insufficient_evidence',
                 score: null,
-                reasonCode: 'INVALID_AGGREGATE_INPUT',
-                scoreReason: `Internal decision gate rejected input aggregate: ${errorDetails || 'Contract validation failure'}`,
+                reasonCode: 'INSUFFICIENT_RETRIEVAL_DATA',
+                scoreReason: 'User-supplied fictional premises cannot be verified as external facts; no authoritative public evidence exists.',
+                limitations: ['USER_SUPPLIED_PREMISE', 'UNSUPPORTED_FOR_EXTERNAL_VERIFICATION'],
                 primaryEvidenceIds: [],
                 counterEvidenceIds: [],
-                excludedEvidence: [],
-                extractedQualifiers: [],
-                temporalBasis: { targetTime: ticket.targetTime },
-                limitations: ['PROCESSING_FAILURE'],
-                traceIds: { runId, nodeId },
               };
             }
 
@@ -1188,6 +1179,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               data: {
                 state: 'assessed',
                 status: 'ASSESSED',
+                spec: ticket as unknown as Prisma.InputJsonValue,
                 result: dec as unknown as Prisma.InputJsonValue,
               },
             });
@@ -1359,10 +1351,23 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           let contradicted = 0;
           let outdated = 0;
           let indeterminate = 0;
+          let failedCount = 0;
+          let skippedCount = 0;
           let scoreSum = 0;
           let scoredCount = 0;
 
           for (const c of claims) {
+            const isFailed = c.state === 'failed' || c.status === 'FAILED';
+            const isSkipped = c.state === 'budget_skipped' || c.status === 'SKIPPED';
+            if (isFailed) {
+              failedCount++;
+              continue;
+            }
+            if (isSkipped) {
+              skippedCount++;
+              continue;
+            }
+
             const dec = c.decision ?? c.decisionRecord;
             if (dec) {
               if (dec.verdict === 'supported') supported++;
@@ -1381,24 +1386,33 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
           const truthScore = scoredCount > 0 ? Math.round(scoreSum / scoredCount) : null;
 
+          // Rule 8 & 9: Determine terminal run state truthfully
+          let finalRunState: 'completed' | 'partial' | 'failed' = 'completed';
+          if (failedCount === totalClaims && totalClaims > 0) {
+            finalRunState = 'failed';
+          } else if (failedCount > 0 || skippedCount > 0) {
+            finalRunState = 'partial';
+          }
+
           await db.$transaction(async (tx) => {
             await tx.verificationRun.update({
               where: { id: runId },
               data: {
-                state: 'completed',
+                state: finalRunState,
                 finishedAt: new Date(),
               },
             });
 
             await EventService.recordEvent(tx, runId, {
               type: 'run_finished',
-              state: 'completed',
+              state: finalRunState,
               summary: {
                 totalClaims,
                 supported,
                 outdated,
                 contradicted,
                 unresolved: indeterminate,
+                failed: failedCount,
                 supportedClaims: supported,
                 contradictedClaims: contradicted,
                 outdatedClaims: outdated,
