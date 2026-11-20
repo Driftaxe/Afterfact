@@ -96,7 +96,7 @@ export function toCanonicalClaimTicket(claimRow: ClaimRowData): ClaimTicket {
     const units = typeof p.units === 'string' ? p.units : null;
 
     // Normalize origin: handle nested source { sourceType } from older passes
-    let origin: VerificationProperty['origin'] = 'explicit_claim_text';
+    let origin: VerificationProperty['origin'] = value === null ? 'unknown' : 'model_inferred';
     if (typeof p.origin === 'string') {
       if (['explicit_claim_text', 'user_target_context', 'model_inferred', 'unknown'].includes(p.origin)) {
         origin = p.origin as VerificationProperty['origin'];

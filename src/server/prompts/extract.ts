@@ -50,7 +50,8 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
    - inferredQualifiers: Qualifiers that are NOT explicitly stated in the text but are logically suggested by context, pending review.
      * rationale: Why this qualifier is inferred.
    - missingMaterialQualifiers: Keys of critical qualifiers that are completely unknown and whose absence makes the claim ambiguous (e.g., 'jurisdiction', 'billingTerm', 'sdkLanguage').
-     * Temporal Ambiguity Detection: When a claim makes a recency-sensitive assertion ("latest", "current", "newest") in a high-cadence domain (software versions, models, APIs) with only a coarse calendar year ("as of 2026", "in 2026") lacking month or date precision, add 'asOfDate' to missingMaterialQualifiers so the clarification engine can resolve the exact target time.
+     * Temporal Ambiguity Detection: When a claim makes a recency-sensitive assertion ("latest", "current", "newest") in a high-cadence domain (software versions, models, APIs) with only a coarse calendar year ("as of 2026", "in 2026") lacking month or date precision, add 'asOfDate' to missingMaterialQualifiers ONLY if an evaluation target date was not already provided.
+     * Surrounding Context & Tentative Qualifiers: When the surrounding text supplies tentative parameters (e.g. "We're on 2024-06-20 i think, thats the api version"), extract this as an explicit qualifier (key: 'apiVersion', value: '2024-06-20', role: 'scope_qualifier', exactExcerpt: '2024-06-20'). Do NOT mark apiVersion in missingMaterialQualifiers when the user has provided it.
 
 5. SUBJECTIVE & ZERO-CLAIM HANDLING:
    - If the input contains purely subjective opinions, personal preferences, greetings, or untestable statements (e.g. "I think TypeScript is wonderful", "Hello world"), return an empty array for claims: [].

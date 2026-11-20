@@ -50,7 +50,42 @@ export function parseDateToInterval(dateStr: string): DateInterval | null {
     };
   }
 
-  // 2. Partial or complete calendar date
+  // 2. Natural language Month-Year format (e.g. "December 2021", "Dec 2021", "2021 December")
+  const MONTH_MAP: Record<string, number> = {
+    january: 1, jan: 1,
+    february: 2, feb: 2,
+    march: 3, mar: 3,
+    april: 4, apr: 4,
+    may: 5,
+    june: 6, jun: 6,
+    july: 7, jul: 7,
+    august: 8, aug: 8,
+    september: 9, sep: 9, sept: 9,
+    october: 10, oct: 10,
+    november: 11, nov: 11,
+    december: 12, dec: 12,
+  };
+
+  const nlMatch = trimmed.match(/^([a-zA-Z]+)\s+(\d{4})$/) || trimmed.match(/^(\d{4})\s+([a-zA-Z]+)$/);
+  if (nlMatch) {
+    const monthPart = /^[a-zA-Z]+$/.test(nlMatch[1]) ? nlMatch[1].toLowerCase() : nlMatch[2].toLowerCase();
+    const yearPart = /^\d{4}$/.test(nlMatch[1]) ? nlMatch[1] : nlMatch[2];
+    const monthNum = MONTH_MAP[monthPart];
+    if (monthNum !== undefined) {
+      const year = parseInt(yearPart, 10);
+      const lastDay = getLastDayOfMonth(year, monthNum);
+      const paddedMonth = String(monthNum).padStart(2, '0');
+      const paddedLastDay = String(lastDay).padStart(2, '0');
+      return {
+        start: `${year}-${paddedMonth}-01`,
+        end: `${year}-${paddedMonth}-${paddedLastDay}`,
+        precision: 'month',
+        raw: trimmed,
+      };
+    }
+  }
+
+  // 3. Partial or complete calendar date
   if (!isValidCalendarDateOrPartial(trimmed)) return null;
 
   // Year: YYYY

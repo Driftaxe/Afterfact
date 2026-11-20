@@ -45,21 +45,43 @@ export function resolveClaimSpan(
     // find if a unique substantive tail/subphrase from statement exists in sourceText.
     let recovered: { start: number; end: number; exactText: string } | null = null;
 
+    const NEGATION_REGEX = /\b(not|never|cannot|can't|won't|doesn't|didn't|isn't|aren't|no|neither|nor|without)\b/i;
+    const stmtHasNegation =
+      NEGATION_REGEX.test(statement) ||
+      (typeof (claim as { normalizedProposition?: unknown }).normalizedProposition === 'string' &&
+        NEGATION_REGEX.test((claim as { normalizedProposition: string }).normalizedProposition));
+
+    // Bare date or prepositional fragment filter: whole assertions cannot ground on bare fragments
+    const isBareFragment = (text: string): boolean => {
+      const trimmed = text.trim();
+      const words = trimmed.split(/\s+/);
+      if (words.length <= 2) return true;
+      if (/^(?:on|in|at|by|from|to|for|during)\s+[\w\s\d,-]+$/i.test(trimmed)) {
+        // If it only contains preposition + date/time or bare name without a verb, reject
+        const hasVerb = /\b(released|announced|cost|costs|is|are|was|were|has|have|had|started|starts|deprecated|requires|enforces|limits|pays|charges|applied)\b/i.test(trimmed);
+        return !hasVerb;
+      }
+      return false;
+    };
+
     // Strategy A: Check explicit qualifier excerpts
     for (const q of claim.explicitQualifiers || []) {
       if (q.exactExcerpt && sourceText.includes(q.exactExcerpt)) {
         const qIdxInStmt = statement.indexOf(q.exactExcerpt);
         if (qIdxInStmt >= 0) {
           const candidateTail = statement.slice(qIdxInStmt).trim();
-          if (candidateTail.length > 8) {
-            const tailOccurrences = findAllOccurrences(sourceText, candidateTail);
-            if (tailOccurrences.length === 1) {
-              recovered = {
-                start: tailOccurrences[0],
-                end: tailOccurrences[0] + candidateTail.length,
-                exactText: candidateTail,
-              };
-              break;
+          if (candidateTail.length > 8 && !isBareFragment(candidateTail)) {
+            // Guard: Cannot drop negation
+            if (!stmtHasNegation || NEGATION_REGEX.test(candidateTail)) {
+              const tailOccurrences = findAllOccurrences(sourceText, candidateTail);
+              if (tailOccurrences.length === 1) {
+                recovered = {
+                  start: tailOccurrences[0],
+                  end: tailOccurrences[0] + candidateTail.length,
+                  exactText: candidateTail,
+                };
+                break;
+              }
             }
           }
         }
@@ -71,25 +93,29 @@ export function resolveClaimSpan(
       const words = statement.trim().split(/\s+/);
       for (let w = 1; w < words.length - 2; w++) {
         const subphrase = words.slice(w).join(' ');
-        if (subphrase.length >= 10) {
-          const subOccurrences = findAllOccurrences(sourceText, subphrase);
-          if (subOccurrences.length === 1) {
-            recovered = {
-              start: subOccurrences[0],
-              end: subOccurrences[0] + subphrase.length,
-              exactText: subphrase,
-            };
-            break;
+        if (subphrase.length >= 12 && !isBareFragment(subphrase)) {
+          // Guard: Cannot drop negation
+          if (!stmtHasNegation || NEGATION_REGEX.test(subphrase)) {
+            const subOccurrences = findAllOccurrences(sourceText, subphrase);
+            if (subOccurrences.length === 1) {
+              recovered = {
+                start: subOccurrences[0],
+                end: subOccurrences[0] + subphrase.length,
+                exactText: subphrase,
+              };
+              break;
+            }
           }
         }
       }
     }
 
     if (recovered) {
-      claim.statement = recovered.exactText;
+      // Guard against surrogate splitting
       if (isSplittingSurrogate(sourceText, recovered.start) || isSplittingSurrogate(sourceText, recovered.end)) {
         throw new Error('GROUNDING_FAILURE: Recovered span splits a Unicode surrogate pair');
       }
+      claim.statement = recovered.exactText;
       return { start: recovered.start, end: recovered.end };
     }
 

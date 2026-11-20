@@ -18,6 +18,7 @@ import { isValidCalendarDate, isValidIsoTimestamp } from '@/lib/contracts/dates'
 import { bifrostChat, BifrostError } from '@/server/bifrost/client';
 import { getModelProfile } from '@/server/bifrost/profiles';
 import { buildExtractionMessages } from '@/server/prompts/extract';
+import { executeBoundedModelRepair } from './model-repair';
 
 // Import modular domain helpers
 import { computeInputHash, generateClaimIdentity } from './identity';
@@ -155,39 +156,55 @@ export async function extractClaimsFromText(
     };
   }
 
-  // 3. Decode and validate model JSON output
-  let parsedJson: unknown;
-  try {
-    const cleaned = cleanJsonOutput(rawResponse);
-    parsedJson = JSON.parse(cleaned);
-  } catch {
-    return {
-      status: 'failed',
-      tickets: [],
-      inputHash: computedHash,
-      error: {
-        code: 'MALFORMED_OUTPUT',
-        message: 'Model returned malformed JSON output',
-        retryable: false,
-      },
-    };
-  }
+  // 3. Decode and validate model JSON output with Bounded Model Repair
+  const validateExtractionJson = (raw: string): { success: true; data: RawExtractionResponse } | { success: false; error: string } => {
+    try {
+      const parsed = JSON.parse(cleanJsonOutput(raw));
+      const res = RawExtractionResponseSchema.safeParse(parsed);
+      if (res.success) {
+        return { success: true, data: res.data };
+      }
+      return { success: false, error: res.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+  };
 
-  const validatedResponse = RawExtractionResponseSchema.safeParse(parsedJson);
-  if (!validatedResponse.success) {
-    return {
-      status: 'failed',
-      tickets: [],
-      inputHash: computedHash,
-      error: {
-        code: 'SCHEMA_VIOLATION',
-        message: 'Model response violated extraction schema structure',
-        retryable: false,
-      },
-    };
-  }
+  let modelOutput: RawExtractionResponse;
+  const initialValidation = validateExtractionJson(rawResponse);
 
-  const modelOutput: RawExtractionResponse = validatedResponse.data;
+  if (initialValidation.success) {
+    modelOutput = initialValidation.data;
+  } else {
+    // Attempt single bounded model repair pass (Rule 7.3)
+    try {
+      const repairOutcome = await executeBoundedModelRepair<RawExtractionResponse>({
+        task: 'extract',
+        sourceText: input.text,
+        untrustedCandidateText: rawResponse,
+        failureReason: initialValidation.error,
+        schemaRules:
+          'Return a JSON object with "claims": Array<{ statement: string, normalizedProposition: string, domain: string, timeSensitivity: "high"|"medium"|"low", explicitQualifiers?: Array<{ key: string, label: string, value: any, propertyType: string, exactExcerpt: string, role: "scope_qualifier"|"asserted_value" }>, inferredQualifiers?: Array<any>, missingMaterialQualifiers?: string[] }>. All claim statements MUST be verbatim substrings.',
+        deadlineMs: 25000,
+        validator: validateExtractionJson,
+      });
+      modelOutput = repairOutcome.data;
+    } catch {
+      const isJsonError = initialValidation.error.includes('JSON');
+      return {
+        status: 'failed',
+        tickets: [],
+        inputHash: computedHash,
+        error: {
+          code: isJsonError ? 'MALFORMED_OUTPUT' : 'SCHEMA_VIOLATION',
+          message: isJsonError
+            ? 'Model returned malformed JSON output that could not be repaired'
+            : `Model response violated extraction schema: ${initialValidation.error}`,
+          retryable: false,
+        },
+      };
+    }
+  }
 
   // Check for model refusal
   if (modelOutput.refusal) {
@@ -349,6 +366,13 @@ export async function extractClaimsFromText(
     // Reconcile missing material context keys:
     // Remove any qualifier that is now known from explicit text or confirmed user context
     const missingKeys = claim.missingMaterialQualifiers.filter((k) => {
+      // If evaluation target resolvedTargetTime is established, asOfDate and targetDate are not missing
+      if (
+        (k === 'asOfDate' || k === 'targetDate') &&
+        (isValidCalendarDate(resolvedTargetTime) || isValidIsoTimestamp(resolvedTargetTime))
+      ) {
+        return false;
+      }
       const matched = effectiveContext.find((p) => p.key === k);
       if (!matched || matched.origin === 'model_inferred' || matched.origin === 'unknown' || matched.value === null) {
         return true;
