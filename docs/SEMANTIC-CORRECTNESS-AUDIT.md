@@ -451,3 +451,37 @@ $$\text{INVARIANT} \longrightarrow \text{PRODUCTION ENTRY POINT} \longrightarrow
    $$\text{Interactive Resolution} \longrightarrow \text{ClarificationService.resumeWithAnswer} \longrightarrow \text{db.\$transaction} \longrightarrow \text{Incorporated verificationContext} \longrightarrow \text{Clear missingMaterialContext} \longrightarrow \text{Behavior 22/24} \longrightarrow \text{Run cmwo1t5qt0000gc48cz5e0f8f}$$
 5. **Closed-World Fictional Fact Immunity:**
    $$\text{Supplied Premise Isolation} \longrightarrow \text{worker.ts (search\_evidence)} \longrightarrow \text{Local doc synthesis} \longrightarrow \text{No external search dispatch} \longrightarrow \text{100\% Clean primary authority} \longrightarrow \text{Behavior 32} \longrightarrow \text{Run cmwo1t5qt0000gc48cz5e0f8f (Claim #5)}$$
+
+
+---
+
+## 6. Final Correctness Repair & Verification Closeout
+
+### 6.1 Finding-by-Finding Closure Matrix
+
+| Finding ID | Title & Focus | Root Cause | Implemented Source Fix | Verified Evidence & Test Coverage | Status |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **SEM-001** | Comparative Meaning Loss | Extractor split comparative claims into disconnected parts. | Unified relational prompt and `comparisonProduct` extraction. | `Behavior 1` in `semantic-correctness.test.ts`. | **CLOSED** |
+| **SEM-002** | Temporal Applicability Flaws | Publication dates conflated with effective dates; future changes marked active. | Deterministic `evaluateTemporalApplicability` and closed `DateInterval`. | `Behavior 5, 6, 7`; `Case 17, 18` in `final-correctness-matrix.test.ts`. | **CLOSED** |
+| **SEM-003** | Key-Name Property Role Guessing | Policies guessed property roles based on substring key names. | Partition strictly by explicit `p.role === 'scope_qualifier'` vs `'asserted_value'`. | `Case 1, 3`; `Behavior 27` (DEF-001). | **CLOSED** |
+| **SEM-004** | Grounded Document Metadata Exclusion | Valid manufacturer excerpts discarded if not in quote text. | Verified entity in title/content without publisher cross-contamination. | `Behavior 10, 11`; `Case 12` (DEF-002). | **CLOSED** |
+| **SEM-005** | Missing Clarification Planning & Loop | Extractor left missing context empty or clarification answers were lost. | Extracted missing qualifiers, robust answer deserialization in worker, and preserved target context. | `Case 14, 16`; `clarification-journey.test.ts` (Case 24). | **CLOSED** |
+| **SEM-006** | Temporal Proof Malformation | Historical claims lacked interval proofs for `DecideClaimInputSchema`. | `parseDateToInterval` with month interval bounds and natural language support. | `Behavior 16, 17`; `Case 17` in `final-correctness-matrix.test.ts`. | **CLOSED** |
+| **DEF-001** | Role Determination Shortcuts | `CANONICAL_ASSERTED_KEYS` and `CANONICAL_SCOPE_KEYS` heuristic fallback. | Removed key-name heuristics from `GenericPolicy` and `worker.ts`. | `Case 1, 3` in `final-correctness-matrix.test.ts`. | **CLOSED** |
+| **DEF-002** | Blind Temporal Missing Flag Clearing | Temporal applicability blindly cleared `statedEffectiveDate` and `year`. | Removed stated event dates from the auto-matching loop; only targetTime parameters match. | `Case 18` in `final-correctness-matrix.test.ts`. | **CLOSED** |
+| **DEF-003** | Blanket Mismatch Inversion & Synthetic Strings | Inverted all non-conflicting properties and injected `'asserted_attribute'`. | Removed blanket inversion and phantom attribute strings from `assess-evidence.ts` and `worker.ts`. | `Case 13` in `final-correctness-matrix.test.ts`; `Behavior 29`. | **CLOSED** |
+| **DEF-004** | Crude Sensitivity Clarification Gate | Coarse dates checked only string length and timeSensitivity. | Skipped clarification when evaluation target is established; only genuine material gaps prompt. | `Case 14`; `Behavior 30`. | **CLOSED** |
+
+### 6.2 Truthful Premise Handling & Fictional Entity Isolation
+- **Correction of Earlier Closure Claim:** The previous workaround that synthesized fake `https://example-labs.internal` documents with `sourceRole: 'primary_authority'` and awarded 100/supported to fictional entities has been permanently excised from [worker.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/jobs/worker.ts).
+- **Truthful Behavior:** User-supplied fictional premises are marked `verdict: 'insufficient_evidence'`, `score: null`, `reasonCode: 'INSUFFICIENT_RETRIEVAL_DATA'`, `limitations: ['USER_SUPPLIED_PREMISE', 'UNSUPPORTED_FOR_EXTERNAL_VERIFICATION']`, with explicit scoreReason `"User-supplied fictional premises cannot be verified as external facts; no authoritative public evidence exists."` External web search is not poisoned with fictional entities. Verified in `Case 22`.
+
+### 6.3 Separation of Processing Failures from Factual Uncertainty
+- Internal pipeline errors (conversion failures, invalid aggregate schemas, gateway timeouts) never fabricate a `DecisionRecord` with `verdict: 'insufficient_evidence'`.
+- Claim is persisted with `state: 'failed'`, `status: 'FAILED'`, `result: { state: 'failed', error: 'Verification could not finish: ...', reasonCode: 'PROCESSING_FAILURE', verdict: null, score: null }`.
+- Run finalization evaluates all claims: if any claims failed or were budget-skipped, `run.state` is marked `'partial'` (or `'failed'` if all failed). Verified in `Case 19, 20, 21`.
+
+### 6.4 Bounded Model-Output Repair Architecture
+- Reusable repair engine in [model-repair.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/model-repair.ts) via `executeBoundedModelRepair<T>()`.
+- Strictly separates repairable failures (malformed JSON, schema violation on model-owned fields, non-verbatim excerpts) from non-repairable failures (transport 500, quota 429, missing server IDs, database losses).
+- Enforces at most 1 repair attempt sharing stage deadlines and budgets. Verified in `Case 4, 5, 9, 10`.

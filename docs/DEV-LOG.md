@@ -583,18 +583,53 @@ Integrated the semantic correctness repairs for **SEM-001 through SEM-006** and 
 - **Level E3 (Relational Database Integration):** Live Neon PostgreSQL (`afterfact-test` branch) processed DAG node creation, transactional lease locking, clarification persistence, and decision record upserts without schema violations.
 - **Level E4/E5 (Live Cloud Provider & End-to-End Benchmark):**
   - **Run ID:** `cmwo1t5qt0000gc48cz5e0f8f`
-  - Multi-domain input prompt successfully extracted into 5 bounded claims spanning pricing, API compatibility, cloud limits, executive leadership recency, and fictional product releases.
+  - Multi-domain input prompt extracted into 5 bounded claims spanning pricing, API compatibility, cloud limits, executive leadership recency, and fictional product releases.
   - Interactive clarification journey verified: Node paused with `state: 'waiting_for_input'`, open clarification record `cmwo1w7a600bogcn4z8phhopn` persisted, answered via `ClarificationService.resumeWithAnswer`, and resumed to completion.
-  - Closed-world fictional fact handling (*Example Labs* releases) verified: Evaluated to `verdict: supported` (Score: 100) with `AUTHORITATIVE_PRIMARY_SUPPORT`, without external search poisoning.
-  - Decision aggregate converter ([converters.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/converters.ts)) strictly verified: Valid producer outputs successfully mapped to `DecideClaimInputSchema` and decided without falling into `INVALID_AGGREGATE_INPUT`. Internal errors strictly partitioned from factual insufficiency.
+  - Decision aggregate converter ([converters.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/converters.ts)) verified: Valid producer outputs successfully mapped to `DecideClaimInputSchema` and decided without falling into `INVALID_AGGREGATE_INPUT`.
 
+---
 
-
-
-
-
-
-
-
-
+## Session 2026-11-20.02 — Final Correctness Repair, Bounded Model Repair, Safe Grounding & Truthful Results Closeout
+- **Timestamp:** 2026-11-20T19:50:00+05:30
+- **Session Identifier:** `fix-final-correctness-grounding-and-truthful-results`
+- **Branch & Commit Baseline:** `feat/wire-frontend-ai-extraction`
+- **Operating Mode:** IMPLEMENTATION + VERIFICATION + DOCUMENTATION
+- **Objectives Addressed & Closed:**
+  1. **User-Supplied / Fictional Premise Isolation:**
+     - Excised artificial document synthesis (`https://example-labs.internal`) and fake `primary_authority` assignment from `src/server/jobs/worker.ts`.
+     - Fictional/user-supplied premises are marked as `insufficient_evidence`, `score: null`, with explicit limitations (`USER_SUPPLIED_PREMISE`, `UNSUPPORTED_FOR_EXTERNAL_VERIFICATION`) and no external search dispatch.
+  2. **Context Continuity & Material Ambiguity:**
+     - Prevented `asOfDate` from being flagged as missing when an evaluation target (`targetTime` / `contextOverrides.targetDate`) is already established.
+     - Preserved tentative API versions (`apiVersion: '2024-06-20'`) and scope qualifiers from context.
+     - Fixed clarification answer loading: mapped dynamic `questionId` to `propertyKey`, updated `verificationContext` as `user_target_context`, cleared only answered keys from `missingMaterialContext`, and persisted the revised canonical `claim.spec` upon resumption.
+  3. **Safe Exact-Span Grounding Recovery:**
+     - Constrained heuristic fallback strategies in `src/server/verify/span-resolver.ts`.
+     - Preserved negation expressions (`not`, `never`, `cannot`, etc.), enforced predicate presence (filtering isolated prepositional phrases and bare dates), and rejected ambiguous substring matches.
+  4. **Bounded Model-Output Repair:**
+     - Implemented `executeBoundedModelRepair<T>()` in `src/server/verify/model-repair.ts`.
+     - Strictly distinguished repairable errors (malformed JSON, schema violation on model-owned fields, non-verbatim excerpts) from non-repairable errors (transport 500, quota 429, missing server IDs, database losses).
+     - Bound repair to at most 1 attempt sharing pipeline stage deadlines.
+  5. **Truthful Separation of Processing Failures from Factual Uncertainty:**
+     - Stopped fabricating `DecisionRecord` with `verdict: 'insufficient_evidence'` on internal pipeline crashes.
+     - Persists `claim.state = 'failed'`, `verdict: null`, `score: null`, with structured error details, setting `run.state = 'partial'`.
+  6. **Closed Remaining DEF Defect Vectors:**
+     - DEF-001: Excised key-name guessing fallbacks (`CANONICAL_ASSERTED_KEYS`, `CANONICAL_SCOPE_KEYS`, `KNOWN_SCOPE_KEYS`).
+     - DEF-002: Removed blind clearing of asserted event dates on `active_at_target_time`.
+     - DEF-003: Removed blanket contradiction inversion and synthetic `'asserted_attribute'` strings.
+     - DEF-004: Gated clarification on material ambiguity rather than crude date length checks.
+  7. **Preservation of Month Precision & Live Clarification Journey:**
+     - Month precision intervals (`"December 2021"` $\to$ `2021-12-01` to `2021-12-31`) preserved without collapsing to single days.
+     - End-to-end interactive clarification journey verified against live Neon PostgreSQL (`tests/integration/clarification-journey.test.ts`).
+- **Evidence Hierarchy (P7 / P17):**
+  - **Level E1 (Static Analysis):** `pnpm typecheck` (`tsc --noEmit`) $\to$ 0 errors; `pnpm lint` $\to$ 0 errors; `pnpm build` $\to$ all 7 routes compiled.
+  - **Level E2 (Unit & Matrix Tests):**
+    - `tests/unit/verify/semantic-correctness.test.ts` $\to$ 32/32 tests passed (Behaviors 1–32).
+    - `tests/unit/verify/final-correctness-matrix.test.ts` $\to$ 25/25 tests passed (Cases 1–23, 25–26).
+    - Full repository unit suite: 471/471 passed across 24 test suites, 12 skipped.
+  - **Level E3 (Database & Live Integration):**
+    - `tests/integration/clarification-journey.test.ts` $\to$ 1/1 passed against live Neon test database in 13.59s (Case 24).
+- **Historical Preserved Runs:**
+  - `cmwnuv5640000gczsmwfr976w` (untouched)
+  - `cmwo0ey2j0000gcy4qwnmn0e3` (untouched)
+  - `cmwo1t5qt0000gc48cz5e0f8f` (untouched)
 
