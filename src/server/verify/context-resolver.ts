@@ -68,6 +68,19 @@ export function convertUserTargetContext(contextOverrides?: SharedContext | null
     });
   }
 
+  if (contextOverrides.targetDate) {
+    properties.push({
+      key: 'targetDate',
+      label: 'Target Evaluation Date',
+      propertyType: 'date',
+      value: contextOverrides.targetDate,
+      origin: 'user_target_context',
+      status: 'confirmed',
+      applicability: 'run_level',
+      role: 'scope_qualifier',
+    });
+  }
+
   return properties;
 }
 

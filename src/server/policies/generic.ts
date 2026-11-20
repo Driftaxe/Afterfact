@@ -20,39 +20,7 @@ import {
   type SemanticIntentFacts,
 } from './types';
 
-const CANONICAL_ASSERTED_KEYS = new Set([
-  'asserted_value',
-  'value',
-  'result',
-  'assertion',
-]);
-
-const CANONICAL_SCOPE_KEYS = new Set([
-  'jurisdiction',
-  'region',
-  'country',
-  'location',
-  'effective_date',
-  'statedeffectivedate',
-  'asofdate',
-  'targetdate',
-  'year',
-  'effectivedate',
-  'releasedate',
-  'plan_tier',
-  'tier',
-  'apiversion',
-  'version',
-  'edition',
-  'currency',
-  'sdklanguage',
-  'environment',
-  'manufacturer',
-  'company',
-  'organization',
-  'vendor',
-  'subject_entity',
-]);
+// Canonical policy implementation for generic claims
 
 export class GenericPolicy implements DomainPolicyModule {
   public readonly domainId = 'generic' as const;
@@ -93,13 +61,11 @@ export class GenericPolicy implements DomainPolicyModule {
       let required = true;
 
       // 1. Role determination (order-independent):
-      if (explicitAsserted.has(prop.key)) {
+      if (prop.role === 'asserted_value' || prop.role === 'scope_qualifier') {
+        role = prop.role;
+      } else if (explicitAsserted.has(prop.key)) {
         role = 'asserted_value';
       } else if (explicitScope.has(prop.key)) {
-        role = 'scope_qualifier';
-      } else if (CANONICAL_ASSERTED_KEYS.has(prop.key.toLowerCase())) {
-        role = 'asserted_value';
-      } else if (CANONICAL_SCOPE_KEYS.has(prop.key.toLowerCase())) {
         role = 'scope_qualifier';
       }
 
@@ -269,7 +235,8 @@ export class GenericPolicy implements DomainPolicyModule {
 
     for (const key of missingKeys) {
       const explicitProp = ticket.verificationContext.find(
-        (p) => p.key === key && p.origin === 'explicit_claim_text'
+        (p) => (p.key === key || (key === 'asOfDate' && p.key === 'targetDate')) &&
+               (p.origin === 'explicit_claim_text' || p.origin === 'user_target_context')
       );
 
       // If an explicit value is present and fully specific (not a coarse partial date like YYYY), skip
