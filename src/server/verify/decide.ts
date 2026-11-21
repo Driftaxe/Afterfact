@@ -488,7 +488,7 @@ function evaluateAuthority(
     if (source.sourceRole !== 'reputable_secondary' && source.sourceRole !== 'counter_perspective') {
       return { rank: 0, codes: ['SECONDARY_PROVENANCE_LABEL_MISMATCH'] };
     }
-    if (assessment.sourceSuitability !== 'credible_secondary') {
+    if (assessment.sourceSuitability === 'insufficient_authority') {
       return { rank: 0, codes: ['SECONDARY_SUITABILITY_NOT_ESTABLISHED'] };
     }
     return { rank: 1, codes: [] };
@@ -500,7 +500,7 @@ function evaluateAuthority(
   if (!aggregate.policy.authoritativeSourceRoles.includes(source.sourceRole)) {
     return { rank: 0, codes: ['SOURCE_ROLE_NOT_AUTHORITATIVE_FOR_POLICY'] };
   }
-  if (assessment.sourceSuitability !== 'authoritative_primary') {
+  if (assessment.sourceSuitability === 'insufficient_authority') {
     return { rank: 0, codes: ['PRIMARY_SUITABILITY_NOT_ESTABLISHED'] };
   }
   if (
@@ -510,7 +510,7 @@ function evaluateAuthority(
   ) {
     return { rank: 0, codes: ['SOURCE_PROVENANCE_UNUSABLE'] };
   }
-  return { rank: 2, codes: [] };
+  return { rank: assessment.sourceSuitability === 'credible_secondary' ? 1 : 2, codes: [] };
 }
 
 function evaluateScopeAndProperties(
