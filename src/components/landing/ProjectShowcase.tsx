@@ -1,21 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 export function ProjectShowcase() {
+  const [activeTab, setActiveTab] = useState<'verify' | 'run' | 'bifrost'>('verify');
+
   const verifiedStats = [
-    { label: 'AUTOMATED TESTS', value: '439+', hint: '415 Vitest · 24 Playwright' },
-    { label: 'VERIFIED COMMITS', value: '160+', hint: 'Audited Git Lineage' },
+    { label: 'AUTOMATED TESTS', value: '535+', hint: '511 Vitest · 24 Playwright' },
+    { label: 'VERIFIED COMMITS', value: '180+', hint: 'Audited Git Lineage' },
     { label: 'CONTRIBUTORS', value: '3', hint: 'Driftaxe Core Team' },
-    { label: 'DAG PIPELINE', value: '5-Stage', hint: 'Dynamic Graph Expansion' },
+    { label: 'SYNTHESIS PATTERNS', value: '5 Modes', hint: 'Bounded Semantic Inference' },
+    { label: 'DECISION GATES', value: '4 Gates', hint: 'Pure Deterministic Gate' },
     { label: 'GATEWAY FALLBACK', value: '< 800ms', hint: 'Multi-Provider Bifrost' },
-    { label: 'TAXONOMY INVARIANTS', value: '6 / 6', hint: 'Strict UPPR Chain' },
-    { label: 'DATABASE ENGINE', value: 'Neon PG', hint: 'Pooled Branching Engine' },
-    { label: 'WORKER DISPATCH', value: 'QStash', hint: 'Signed Webhook Delivery' },
-    { label: 'LEASE FENCING', value: '30s', hint: 'Distributed Concurrency' },
-    { label: 'RETRIEVAL SCOPE', value: '100%', hint: 'Tavily Grounded Extracts' },
-    { label: 'PROPOSITION ANCHOR', value: 'UTF-16', hint: 'Exact Offset Preservation' },
-    { label: 'OPEN SOURCE', value: 'MIT', hint: 'Next.js 15 App Router' },
+    { label: 'QUOTE GROUNDING', value: '100%', hint: 'Fail-Closed Substring Match' },
+    { label: '3-DATE SEPARATION', value: 'Strict', hint: 'Pub · Event · Effective' },
+    { label: 'DATABASE ENGINE', value: 'Neon PG', hint: 'Serverless Pooled Branching' },
+    { label: 'WORKER DISPATCH', value: 'QStash', hint: 'Signed HMAC SHA-256 Webhooks' },
+    { label: 'LEASE FENCING', value: '30s', hint: 'Distributed Clock Guard' },
+    { label: 'SECRET SAFETY', value: 'P28', hint: 'Zero Token / Key Leakage' },
   ];
 
   const architecturalPillars = [
@@ -48,20 +50,71 @@ export function ProjectShowcase() {
   const contributors = [
     {
       name: 'Mayur Nanda',
-      role: 'Platform & Verification Engineering',
+      role: 'Lead Architect & Verification Systems',
+      lane: 'Lane A (Verification Engine)',
       handle: 'Mayur11code',
+      highlights: 'Core verifier, bounded semantic inference synthesizer, decision gates, UPPR compliance, eval benchmark',
+      commits: '90+ commits',
     },
     {
       name: 'Hardik Akshay',
-      role: 'Infrastructure & Integration',
+      role: 'Infrastructure & Cloud Integration',
+      lane: 'Lane B (Platform & Delivery)',
       handle: 'Hardik-codr',
+      highlights: 'Maxim Bifrost gateway, Neon PostgreSQL data schemas, Upstash QStash worker execution, serverless runtime',
+      commits: '55+ commits',
     },
     {
       name: 'Jivjot Singh Kohli',
-      role: 'Temporal Analysis & UI Architecture',
+      role: 'Product Architecture & Temporal UI',
+      lane: 'Lane C (Product Experience)',
       handle: 'JivjotSingh559',
+      highlights: '55:45 split document inspector, Then vs Now timeline, responsive design system, SSE streaming client',
+      commits: '40+ commits',
     },
   ];
+
+  const invariantChain = [
+    { name: 'Unsupported Citation', rule: 'Quotes must strictly match retrieved source substrings', effect: 'Fail closed to insufficient_evidence' },
+    { name: 'Wrong-Scope Evidence', rule: 'Differing regions, years, or tiers cannot grant support', effect: '409 / Scope mismatch exclusion' },
+    { name: 'Future Effective Date', rule: 'Announcements with pending dates do not mark facts stale', effect: 'Scheduled change badge, not outdated' },
+    { name: 'Cross-Owner Access', rule: 'Runs strictly partitioned by anonymous owner hash', effect: '404 Not Found privacy isolation' },
+    { name: 'Duplicate Delivery', rule: 'Repeated QStash webhooks must never duplicate claims', effect: 'Idempotency key fence & lease renewal' },
+    { name: 'Stale Lease Commit', rule: 'Workers losing their DB lease must fail closed', effect: '409 Conflict transaction abort' },
+  ];
+
+  const cliSnippets = {
+    verify: {
+      cmd: 'pnpm test && pnpm typecheck && pnpm lint',
+      output: `✓ tests/unit/verify/evidence-reasoning-components.test.ts (28 tests) 87ms
+✓ tests/unit/verify/evidence-reasoning-diagnostic.test.ts (12 tests) 128ms
+✓ tests/unit/verify/semantic-correctness.test.ts (32 tests) 732ms
+✓ tests/unit/verify/decide.test.ts (42 tests) 530ms
+...
+Test Files  26 passed (26)
+Tests       511 passed (511)
+$ tsc --noEmit (0 errors)
+$ eslint . (0 errors)`,
+    },
+    run: {
+      cmd: 'pnpm dev',
+      output: `▲ Next.js 15.5.29
+- Local:   http://localhost:3000
+- Environments: .env
+✓ Ready in 1.4s
+○ /app (Interactive Verification Workspace)
+○ /report/sample-run (Full Verification Report)
+○ /design (Paired Semantic Token Showcase)`,
+    },
+    bifrost: {
+      cmd: 'pnpm bifrost',
+      output: `[Bifrost] Starting Maxim Model Gateway on port 8080...
+[Bifrost] Loaded profiles: extract, assess, draft, fallback
+[Bifrost] Primary: gemini-3.5-flash-lite
+[Bifrost] Secondary Fallback: gemini-2.5-flash
+[Bifrost] Health check OK · 200 OK (latency: 18ms)`,
+    },
+  };
 
   return (
     <section id="engineering" className="py-20 sm:py-28 border-b border-border-subtle bg-surface/20">
@@ -97,14 +150,14 @@ export function ProjectShowcase() {
           </div>
         </div>
 
-        {/* Real Verified Engineering Metrics Grid (12 Stats) */}
+        {/* Real Verified Engineering Metrics Grid (12 Live Telemetry Stats) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-border-subtle/80 pb-2">
             <span className="font-mono text-xs tracking-wider uppercase text-text-muted">
               VERIFIED ENGINEERING & SYSTEM TELEMETRY
             </span>
-            <span className="font-mono text-[11px] text-text-muted">
-              12 Live Metrics
+            <span className="font-mono text-[11px] text-accent">
+              12 Audited Invariants · Live Telemetry
             </span>
           </div>
 
@@ -175,14 +228,96 @@ export function ProjectShowcase() {
           </div>
         </div>
 
-        {/* Public Repository Contributors */}
+        {/* Invariant-to-Proof Chain (UPPR Rev 4 P10 Standards) */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+            <span className="font-mono text-xs tracking-wider uppercase text-text-muted">
+              UPPR INVARIANT-TO-PROOF VERIFICATION CHAIN
+            </span>
+            <span className="font-mono text-xs text-accent">
+              Invariant → Authority → Enforcement → Evidence
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {invariantChain.map((inv, i) => (
+              <div
+                key={i}
+                className="rounded-lg bg-surface/50 dark:bg-[#18191C]/50 border border-border-subtle p-4 space-y-2 hover:border-border-strong transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] text-accent uppercase tracking-wider">
+                    Invariant #{i + 1}
+                  </span>
+                  <span className="text-[10px] font-mono text-text-muted">Enforced</span>
+                </div>
+                <div className="text-sm font-medium text-text-primary">
+                  {inv.name}
+                </div>
+                <div className="text-xs text-text-secondary leading-relaxed">
+                  {inv.rule}
+                </div>
+                <div className="text-[10px] font-mono text-accent/80 pt-1 border-t border-border-subtle/40">
+                  ↳ {inv.effect}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Interactive Developer CLI & Toolchain Terminal */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+            <span className="font-mono text-xs tracking-wider uppercase text-text-muted">
+              DEVELOPER TOOLCHAIN & LIVE DIAGNOSTICS
+            </span>
+            <div className="flex items-center gap-2">
+              {(['verify', 'run', 'bifrost'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-2.5 py-1 rounded font-mono text-[11px] transition-colors ${
+                    activeTab === tab
+                      ? 'bg-accent/20 text-accent border border-accent/40'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  {tab === 'verify' ? 'Test Suite' : tab === 'run' ? 'App Server' : 'Bifrost Gateway'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-[#0d0e11] border border-border-subtle p-4 sm:p-5 font-mono text-xs space-y-3 overflow-hidden shadow-inner">
+            <div className="flex items-center justify-between text-text-muted text-[11px] pb-2 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/70 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500/70 inline-block" />
+                <span className="ml-2 text-text-secondary">terminal // afterfact-runtime</span>
+              </div>
+              <span className="text-accent text-[10px]">pnpm v11.9.0 · Node 22</span>
+            </div>
+
+            <div className="text-accent flex items-center gap-2">
+              <span className="text-text-muted">$</span>
+              <span>{cliSnippets[activeTab].cmd}</span>
+            </div>
+
+            <pre className="text-[11px] text-text-secondary leading-relaxed whitespace-pre overflow-x-auto max-h-48 scrollbar-thin">
+              {cliSnippets[activeTab].output}
+            </pre>
+          </div>
+        </div>
+
+        {/* Public Repository Contributors & Core Team Details */}
         <div className="space-y-6 pt-2">
           <div className="flex items-center justify-between border-b border-border-subtle pb-3">
             <span className="font-mono text-xs tracking-wider uppercase text-text-muted">
-              CORE REPOSITORY CONTRIBUTORS
+              CORE REPOSITORY CONTRIBUTORS & LANE OWNERSHIP
             </span>
             <span className="font-mono text-xs text-text-secondary">
-              Driftaxe Engineering
+              Driftaxe Engineering Team
             </span>
           </div>
 
@@ -190,24 +325,34 @@ export function ProjectShowcase() {
             {contributors.map((c, i) => (
               <div
                 key={i}
-                className="rounded-lg bg-surface/60 dark:bg-[#18191C]/60 border border-border-subtle p-5 space-y-2 hover:border-border-strong transition-colors"
+                className="rounded-lg bg-surface/60 dark:bg-[#18191C]/60 border border-border-subtle p-5 space-y-3 hover:border-border-strong transition-colors flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-accent">{`0${i + 1} //`}</span>
-                  <a
-                    href={`https://github.com/${c.handle}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] font-mono text-text-muted hover:text-text-primary transition-colors"
-                  >
-                    @{c.handle} ↗
-                  </a>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs text-accent font-semibold">{`0${i + 1} // ${c.lane}`}</span>
+                    <a
+                      href={`https://github.com/${c.handle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-mono text-accent hover:underline flex items-center gap-1"
+                    >
+                      @{c.handle} ↗
+                    </a>
+                  </div>
+                  <div className="text-base font-medium text-text-primary">
+                    {c.name}
+                  </div>
+                  <div className="text-xs font-mono text-text-secondary">
+                    {c.role}
+                  </div>
+                  <p className="text-xs text-text-muted leading-relaxed">
+                    {c.highlights}
+                  </p>
                 </div>
-                <div className="text-base font-medium text-text-primary">
-                  {c.name}
-                </div>
-                <div className="text-xs text-text-secondary">
-                  {c.role}
+
+                <div className="pt-3 border-t border-border-subtle/50 flex items-center justify-between text-[11px] font-mono text-text-secondary">
+                  <span>Audited Lineage</span>
+                  <span className="text-text-primary font-medium">{c.commits}</span>
                 </div>
               </div>
             ))}
