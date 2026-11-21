@@ -13,18 +13,18 @@
 > *Afterfact dissects AI-generated content into atomic verifiable claims, queries authoritative live web evidence via Tavily, assesses candidate passages through the Maxim Bifrost gateway, and applies deterministic TypeScript policies to verify whether each claim is currently supported, outdated, contradicted, or context-dependent — with zero hallucinated citations.*
 
 <p align="center">
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15.5.29-black?logo=next.js" alt="Next.js 15" /></a>
-  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.0-blue?logo=react" alt="React 19" /></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7.3-3178c6?logo=typescript" alt="TypeScript 5.7" /></a>
-  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind-3.4.17-38bdf8?logo=tailwindcss" alt="Tailwind CSS" /></a>
-  <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-PostgreSQL_Serverless-00e599?logo=postgresql" alt="Neon PostgreSQL" /></a>
-  <a href="https://github.com/maximhq/bifrost"><img src="https://img.shields.io/badge/Bifrost-Maxim_Model_Gateway-7c3aed" alt="Bifrost Gateway" /></a>
-  <a href="https://upstash.com/docs/qstash"><img src="https://img.shields.io/badge/Upstash-QStash_v2-00e699" alt="Upstash QStash" /></a>
-  <a href="https://tavily.com/"><img src="https://img.shields.io/badge/Tavily-Search_%26_Extract-4f46e5" alt="Tavily Search" /></a>
-  <a href="https://vitest.dev/"><img src="https://img.shields.io/badge/Vitest-511_passed-success?logo=vitest" alt="Vitest 511 Passed" /></a>
-  <a href="https://playwright.dev/"><img src="https://img.shields.io/badge/Playwright-24_passed-success?logo=playwright" alt="Playwright 24 Passed" /></a>
-  <img src="https://img.shields.io/badge/Standard-UPPR_Revision_4-orange" alt="UPPR Standard" />
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15.5.29-111214?style=flat-square&logo=next.js&logoColor=white&labelColor=18191c" alt="Next.js 15" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.0-111214?style=flat-square&logo=react&logoColor=61dafb&labelColor=18191c" alt="React 19" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7.3-111214?style=flat-square&logo=typescript&logoColor=3178c6&labelColor=18191c" alt="TypeScript 5.7" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind-3.4.17-111214?style=flat-square&logo=tailwindcss&logoColor=38bdf8&labelColor=18191c" alt="Tailwind CSS" /></a>
+  <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-PostgreSQL-111214?style=flat-square&logo=postgresql&logoColor=00e599&labelColor=18191c" alt="Neon PostgreSQL" /></a>
+  <a href="https://github.com/maximhq/bifrost"><img src="https://img.shields.io/badge/Bifrost-Model_Gateway-111214?style=flat-square&logoColor=white&labelColor=18191c" alt="Bifrost Gateway" /></a>
+  <a href="https://upstash.com/docs/qstash"><img src="https://img.shields.io/badge/Upstash-QStash_v2-111214?style=flat-square&logoColor=00e699&labelColor=18191c" alt="Upstash QStash" /></a>
+  <a href="https://tavily.com/"><img src="https://img.shields.io/badge/Tavily-Search_%26_Extract-111214?style=flat-square&logoColor=white&labelColor=18191c" alt="Tavily Search" /></a>
+  <a href="https://vitest.dev/"><img src="https://img.shields.io/badge/Vitest-511_passed-111214?style=flat-square&logo=vitest&logoColor=729b1b&labelColor=18191c" alt="Vitest 511 Passed" /></a>
+  <a href="https://playwright.dev/"><img src="https://img.shields.io/badge/Playwright-24_passed-111214?style=flat-square&logo=playwright&logoColor=45ba4b&labelColor=18191c" alt="Playwright 24 Passed" /></a>
+  <img src="https://img.shields.io/badge/Standard-UPPR_Revision_4-111214?style=flat-square&labelColor=18191c" alt="UPPR Standard" />
+  <img src="https://img.shields.io/badge/License-MIT-111214?style=flat-square&labelColor=18191c" alt="MIT License" />
 </p>
 
 ---
@@ -264,32 +264,32 @@ Afterfact executes verification as an asynchronous, distributed Directed Acyclic
 
 ```mermaid
 flowchart TD
-    A[User Input: Text or Question] --> B[Preparation & Span Review]
-    B --> C[(Neon PostgreSQL)]
-    C <--> D[Upstash QStash Flow Queue]
-    D --> E[DAG Node Worker: /api/verify/worker]
-    E --> F[Bifrost Model Gateway]
-    E --> G[Tavily Search & Extract]
-    F --> H[Deterministic Verification Engine]
+    A["User Input: Text or Question"] --> B["Preparation & Span Review"]
+    B --> C[("Neon PostgreSQL Database")]
+    C --> D["Upstash QStash Flow Queue"]
+    D --> C
+    D --> E["DAG Node Worker: /api/verify/worker"]
+    E --> F["Bifrost Model Gateway"]
+    E --> G["Tavily Search & Extract"]
+    F --> H["Deterministic Verification Engine"]
     G --> H
-    H --> I[Decision Records & Outbox Events]
+    H --> I["Decision Records & Outbox Events"]
     I --> C
-    I --> J[Progressive SSE Stream / Polling]
-    J --> K[Responsive 55:45 Split Workspace]
+    I --> J["Progressive SSE Stream & Polling"]
+    J --> K["Responsive 55:45 Split Workspace"]
 ```
 
-```
-[ 5-Stage Persisted DAG Pipeline ]
-
-[root_extract_prep] ──► [plan_research] ──► [search_evidence] ──► [extract_evidence]
-                                                                        │
-  ┌─────────────────────────────────────────────────────────────────────┘
-  ▼
-[assess_evidence] ──► (Ambiguous?) ──► [clarification_wait] ──► [reassess_evidence]
-  │                                                                   │
-  └─────────────────────────────┬─────────────────────────────────────┘
-                                ▼
-                          [decide_claim] ──► [finalize_run]
+```mermaid
+flowchart LR
+    P1["1. root_extract_prep"] --> P2["2. plan_research"]
+    P2 --> P3["3. search_evidence"]
+    P3 --> P4["4. extract_evidence"]
+    P4 --> P5["5. assess_evidence"]
+    P5 --> P6["6. decide_claim"]
+    P6 --> P7["7. finalize_run"]
+    P5 -.->|"Ambiguity"| P8["clarification_wait"]
+    P8 -.-> P9["reassess_evidence"]
+    P9 -.-> P6
 ```
 
 ---
