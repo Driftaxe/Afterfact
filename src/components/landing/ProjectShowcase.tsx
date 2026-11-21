@@ -117,7 +117,7 @@ $ eslint . (0 errors)`,
   };
 
   return (
-    <section id="engineering" className="py-20 sm:py-28 border-b border-border-subtle bg-surface/20">
+    <section id="developers" className="scroll-mt-20 sm:scroll-mt-24 py-20 sm:py-28 border-b border-border-subtle bg-surface/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         
         {/* Header & GitHub Repository Link */}

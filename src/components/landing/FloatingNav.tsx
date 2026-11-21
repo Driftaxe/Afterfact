@@ -93,10 +93,10 @@ export function FloatingNav() {
                   HOW IT WORKS
                 </Link>
                 <Link
-                  href="/#evidence"
+                  href="/#developers"
                   className="hover:text-[var(--af-ivory)] dark:hover:text-[var(--af-ivory)] hover:text-text-primary transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                 >
-                  EVIDENCE
+                  DEVELOPERS
                 </Link>
               </div>
             </div>
@@ -208,11 +208,11 @@ export function FloatingNav() {
               <span>→</span>
             </Link>
             <Link
-              href="/#evidence"
+              href="/#developers"
               onClick={() => setMobileMenuOpen(false)}
               className="py-2 border-b border-border-subtle/50 hover:text-text-primary transition-colors flex justify-between items-center"
             >
-              <span>03 // EVIDENCE</span>
+              <span>03 // DEVELOPERS</span>
               <span>→</span>
             </Link>
             <Link

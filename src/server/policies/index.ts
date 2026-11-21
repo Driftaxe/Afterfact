@@ -157,7 +157,7 @@ export function evaluatePolicy(input: EvaluatePolicyInput): PolicyEvaluationResu
         policyId: 'generic',
         policyVersion: '1.0.0',
         propertyRoles: [],
-        authoritativeSourceRoles: ['primary_authority', 'regulatory_filing', 'official_changelog'],
+        authoritativeSourceRoles: ['primary_authority', 'regulatory_filing', 'official_changelog', 'reputable_secondary'],
       },
       authorityFacts: [],
       obligations: [],

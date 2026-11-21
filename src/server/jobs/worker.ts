@@ -28,6 +28,56 @@ const qstash = new Client({
   token: process.env.QSTASH_TOKEN || 'mock_token',
 });
 
+function inferDocumentSourceRole(
+  url: string,
+  publisher?: string | null
+): 'primary_authority' | 'regulatory_filing' | 'official_changelog' | 'reputable_secondary' {
+  const u = (url || '').toLowerCase();
+  const p = (publisher || '').toLowerCase();
+
+  if (
+    u.includes('sec.gov') ||
+    u.includes('edgar') ||
+    u.includes('legislation.gov') ||
+    u.includes('eur-lex.europa.eu') ||
+    p.includes('securities and exchange commission')
+  ) {
+    return 'regulatory_filing';
+  }
+  if (
+    u.includes('/changelog') ||
+    u.includes('/releases') ||
+    (u.includes('github.com') && u.includes('/releases'))
+  ) {
+    return 'official_changelog';
+  }
+  if (
+    u.includes('wikipedia.org') ||
+    u.includes('britannica.com') ||
+    u.includes('reuters.com') ||
+    u.includes('apnews.com') ||
+    u.includes('bloomberg.com') ||
+    u.includes('nytimes.com') ||
+    u.includes('bbc.com') ||
+    u.includes('washingtonpost.com') ||
+    u.includes('wsj.com') ||
+    u.includes('theguardian.com') ||
+    u.includes('cnn.com') ||
+    u.includes('politico.com') ||
+    u.includes('nbcnews.com') ||
+    p.includes('wikipedia') ||
+    p.includes('reuters') ||
+    p.includes('associated press') ||
+    p.includes('encyclopedia')
+  ) {
+    return 'reputable_secondary';
+  }
+  if (u.includes('.gov') || u.includes('.edu') || u.includes('docs.') || u.includes('/docs')) {
+    return 'primary_authority';
+  }
+  return 'reputable_secondary';
+}
+
 /**
  * Dispatches a DAG node to QStash worker endpoint.
  * Enforces Bounded Concurrency: max 3 leased claim nodes per run.
@@ -429,7 +479,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 title: d.title,
                 publisher: d.publisher,
                 contentHash: d.contentHash,
-                sourceRole: 'primary_authority',
+                sourceRole: inferDocumentSourceRole(d.url, d.publisher),
                 rawContent: d.rawContent,
               },
             });
@@ -608,7 +658,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   retrievedAt: doc.retrievedAt?.toISOString() ?? new Date().toISOString(),
                   rawText: doc.rawContent ?? doc.title ?? '',
                   extractionStatus: 'success',
-                  sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? 'primary_authority',
+                  sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? inferDocumentSourceRole(doc.url, doc.publisher),
                   effectiveDate: docEffectiveDate,
                 });
               }
@@ -888,7 +938,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   retrievedAt: doc.retrievedAt?.toISOString() ?? new Date().toISOString(),
                   rawText: doc.rawContent ?? doc.title ?? '',
                   extractionStatus: 'success',
-                  sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? 'primary_authority',
+                  sourceRole: (doc.sourceRole as SourceDocument['sourceRole']) ?? inferDocumentSourceRole(doc.url, doc.publisher),
                   effectiveDate: docEffectiveDate,
                 });
               }
@@ -916,26 +966,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
             const contractSourceDocuments = Array.from(sourceDocMap.values());
 
-            // Build provenance facts for all retrieved source documents to establish authority
-            const provenanceMap: Record<string, ProvenanceFact> = {};
-            for (const doc of contractSourceDocuments) {
-              const isPrimary =
-                doc.sourceRole === 'primary_authority' ||
-                doc.sourceRole === 'regulatory_filing' ||
-                doc.sourceRole === 'official_changelog';
-
-              provenanceMap[doc.documentId] = {
-                documentId: doc.documentId,
-                claimId: ticket.claimId,
-                revision: ticket.revision,
-                basis: isPrimary ? 'official_primary_record' : 'independent_secondary_report',
-                entityMatch: true,
-                claimApplicability: 'applicable',
-                isIndependentSecondary: !isPrimary,
-              };
-            }
-
-            // DEF-001: Partition strictly by explicit semantic role without key-name fallback
+            // 1. Semantic intent facts and property partition
             const scopeQualifierKeys = ticket.verificationContext
               .filter((p) => p.role === 'scope_qualifier')
               .map((p) => p.key);
@@ -951,34 +982,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               scopeQualifierKeys,
             };
 
-            // 2. Policy Evaluation across Specialized Domains (Pricing, API, Regulation, Leadership, Generic)
-            const policyResult = evaluatePolicy({
-              ticket,
-              documents: contractSourceDocuments,
-              provenanceMap,
-              semanticFacts,
-            });
-
-            // Protocol C: Clarification Pause if questions planned and not already answered
-            if (policyResult.clarification.status === 'questions_planned' && !answeredClarification) {
-              const pendingClarification = await db.clarification.findFirst({
-                where: { runId, claimId, status: 'pending' },
-              });
-              if (!pendingClarification) {
-                const firstQ = policyResult.clarification.questionSet.questions[0];
-                await ClarificationService.pauseForClarification({
-                  runId,
-                  nodeId,
-                  claimId,
-                  questionText: firstQ?.prompt ?? 'Material context required to verify claim.',
-                  questionDefinition: policyResult.clarification.questionSet as unknown as Prisma.InputJsonValue,
-                  options: firstQ?.options?.map((o) => o.label ?? o.value),
-                });
-              }
-              return; // Halt branch without committing completion
-            }
-
-            // 3. Assemble typed DecideClaimInput
+            // 2. Assemble typed DecideClaimInput assessments
             const contractAssessments: ClaimEvidenceAssessment[] = claim.assessments.map((a) => {
               const rel = (a.relationship as ClaimEvidenceAssessment['relationship']) ?? 'supports';
               const temp = (a.temporalApplicability as ClaimEvidenceAssessment['temporalApplicability']) ?? 'active_at_target_time';
@@ -1048,6 +1052,64 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 reasoning: a.reasoning ?? a.rationale ?? 'Evidence assessment',
               };
             });
+
+            // 3. Build provenance facts for all retrieved source documents to establish authority
+            const provenanceMap: Record<string, ProvenanceFact> = {};
+            for (const doc of contractSourceDocuments) {
+              const docAssessments = contractAssessments.filter((a) => {
+                const u = contractEvidenceUnits.find((unit) => unit.evidenceId === a.evidenceId);
+                return u?.documentId === doc.documentId;
+              });
+              const isSecondaryAssessment = docAssessments.some(
+                (a) => a.sourceSuitability === 'credible_secondary'
+              );
+
+              if (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary') {
+                doc.sourceRole = 'reputable_secondary';
+              }
+
+              const isPrimary =
+                doc.sourceRole === 'primary_authority' ||
+                doc.sourceRole === 'regulatory_filing' ||
+                doc.sourceRole === 'official_changelog';
+
+              provenanceMap[doc.documentId] = {
+                documentId: doc.documentId,
+                claimId: ticket.claimId,
+                revision: ticket.revision,
+                basis: isPrimary ? 'official_primary_record' : 'independent_secondary_report',
+                entityMatch: true,
+                claimApplicability: 'applicable',
+                isIndependentSecondary: !isPrimary,
+              };
+            }
+
+            // 4. Policy Evaluation across Specialized Domains (Pricing, API, Regulation, Leadership, Generic)
+            const policyResult = evaluatePolicy({
+              ticket,
+              documents: contractSourceDocuments,
+              provenanceMap,
+              semanticFacts,
+            });
+
+            // Protocol C: Clarification Pause if questions planned and not already answered
+            if (policyResult.clarification.status === 'questions_planned' && !answeredClarification) {
+              const pendingClarification = await db.clarification.findFirst({
+                where: { runId, claimId, status: 'pending' },
+              });
+              if (!pendingClarification) {
+                const firstQ = policyResult.clarification.questionSet.questions[0];
+                await ClarificationService.pauseForClarification({
+                  runId,
+                  nodeId,
+                  claimId,
+                  questionText: firstQ?.prompt ?? 'Material context required to verify claim.',
+                  questionDefinition: policyResult.clarification.questionSet as unknown as Prisma.InputJsonValue,
+                  options: firstQ?.options?.map((o) => o.label ?? o.value),
+                });
+              }
+              return; // Halt branch without committing completion
+            }
 
             const inferenceOutcome = await synthesizeGeneralInference({
               ticket,
