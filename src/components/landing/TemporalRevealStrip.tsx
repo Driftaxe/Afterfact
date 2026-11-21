@@ -222,6 +222,35 @@ export function TemporalRevealStrip({
     }
   };
 
+  const handleLensPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    isPointerDownRef.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+    handlePointerMovement(e.clientX);
+  };
+
+  const handleLensPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPointerDownRef.current && !e.buttons) return;
+    handlePointerMovement(e.clientX);
+  };
+
+  const handleLensPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    isPointerDownRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+    if (undercutPercent >= 85) {
+      completeInspection();
+    }
+  };
+
   // Keyboard accessibility
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -307,8 +336,15 @@ export function TemporalRevealStrip({
                 {!isCompleted && (
                   <div
                     ref={lensRef}
-                    className="absolute top-1/2 -translate-y-1/2 -left-6 pointer-events-none z-30 transition-transform duration-75 ease-out"
-                    style={{ willChange: 'transform' }}
+                    onPointerDown={handleLensPointerDown}
+                    onPointerMove={handleLensPointerMove}
+                    onPointerUp={handleLensPointerUp}
+                    onPointerCancel={handleLensPointerUp}
+                    className="absolute top-1/2 -translate-y-1/2 -left-6 pointer-events-auto cursor-grab active:cursor-grabbing z-30 transition-transform duration-75 ease-out select-none"
+                    style={{ willChange: 'transform', touchAction: 'none' }}
+                    role="slider"
+                    aria-valuenow={undercutPercent}
+                    aria-label="Draggable verification lens"
                   >
                     <div className="relative group/lens">
                       {/* Optical Circular Body: 48px - 52px */}
@@ -357,6 +393,14 @@ export function TemporalRevealStrip({
 
                       {/* Precision Loupe Grip Pin */}
                       <div className="absolute -bottom-1 -right-0.5 w-1.5 h-3.5 rounded-full bg-gradient-to-b from-[#AAA1A6] to-[#2B292C] border border-white/20 shadow-xs rotate-[-35deg]" />
+
+                      {/* Small 'drag right →' indicator badge */}
+                      {undercutPercent < 15 && (
+                        <span className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider uppercase text-text-muted bg-surface/95 border border-border-subtle shadow-md pointer-events-none animate-pulse flex items-center gap-1">
+                          <span>drag right</span>
+                          <span className="text-accent font-semibold">→</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}

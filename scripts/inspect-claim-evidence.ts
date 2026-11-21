@@ -11,11 +11,7 @@ async function main() {
     include: {
       assessments: {
         include: {
-          evidenceUnit: {
-            include: {
-              document: true,
-            },
-          },
+          evidenceUnit: true,
         },
       },
     },
@@ -32,7 +28,7 @@ async function main() {
     console.log(`Assessments (${c.assessments.length}):`);
     for (const a of c.assessments) {
       console.log(`  - Assessment ID: ${a.id}`);
-      console.log(`    URL: ${a.evidenceUnit.document?.url}`);
+      console.log(`    Document ID: ${a.evidenceUnit.documentId}`);
       console.log(`    Relationship: ${a.relationship} | Confidence: ${a.confidence}`);
       console.log(`    Temporal: ${a.temporalApplicability} | QuotationVerified: ${a.quotationVerified}`);
       console.log(`    Reasoning: ${a.reasoning}`);

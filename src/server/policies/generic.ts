@@ -100,6 +100,7 @@ export class GenericPolicy implements DomainPolicyModule {
         'primary_authority',
         'regulatory_filing',
         'official_changelog',
+        'reputable_secondary',
       ],
     };
   }
