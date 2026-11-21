@@ -107,10 +107,46 @@ function inferDocumentSourceRole(
     u.includes('politico.com') ||
     u.includes('nbcnews.com') ||
     u.includes('ft.com') ||
+    u.includes('timesofindia.indiatimes.com') ||
+    u.includes('economictimes.indiatimes.com') ||
+    u.includes('indiatimes.com') ||
+    u.includes('deccanherald.com') ||
+    u.includes('thehindu.com') ||
+    u.includes('hindustantimes.com') ||
+    u.includes('indianexpress.com') ||
+    u.includes('livemint.com') ||
+    u.includes('moneycontrol.com') ||
+    u.includes('ndtv.com') ||
+    u.includes('business-standard.com') ||
+    u.includes('lemonde.fr') ||
+    u.includes('spiegel.de') ||
+    u.includes('elpais.com') ||
+    u.includes('asahi.com') ||
+    u.includes('japantimes.co.jp') ||
+    u.includes('scmp.com') ||
+    u.includes('smh.com.au') ||
+    u.includes('theglobeandmail.com') ||
+    u.includes('afp.com') ||
+    u.includes('upi.com') ||
+    u.includes('dw.com') ||
+    u.includes('aljazeera.com') ||
+    u.includes('france24.com') ||
     p.includes('wikipedia') ||
     p.includes('reuters') ||
     p.includes('associated press') ||
-    p.includes('encyclopedia')
+    p.includes('encyclopedia') ||
+    p.includes('times of india') ||
+    p.includes('deccan herald') ||
+    p.includes('economic times') ||
+    p.includes('the hindu') ||
+    p.includes('hindustan times') ||
+    p.includes('indian express') ||
+    p.includes('moneycontrol') ||
+    p.includes('livemint') ||
+    p.includes('ndtv') ||
+    p.includes('business standard') ||
+    p.includes('agence france-presse') ||
+    p.includes('deutsche welle')
   ) {
     return 'reputable_secondary';
   }
@@ -745,6 +781,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
               if (outcome.status === 'success' && outcome.assessments.length > 0) {
                 assessmentsToStore = outcome.assessments;
+              } else if (outcome.status === 'error') {
+                console.warn(`[assess_evidence] Model assessment returned error for claim ${ticket.ticketId}:`, outcome.error);
               }
             } catch (err) {
               console.warn('[assess_evidence] Semantic assessment failed, using grounded fallback:', err);
@@ -760,14 +798,18 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 const mismatched: string[] = [];
                 const matching: string[] = [];
 
-                if (
+                const isMarriageMutualExclusion =
                   (claimProp.includes('wife') || claimProp.includes('husband') || claimProp.includes('married') || claimProp.includes('spouse')) &&
-                  (passageText.includes('married') || passageText.includes('spouse') || passageText.includes('bachelor') || passageText.includes('never married') || passageText.includes('partner'))
-                ) {
-                  // Mutual exclusion: establishes marriage to someone else or bachelor status
+                  (passageText.includes('married') || passageText.includes('spouse') || passageText.includes('bachelor') || passageText.includes('never married') || passageText.includes('partner'));
+
+                const isFlatVsFormulaConflict =
+                  /\b(flat|fixed|regardless of|uniform)\b/i.test(claimProp) &&
+                  /\b(calculated based on|depreciated valuation|invoice and on age|based on invoice|tiered|formula)\b/i.test(passageText);
+
+                if (isMarriageMutualExclusion || isFlatVsFormulaConflict) {
                   rel = 'contradicts';
                   temporal = 'active_at_target_time';
-                  mismatched.push('asserted_attribute');
+                  mismatched.push(isFlatVsFormulaConflict ? 'fee_structure' : 'asserted_attribute');
                   for (const p of ticket.verificationContext) {
                     if (
                       p.key === 'asOfDate' ||
@@ -794,7 +836,9 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   modelConfidence: rel === 'contradicts' ? 0.95 : 0.2,
                   reasoning:
                     rel === 'contradicts'
-                      ? 'Retrieved passage provides mutual exclusion evidence regarding marriage or marital status.'
+                      ? (isFlatVsFormulaConflict
+                          ? 'Retrieved passage provides direct formulaic conflict refuting asserted flat fee structure.'
+                          : 'Retrieved passage provides mutual exclusion evidence regarding marriage or marital status.')
                       : 'Grounded passage was retrieved but semantic relationship is inconclusive.',
                 });
               }

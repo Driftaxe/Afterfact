@@ -95,6 +95,14 @@ export class RegulationPolicy implements DomainPolicyModule {
       // Essentiality rules
       if (explicitOptional.has(prop.key)) {
         required = false;
+      } else if (
+        prop.key === 'currency' ||
+        prop.key === 'units' ||
+        prop.key === 'unit' ||
+        prop.key === 'format'
+      ) {
+        // Auxiliary format/currency qualifier: should not block scope when evaluating statutory formula
+        required = false;
       } else if (prop.key === 'jurisdiction') {
         // Jurisdiction is essential to determine legal applicability
         required = true;

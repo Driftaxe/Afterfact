@@ -285,8 +285,24 @@ export async function generateResearchPlan(
         .replace(/\s+/g, ' ')
         .trim();
 
+      let sovereignTarget = '';
+      const jurProp = ticket.verificationContext.find(
+        (p) => p.key === 'jurisdiction' || p.key === 'country'
+      )?.value;
+      const jurStr = typeof jurProp === 'string' ? jurProp.toLowerCase() : '';
+
+      if (jurStr === 'in' || jurStr.includes('india')) {
+        sovereignTarget = 'official rules gazette gov.in';
+      } else if (jurStr === 'us' || jurStr.includes('united states')) {
+        sovereignTarget = 'official statutory code site:gov';
+      } else if (jurStr === 'uk' || jurStr.includes('united kingdom')) {
+        sovereignTarget = 'legislation site:gov.uk';
+      } else if (jurStr === 'eu' || jurStr.includes('european union')) {
+        sovereignTarget = 'directive site:europa.eu';
+      }
+
       const canonicalSuffix = ticket.domain === 'regulation'
-        ? 'calculation rule statute'
+        ? (sovereignTarget ? `calculation rule statute ${sovereignTarget}` : 'calculation rule statute')
         : 'pricing structure calculation';
 
       const adaptedQuery = `${strippedQuery} ${canonicalSuffix}`.slice(0, MAX_QUERY_LENGTH).trim();
