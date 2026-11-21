@@ -212,9 +212,11 @@ erDiagram
 - `id` (VARCHAR(36), PK): Claim ID (`clm_...`).
 - `runId` (VARCHAR(36), NOT NULL, REFERENCES `runs(id)` ON DELETE CASCADE).
 - `ordinal` (INT, NOT NULL): Zero-indexed order of appearance in source text.
-- `spec` (JSONB, NOT NULL): Normalized `ClaimTicket` shape containing `originalStatement`, `normalizedProposition`, `sourceSpan` (UTF-16 start/end), and `verificationContext` (array of `VerificationProperty`).
+- `spec` (JSONB, NOT NULL): Normalized `ClaimTicket` shape containing `originalStatement`, `normalizedProposition`, `sourceSpan` (UTF-16 start/end), `verificationContext` (array of `VerificationProperty`), and optional compound reasoning fields:
+  - `components` (Array of `ClaimComponent`: `id`, `statement`, `normalizedProposition`, `role`): Decomposed atomic sub-propositions for compound or multi-actor assertions.
+  - `relationships` (Array of `ClaimRelationship`: `sourceComponentId`, `targetComponentId`, `type: 'entailment' | 'conjunction' | 'temporal_precedence' | 'attribution'`): First-order logic relationships between sub-components.
 - `decisionRecordId` (VARCHAR(36), NULL, REFERENCES `decision_records(id)` ON DELETE SET NULL).
-- `result` (JSONB, NULL): Verdict, score, scoreReason, reasonCode, timeline chronology, correction diff.
+- `result` (JSONB, NULL): Verdict, score, scoreReason, reasonCode, timeline chronology, correction diff, and synthesized cross-evidence `inferredBundles`.
 - `state` (VARCHAR(16), NOT NULL): `'pending'` | `'researching'` | `'assessed'` | `'failed'`.
 - **Constraints & Indexes:**
   - `UNIQUE (runId, ordinal)`: Enforces ordinal uniqueness.
@@ -257,6 +259,7 @@ erDiagram
 - `propertyMatchStatus` (JSONB, NOT NULL): `{ matching: [], mismatched: [], missingInEvidence: [] }`.
 - `temporalApplicability` (VARCHAR(32), NOT NULL): `'active_at_target_time'` | `'historical_prior'` | `'future_pending'` | `'undetermined'`.
 - `sourceSuitability` (VARCHAR(32), NOT NULL): `'authoritative_primary'` | `'credible_secondary'` | `'insufficient_authority'`.
+- `componentId` (VARCHAR(32), NULL): Optional sub-component identifier (`c1`, `c2`) targeted by this assessment.
 - `reasoning` (TEXT, NOT NULL): Epistemic justification for this relationship.
 - **Constraints & Indexes:**
   - `UNIQUE (claimId, evidenceUnitId, claimRevision)`: Uniqueness per claim revision and evidence unit.
@@ -271,6 +274,8 @@ erDiagram
 - `score` (INT, NULL): Categorical rubric (`100` | `75` | `0` | `NULL`).
 - `reasonCode` (VARCHAR(48), NOT NULL): Canonical reason code.
 - `scoreReason` (TEXT, NOT NULL): Detailed justification paragraph.
+- `components` (JSONB, NULL): Evaluated sub-components snapshot.
+- `inferredBundles` (JSONB, NULL): Synthesized pairwise cross-document inferences (`InferenceBundle[]`).
 - `primaryEvidenceIds` (JSONB, NOT NULL): IDs of assessments that directly granted verdict.
 - `counterEvidenceIds` (JSONB, NOT NULL): IDs of counterevidence assessments evaluated.
 - `excludedEvidence` (JSONB, NOT NULL): Array of `{ evidenceId, exclusionReason }`.

@@ -25,6 +25,20 @@ export interface ClaimClarificationContext {
   questions: ClarificationQuestion[];
 }
 
+interface DisplayComponent {
+  id: string;
+  statement: string;
+  normalizedProposition?: string;
+  role?: string;
+}
+
+interface DisplayInferredBundle {
+  bundleId: string;
+  conclusion: string;
+  relationship: string;
+  rationale: string;
+}
+
 export interface ClaimDetailProps {
   claim: ClaimResultItem | null;
   evidenceMap: Map<string, EvidenceItem>;
@@ -496,6 +510,68 @@ export function ClaimDetail({
                   </span>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Decomposed Sub-Components for Compound Claims */}
+        {Array.isArray(claim.components) && claim.components.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-muted">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-accent)]" />
+              <span>Decomposed Components ({claim.components.length})</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {(claim.components as DisplayComponent[]).map((comp, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 rounded-lg bg-surface-raised/60 border border-border-subtle/70 text-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-accent font-semibold">
+                      [{comp.id.toUpperCase()}]
+                    </span>
+                    {comp.role && (
+                      <span className="text-[9px] font-mono text-text-muted uppercase">
+                        {comp.role}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-medium text-text-primary text-[11px] leading-relaxed">
+                    {comp.normalizedProposition || comp.statement}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Synthesized Cross-Evidence Inferences */}
+        {Array.isArray(claim.inferredBundles) && claim.inferredBundles.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-muted">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Cross-Evidence Joint Inferences</span>
+            </div>
+            <div className="space-y-2">
+              {(claim.inferredBundles as DisplayInferredBundle[]).map((bundle, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-emerald-400 font-semibold uppercase">
+                      Joint Inference ({bundle.relationship})
+                    </span>
+                  </div>
+                  <p className="font-medium text-text-primary text-[11px] leading-relaxed">
+                    {bundle.conclusion}
+                  </p>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">
+                    {bundle.rationale}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         )}

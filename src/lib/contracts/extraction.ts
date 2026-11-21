@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { MAX_PASTE_LENGTH, SharedContextSchema } from './request';
-import { ClaimTicketSchema, PropertyTypeSchema } from './claim-ticket';
+import {
+  ClaimComponentSchema,
+  ClaimRelationshipSchema,
+  ClaimTicketSchema,
+  PropertyTypeSchema,
+} from './claim-ticket';
 import { TimeSensitivitySchema } from './claim';
 
 /**
@@ -119,6 +124,8 @@ export const RawExtractedClaimSchema = z.object({
   explicitQualifiers: z.array(RawExtractedQualifierSchema).default([]),
   inferredQualifiers: z.array(RawInferredQualifierSchema).default([]),
   missingMaterialQualifiers: z.array(z.string()).default([]),
+  components: z.array(ClaimComponentSchema).optional(),
+  relationships: z.array(ClaimRelationshipSchema).optional(),
 });
 export type RawExtractedClaim = z.infer<typeof RawExtractedClaimSchema>;
 

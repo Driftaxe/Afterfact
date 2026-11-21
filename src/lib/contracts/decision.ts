@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ClaimComponentSchema,
   ClaimTicket,
   ClaimTicketSchema,
   VerificationPropertySchema,
@@ -268,6 +269,29 @@ export const TransitionProofSchema = z.object({
 export type TransitionProof = z.infer<typeof TransitionProofSchema>;
 
 /**
+ * Cross-evidence inference bundle synthesizing complementary evidence units.
+ */
+export const InferenceBundleSchema = z.object({
+  bundleId: z.string().min(1, { message: 'Bundle ID is required' }),
+  claimTicketId: z.string().min(1, { message: 'Claim ticket ID is required' }),
+  componentId: z.string().optional(),
+  evidenceIds: z.array(z.string().min(1)).min(1).max(4),
+  premises: z.array(
+    z.object({
+      evidenceId: z.string().min(1),
+      premiseText: z.string().min(1),
+    })
+  ),
+  conclusion: z.string().min(1),
+  relationship: z.enum(['supports', 'contradicts']),
+  rationale: z.string().min(1),
+  limitations: z.array(z.string()).default([]),
+  assumptionsOrGaps: z.array(z.string()).optional(),
+  validated: z.boolean().optional(),
+});
+export type InferenceBundle = z.infer<typeof InferenceBundleSchema>;
+
+/**
  * Material research obligations still outstanding. `researchComplete` is an
  * explicit assertion by the trusted caller; it is never inferred from the
  * presence of evidence.
@@ -374,6 +398,7 @@ export const DecideClaimInputSchema = z.object({
   evidenceTemporalProofs: z.array(EvidenceTemporalProofSchema).default([]),
   sourceAuthority: z.array(SourceAuthorityFactSchema).default([]),
   transitions: z.array(TransitionProofSchema).default([]),
+  inferenceBundles: z.array(InferenceBundleSchema).optional(),
   coverage: DecisionCoverageSchema,
   policy: DecisionPolicySchema.default({
     policyId: 'generic',
@@ -408,6 +433,8 @@ export const DecisionRecordSchema = z
     counterEvidenceIds: z.array(z.string()).default([]),
     excludedEvidence: z.array(ExcludedEvidenceItemSchema).default([]),
     extractedQualifiers: z.array(VerificationPropertySchema).default([]),
+    components: z.array(ClaimComponentSchema).optional(),
+    inferredBundles: z.array(InferenceBundleSchema).optional(),
     temporalBasis: TemporalBasisSchema,
     limitations: z.array(z.string()).default([]),
     traceIds: DecisionTraceIdsSchema.default({}),

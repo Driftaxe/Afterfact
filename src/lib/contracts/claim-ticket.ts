@@ -167,8 +167,47 @@ export const VerificationPropertySchema = z
 export type VerificationProperty = z.infer<typeof VerificationPropertySchema>;
 
 /**
+ * Sub-component necessity in compound proposition evaluation.
+ */
+export const ComponentNecessitySchema = z.enum(['necessary', 'incidental']);
+export type ComponentNecessity = z.infer<typeof ComponentNecessitySchema>;
+
+/**
+ * Sub-component proposition of a compound claim ticket.
+ */
+export const ClaimComponentSchema = z.object({
+  id: z.string().min(1, { message: 'Component ID is required' }),
+  statement: z.string().min(1, { message: 'Component statement cannot be empty' }),
+  normalizedProposition: z.string().min(1, { message: 'Component normalized proposition cannot be empty' }),
+  role: ContextPropertyRoleSchema.optional(),
+  necessity: ComponentNecessitySchema.optional(),
+  sourceSpan: ClaimSpanSchema.nullable().optional(),
+});
+export type ClaimComponent = z.infer<typeof ClaimComponentSchema>;
+
+export const ClaimRelationshipTypeSchema = z.enum([
+  'conjunction',
+  'entailment',
+  'temporal_precedence',
+  'attribution',
+]);
+export type ClaimRelationshipType = z.infer<typeof ClaimRelationshipTypeSchema>;
+
+/**
+ * Logical relationship between components or between component and parent claim.
+ */
+export const ClaimRelationshipSchema = z.object({
+  type: ClaimRelationshipTypeSchema,
+  sourceId: z.string().min(1, { message: 'Relationship sourceId is required' }),
+  targetId: z.string().min(1, { message: 'Relationship targetId is required' }),
+  rationale: z.string().optional(),
+});
+export type ClaimRelationship = z.infer<typeof ClaimRelationshipSchema>;
+
+/**
  * Universal Claim Ticket Schema.
- * Represents an atomic factual proposition carrying variable, typed context properties.
+ * Represents an atomic factual proposition carrying variable, typed context properties,
+ * with optional compound decomposition components and relational semantics.
  */
 export const ClaimTicketSchema = z.object({
   ticketId: z.string().min(1, { message: 'Ticket ID is required' }),
@@ -189,6 +228,8 @@ export const ClaimTicketSchema = z.object({
   verificationContext: z.array(VerificationPropertySchema).default([]),
   searchContext: z.record(z.string(), PropertyValueSchema).nullable().optional(),
   missingMaterialContext: z.array(z.string()).default([]),
+  components: z.array(ClaimComponentSchema).optional(),
+  relationships: z.array(ClaimRelationshipSchema).optional(),
 });
 
 export type ClaimTicket = z.infer<typeof ClaimTicketSchema>;

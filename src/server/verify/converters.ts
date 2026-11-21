@@ -6,20 +6,17 @@ import {
 } from '@/lib/contracts/claim-ticket';
 import {
   ClaimEvidenceAssessment,
-  ClaimEvidenceAssessmentSchema,
   EvidenceUnit,
-  EvidenceUnitSchema,
   SourceDocument,
-  SourceDocumentSchema,
 } from '@/lib/contracts/evidence-objects';
 import {
   DecideClaimInput,
   DecideClaimInputSchema,
   EvidenceTemporalProof,
-  DecisionPolicy,
   SourceAuthorityFact,
   DecisionCoverage,
   AssessmentGrounding,
+  InferenceBundle,
 } from '@/lib/contracts/decision';
 import { isValidCalendarDate, isValidIsoTimestamp } from '@/lib/contracts/dates';
 import { parseDateToInterval } from './temporal';
@@ -194,6 +191,8 @@ export function toCanonicalClaimTicket(claimRow: ClaimRowData): ClaimTicket {
     targetTime,
     verificationContext: canonicalContext,
     missingMaterialContext,
+    components: Array.isArray(spec.components) ? (spec.components as ClaimTicket['components']) : [],
+    relationships: Array.isArray(spec.relationships) ? (spec.relationships as ClaimTicket['relationships']) : [],
   };
 
   return ClaimTicketSchema.parse(candidateTicket);
@@ -205,6 +204,7 @@ export interface BuildDecideClaimInputParams {
   contractEvidenceUnits: EvidenceUnit[];
   contractSourceDocuments: SourceDocument[];
   policyResult: PolicyEvaluationResult;
+  inferenceBundles?: InferenceBundle[];
   runId: string;
   nodeId: string;
 }
@@ -338,6 +338,7 @@ export function buildDecideClaimInput(params: BuildDecideClaimInputParams): Deci
     evidenceTemporalProofs,
     sourceAuthority,
     transitions: [],
+    inferenceBundles: params.inferenceBundles ?? [],
     coverage,
     policy: policyResult.policy,
     decidedAt: new Date().toISOString(),

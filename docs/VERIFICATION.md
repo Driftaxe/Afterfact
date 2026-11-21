@@ -573,3 +573,53 @@ Verification stages map directly to concrete nodes within the persisted Directed
 | **P4** | **Semantic Assessment** | ClaimTicket + top candidate `EvidenceUnit[]` | `ClaimEvidenceAssessment[]` with quotes & temporal tags | `assess_evidence` | 15s / 1 retry | Yes |
 | **P5** | **Targeted Reassessment** | Clarified property + secondary excerpts | Refined `ClaimEvidenceAssessment[]` | `reassess_evidence` | 12s / 1 retry | Yes |
 | **P6** | **Correction & Verification** | Contradicted claim + authoritative excerpts | Replacement phrase + validated verification pass | `decide_claim` | 10s / 1 retry | Yes |
+
+---
+
+## 11. Grounded Evidence Reasoning, Claim Relationships & Bounded Synthesis
+
+### 11.1 Compound Claim Decomposition & Relational Semantics
+Compound assertions containing multiple conditions or an event plus a secondary actor/discovery circumstance (e.g. *"Salman Khan was found dead by Puneet Superstar"*) are decomposed into atomic sub-components carrying formal relationships:
+- **`components`**: List of atomic sub-propositions (`id`, `statement`, `normalizedProposition`, `role`).
+  - Example: `c1` (*"Salman Khan was found dead"*), `c2` (*"by Puneet Superstar"*).
+- **`relationships`**: Formal propositional edges:
+  - **`conjunction`**: Both sub-assertions must hold for the compound assertion to be true ($c_1 \wedge c_2$).
+  - **`entailment`**: Sub-assertion $c_2$ presupposes or entails $c_1$ ($c_2 \implies c_1$).
+Simple atomic claims omit components (`components: []`, `relationships: []`) and preserve the direct single-claim verification path.
+
+### 11.2 Component-Aware Research Planning & Falsification
+- Research planners inspect `ticket.components` to formulate queries targeting foundational components independently (e.g. `"Salman Khan" alive OR death status OR latest news 2026`) without coupling secondary actors into every search term.
+- `requiresCounterevidencePolicy` mandates counterevidence queries for death, fatal life-event, and arrest assertions.
+- The worker allows up to 4 search queries for compound claims so that independent component queries are not starved by monolithic parent queries.
+
+### 11.3 Ontological Mutual Exclusion & Component Refutation
+- **Ontological Mutual Exclusion:** $\text{Alive}(X) \perp \text{Dead}(X)$. Contemporaneous proof that entity $X$ is alive, attending public events, giving interviews, or filming at or near the target timeframe directly **`contradicts`** a death assertion for $X$ under `scopeMatching: 'match'`.
+- **Necessary Component Refutation:** Proof refuting a foundational component (Component $c_1$) directly contradicts that component and the parent conjunction, even if secondary actors are completely absent from the retrieved excerpt.
+- **Strict Actor Non-Conflation:** Activities of secondary actors (e.g. Puneet Superstar posting videos) do NOT establish the status of the primary subject (Salman Khan).
+
+### 11.4 Bounded Evidence Inference Synthesizer (Fast & General Paths)
+- Implemented as deterministic and model-assisted modules in `src/server/verify/inference-synthesizer.ts`:
+  1. `synthesizeBoundedInference()`: Pure deterministic fast path for release succession, event attendance + date anchor, universal counterexamples, single-passage paraphrases, and complementary components.
+  2. `synthesizeGeneralInference()`: Generalized semantic synthesis path with candidate pooling (capped at $\le 4$ candidates per bundle, maximum 3 bundles per claim), batched model proposal generation via Bifrost gateway, bounded model repair (`executeBoundedModelRepair`), and strict semantic validation pass (`validateInferenceBundle`).
+- **Strict Bounding & Validation:**
+  - Emits bundles containing 1 to 4 complementary evidence units (`evidenceIds.min(1).max(4)`).
+  - Enforces verified quotation grounding, acceptable source authority, and non-duplicate sources.
+  - Enforces strict actor non-conflation: "A fact about B establishes a fact about A only when a grounded relationship justifies that inference."
+  - Enforces temporal applicability constraints: appearance before an alleged event date cannot refute a later event; appearance after an alleged event date refutes it.
+- **Synthesized Patterns:**
+  1. *Universal Counterexample:* Grounded exception refutes a universal quantifier (e.g. enterprise dashboard option refutes "every customer must submit by email").
+  2. *Single-Passage Paraphrase:* Indirect expression or context-embedded phrasing within a single excerpt (e.g. "mandated 5 days in office" substantiates "ended telecommuting").
+  3. *Chronological Succession:* Combines independent release/event dates (e.g. Doc A: Model Cedar released 2026-09-02; Doc B: Model Willow released 2026-11-10) to substantiate recency rankings without demanding verbatim synthetic sentences.
+  4. *Event Attendance + Date Anchor:* Combines event attendance proof (Doc A) with event date verification (Doc B) to establish contemporaneous life/activity.
+  5. *Complementary Components:* Combines complementary passages establishing joint assertions under matching entity and scope.
+- Emits strongly typed `InferenceBundle` records passed into the decision boundary.
+
+### 11.5 Deterministic Decision Gate Component Propagation
+In `decideClaim` (`src/server/verify/decide.ts`):
+- **Entailment & Conjunction Falsification:**
+  - Contradicting a necessary component ($c_1$, where `necessity !== 'incidental'`) refutes the conjunction or entailed parent claim ($\neg c_1 \implies \neg (c_1 \wedge c_2)$), resulting in `verdict: 'contradicted'`, `score: 0`, `DECISIVE_CONTRADICTION`.
+  - Contradiction of an incidental component (`necessity === 'incidental'`) does NOT refute the core proposition and fails closed to `insufficient_evidence`.
+  - Non-entailment relationships (`attribution`, `temporal_precedence`) are NOT propagated as though they were entailment.
+- **Conjunction Partial Support Guard:** In a conjunction ($c_1 \wedge c_2$), supporting one component while another lacks evidence fails closed to `verdict: 'insufficient_evidence'`, `score: null`, `INSUFFICIENT_RETRIEVAL_DATA`. Partial support is recorded in limitations (`PARTIAL_COMPONENT_SUPPORT_INSUFFICIENT`) and never awards a premature `supported` verdict.
+- **Complete Conjunction Support:** Supporting all required necessary components grants `supported` (`score: 100` for primary authority, `75` for credible secondary).
+- Validated `InferenceBundle` records are consumed directly without inflating source authority or inventing synthetic documents.
