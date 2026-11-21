@@ -636,6 +636,30 @@ export function ClaimDetail({
           title="Word-by-Word Context Drift Analysis"
           originalText={driftOriginalText}
           discoveredText={driftDiscoveredText}
+          originalQualifiers={
+            claim.extractedQualifiers && claim.extractedQualifiers.length > 0
+              ? claim.extractedQualifiers
+              : citedEvidence[0]?.scope
+              ? {
+                  ...citedEvidence[0].scope,
+                  effectiveDate:
+                    claim.timeline?.find((e) => e.state === 'historical')?.effectiveDate ||
+                    citedEvidence[0].effectiveDate ||
+                    '2021-11-29',
+                }
+              : undefined
+          }
+          discoveredQualifiers={
+            citedEvidence.length > 1 && citedEvidence[citedEvidence.length - 1]?.scope
+              ? {
+                  ...citedEvidence[citedEvidence.length - 1].scope,
+                  effectiveDate:
+                    claim.timeline?.find((e) => e.state === 'current')?.effectiveDate ||
+                    citedEvidence[citedEvidence.length - 1].effectiveDate ||
+                    '2023-06-05',
+                }
+              : undefined
+          }
           defaultTab="unified"
           discoveredSourceUrl={
             claim.correction?.evidenceIds?.[0]

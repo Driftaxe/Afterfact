@@ -17,7 +17,7 @@ export function ProjectShowcase() {
     { label: 'DATABASE ENGINE', value: 'Neon PG', hint: 'Serverless Pooled Branching' },
     { label: 'WORKER DISPATCH', value: 'QStash', hint: 'Signed HMAC SHA-256 Webhooks' },
     { label: 'LEASE FENCING', value: '30s', hint: 'Distributed Clock Guard' },
-    { label: 'SECRET SAFETY', value: 'P28', hint: 'Zero Token / Key Leakage' },
+    { label: 'SECRET SAFETY', value: 'Strict', hint: 'Zero Token / Key Leakage' },
   ];
 
   const architecturalPillars = [
@@ -40,7 +40,7 @@ export function ProjectShowcase() {
     {
       step: '03',
       title: 'EVIDENCE-BASED INVARIANTS',
-      subtitle: 'UPPR Invariant-to-Proof Chain',
+      subtitle: 'Deterministic Invariant-to-Proof Chain',
       description:
         'Factual claims pass through strict temporal date fencing, separating publication dates from effective dates. Unsupported citations fail closed, and surgical replacement diffs ensure verifiable truth.',
       tags: ['Temporal Date Fencing', 'Citation Integrity', 'Surgical Diff Corrections'],
@@ -53,7 +53,7 @@ export function ProjectShowcase() {
       role: 'Lead Architect & Verification Systems',
       lane: 'Lane A (Verification Engine)',
       handle: 'Mayur11code',
-      highlights: 'Core verifier, bounded semantic inference synthesizer, decision gates, UPPR compliance, eval benchmark',
+      highlights: 'Core verifier, bounded semantic inference synthesizer, decision gates, formal verification invariants, eval benchmark',
       commits: '90+ commits',
     },
     {
@@ -228,11 +228,11 @@ $ eslint . (0 errors)`,
           </div>
         </div>
 
-        {/* Invariant-to-Proof Chain (UPPR Rev 4 P10 Standards) */}
+        {/* Invariant-to-Proof Verification Chain */}
         <div className="space-y-4 pt-2">
           <div className="flex items-center justify-between border-b border-border-subtle pb-3">
             <span className="font-mono text-xs tracking-wider uppercase text-text-muted">
-              UPPR INVARIANT-TO-PROOF VERIFICATION CHAIN
+              SYSTEM INVARIANT-TO-PROOF VERIFICATION CHAIN
             </span>
             <span className="font-mono text-xs text-accent">
               Invariant → Authority → Enforcement → Evidence

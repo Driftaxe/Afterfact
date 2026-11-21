@@ -89,14 +89,21 @@ Inspect deterministic verdict reasons, then-vs-now supersession timelines, sched
   <img src="docs/audit-evidence/report-demo-desktop-1440x900-dark.png" alt="Afterfact Deep-Dive Verification Report & Transition Timeline - Dark Mode" width="100%" />
 </p>
 
-### 3. Multi-Context Input Composer & Preparation Review
+### 3. Word-by-Word Context Drift & Comparative Qualifier Diff
+Examine token-level drift between asserted propositions and authoritative empirical evidence, highlighting drifted phrases, discovered replacements, and shifted qualifier boundaries (`entity`, `office`, `effectiveDate`).
+
+<p align="center">
+  <img src="docs/audit-evidence/context-drift-dark.png" alt="Afterfact Word-by-Word Context Drift & Comparative Qualifier Diff - Dark Mode" width="100%" />
+</p>
+
+### 4. Multi-Context Input Composer & Preparation Review
 Dissect incoming AI answers or questions into atomic propositions with strongly typed property qualifiers before executing web retrieval.
 
 <p align="center">
   <img src="docs/audit-evidence/landing-desktop-1440x900-dark.png" alt="Afterfact Multi-Context Input Composer & Preparation Review - Dark Mode" width="100%" />
 </p>
 
-### 4. Fully Responsive Mobile Experience
+### 5. Fully Responsive Mobile Experience
 Compact 390px mobile viewport rendering with zero horizontal drift, accessible touch targets, and sticky claim context sheets.
 
 <p align="center">
