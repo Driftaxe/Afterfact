@@ -204,10 +204,9 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
     expect(overflowMobile).toBe(false);
 
     await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
-    await page.screenshot({
-      path: path.join(ARTIFACT_DIR, 'report-mobile-dark.png'),
-      fullPage: false,
-    });
+    const mobileDarkScreenshot = await page.screenshot({ fullPage: false });
+    fs.writeFileSync(path.join(ARTIFACT_DIR, 'report-mobile-dark.png'), mobileDarkScreenshot);
+    fs.writeFileSync(path.join(process.cwd(), 'docs', 'audit-evidence', 'report-demo-mobile-390x844-dark.png'), mobileDarkScreenshot);
 
     // 5. Mobile Light
     const toggleToLightMobile = page.getByRole('button', { name: /switch to light theme/i }).first();
