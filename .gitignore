@@ -159,3 +159,7 @@ vite.config.ts.timestamp-*
 pp.md
 stale-answer-detector-implementation-plan.pdf
 
+# Development documentation (preserved locally for reference, excluded from public repo)
+/docs/*
+!/docs/audit-evidence/
+

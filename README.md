@@ -335,27 +335,13 @@ Afterfact is engineered by the **Driftaxe Engineering Team**, partitioned across
 
 ## Authoritative Documentation Index
 
-All architectural specifications, protocols, and audit traces are preserved across 16 authoritative documents in [`docs/`](docs/):
+All architectural specifications, protocols, generation procedures, and document blueprints are comprehensively documented in [DEV_DOCS.md](DEV_DOCS.md):
 
 | Category | Document | Description |
 | :--- | :--- | :--- |
-| **Operating Standards** | [AGENTS.md](AGENTS.md) | Agent operating rules, evidence hierarchy (E1–E5), secret safety (P28), and invariants |
+| **Documentation Playbook** | [DEV_DOCS.md](DEV_DOCS.md) | Full 16-document inventory, generation methodology, prompt templates, and evidence tiers |
+| **Operating Standards** | [AGENTS.md](AGENTS.md) | Agent operating rules, evidence hierarchy (E1–E5), secret safety, and invariants |
 | **Contribution Guide** | [CONTRIBUTING.md](CONTRIBUTING.md) | Team lane distribution (A/B/C), branch workflow, and pull request checklist |
-| **Product Specification**| [docs/PRODUCT.md](docs/PRODUCT.md) | User journeys, claim categories, domain policies, and user experience |
-| **System Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Component architecture, DAG execution lifecycle, and fault isolation |
-| **Data & Jobs** | [docs/DATA-AND-JOBS.md](docs/DATA-AND-JOBS.md) | Prisma schema, lease fencing, QStash worker lifecycle, and retries |
-| **Verification Logic** | [docs/VERIFICATION.md](docs/VERIFICATION.md) | Extraction rules, passage scoring, 3-date resolution, and decision gates |
-| **API Specifications** | [docs/API.md](docs/API.md) | Public and internal API route contracts, idempotency, and SSE streaming |
-| **Platform Handbook** | [docs/lane-b/README.md](docs/lane-b/README.md) | Step-by-step beginner handbook for all Lane B infrastructure tasks |
-| **Setup & Cloud** | [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md) | Railway Bifrost deployment, Neon branching, and environment inventory |
-| **Testing & Evaluation** | [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md) | E1–E5 evidence levels, benchmark design, and release gates |
-| **Decisions (ADRs)** | [docs/DECISIONS.md](docs/DECISIONS.md) | Architectural Decision Records (ADR-001 through ADR-023) |
-| **Master Phase Tracker**| [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md) | Single source of truth for all 28 task tickets and gates (G0–G4) |
-| **Parallel Work Plan** | [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) | Execution waves, DAG topologies, and cross-lane handoff contracts |
-| **Demo & Judging** | [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md) | 3-minute judge script, sponsor proof, and submission checklist |
-| **Finalization Audit** | [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md) | Comprehensive system readiness audit, journey matrix, and finding register |
-| **Evidence Reasoning** | [docs/EVIDENCE-REASONING-AUDIT.md](docs/EVIDENCE-REASONING-AUDIT.md) | Problem register, component decomposition, and semantic reasoning evaluation |
-| **Development Log** | [docs/DEV-LOG.md](docs/DEV-LOG.md) | Chronological record of engineering sessions, commands, and observed evidence |
 
 ---
 
