@@ -558,6 +558,37 @@ function evaluateScopeAndProperties(
     };
   }
 
+  const unit = aggregate.evidenceById.get(assessment.evidenceId);
+  const source = unit ? aggregate.sourceById.get(unit.documentId) : undefined;
+  const docUrl = (source?.url || '').toLowerCase();
+  const docTitle = (source?.title || '').toLowerCase();
+  const surroundingHeadersText = (unit?.surroundingHeaders || []).join(' ').toLowerCase();
+  const combinedContextText = `${docTitle} ${surroundingHeadersText} ${unit?.verbatimText || ''}`.toLowerCase();
+
+  const docHost = (() => {
+    try {
+      return new URL(docUrl.startsWith('http') ? docUrl : `https://${docUrl}`).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+
+  let sovereignJur: string | null = null;
+  if (docHost.endsWith('.gov.in') || docHost.endsWith('.nic.in')) sovereignJur = 'IN';
+  else if (docHost.endsWith('.gov.uk')) sovereignJur = 'UK';
+  else if (docHost.endsWith('.gov') || docHost.endsWith('.mil')) sovereignJur = 'US';
+  else if (docHost.endsWith('.europa.eu')) sovereignJur = 'EU';
+  else if (docHost.endsWith('.admin.ch')) sovereignJur = 'CH';
+  else if (docHost.endsWith('.gov.au')) sovereignJur = 'AU';
+  else if (docHost.endsWith('.gc.ca') || docHost.endsWith('.canada.ca')) sovereignJur = 'CA';
+  else if (source?.sourceRole === 'primary_authority' || source?.sourceRole === 'regulatory_filing') {
+    if (docHost.endsWith('.uk')) sovereignJur = 'UK';
+    else if (docHost.endsWith('.in')) sovereignJur = 'IN';
+    else if (docHost.endsWith('.au')) sovereignJur = 'AU';
+    else if (docHost.endsWith('.ca')) sovereignJur = 'CA';
+    else if (docHost.endsWith('.ch')) sovereignJur = 'CH';
+  }
+
   // Scope and asserted-value roles are supplied by the caller. A required
   // property must be affirmatively accounted for. Absence of a mismatch is not
   // treated as proof of a match.
@@ -573,6 +604,67 @@ function evaluateScopeAndProperties(
     }
 
     if (mismatched.has(property.key)) continue;
+
+    // Temporal validity confirms active applicability of temporal qualifiers
+    const isTemporalKey =
+      property.key === 'asOfDate' ||
+      property.key === 'targetDate' ||
+      property.key === 'statedEffectiveDate' ||
+      property.key === 'effective_date';
+
+    if (
+      isTemporalKey &&
+      (assessment.temporalApplicability === 'active_at_target_time' ||
+        assessment.temporalApplicability === 'historical_prior')
+    ) {
+      missing.delete(property.key);
+      matching.add(property.key);
+      continue;
+    }
+
+    // Ambient Sovereign Jurisdiction Inheritance (TC-ERA-20 compliant)
+    if ((property.key === 'jurisdiction' || property.key === 'country') && sovereignJur) {
+      const val = String(property.value).toLowerCase();
+      const matchesSovereign =
+        (sovereignJur === 'IN' && (val === 'in' || val.includes('india'))) ||
+        (sovereignJur === 'US' && (val === 'us' || val.includes('united states') || val.includes('usa'))) ||
+        (sovereignJur === 'UK' && (val === 'uk' || val.includes('united kingdom') || val.includes('britain'))) ||
+        (sovereignJur === 'EU' && (val === 'eu' || val.includes('european union'))) ||
+        (sovereignJur === 'CH' && (val === 'ch' || val.includes('switzerland'))) ||
+        (sovereignJur === 'AU' && (val === 'au' || val.includes('australia'))) ||
+        (sovereignJur === 'CA' && (val === 'ca' || val.includes('canada')));
+
+      if (matchesSovereign) {
+        missing.delete(property.key);
+        matching.add(property.key);
+        continue;
+      }
+    }
+
+    // Ambient First-Party Entity / Regulator Identity Inheritance
+    const isAmbientEntityKey =
+      property.key === 'regulator' ||
+      property.key === 'agency' ||
+      property.key === 'vendor' ||
+      property.key === 'provider' ||
+      property.key === 'company' ||
+      property.key === 'organization' ||
+      property.key === 'manufacturer' ||
+      property.key === 'entity';
+
+    if (isAmbientEntityKey) {
+      const entityVal = String(property.value).toLowerCase().trim();
+      const isPrimaryAuthority = source?.sourceRole === 'primary_authority';
+      if (
+        (isPrimaryAuthority && docHost && docHost.includes(entityVal)) ||
+        combinedContextText.includes(entityVal)
+      ) {
+        missing.delete(property.key);
+        matching.add(property.key);
+        continue;
+      }
+    }
+
     if (missing.has(property.key)) {
       return {
         exclusion: 'incomplete_property_match',
@@ -580,20 +672,6 @@ function evaluateScopeAndProperties(
       };
     }
     if (!matching.has(property.key)) {
-      const isTemporalKey =
-        property.key === 'asOfDate' ||
-        property.key === 'targetDate' ||
-        property.key === 'statedEffectiveDate' ||
-        property.key === 'effective_date';
-      if (
-        isTemporalKey &&
-        (assessment.temporalApplicability === 'active_at_target_time' ||
-          assessment.temporalApplicability === 'historical_prior')
-      ) {
-        // Temporal validity confirms active applicability of this temporal qualifier
-        continue;
-      }
-
       return {
         exclusion: 'incomplete_property_match',
         codes: ['PROPERTY_MATCH_UNDETERMINED'],

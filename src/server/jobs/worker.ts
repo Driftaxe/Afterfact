@@ -6,7 +6,7 @@ import { EventService } from '@/server/services/event-service';
 import { expandDag } from '@/server/dag/expand';
 import { extractClaimsFromText } from '@/server/verify/extract-claims';
 import { generateResearchPlan } from '@/server/verify/research-planner';
-import { tavilySearch, RawSourceDoc } from '@/server/tavily/client';
+import { tavilySearch, tavilyExtract, RawSourceDoc } from '@/server/tavily/client';
 import { extractEvidenceUnits } from '@/server/verify/extract-evidence';
 import { assessEvidenceAgainstClaim } from '@/server/verify/assess-evidence';
 import { evaluatePolicy } from '@/server/policies';
@@ -56,12 +56,165 @@ export function isSovereignDomain(url: string): boolean {
   }
 }
 
-function inferDocumentSourceRole(
+export function isUserGeneratedContentUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    // UGC subdomains
+    if (
+      host.startsWith('community.') ||
+      host.startsWith('forum.') ||
+      host.startsWith('forums.') ||
+      host.startsWith('discuss.') ||
+      host.startsWith('repost.') ||
+      host.includes('stackoverflow.com') ||
+      host.includes('reddit.com') ||
+      host.includes('quora.com')
+    ) {
+      return true;
+    }
+
+    // UGC path prefixes
+    if (
+      pathname.startsWith('/community') ||
+      pathname.startsWith('/forum') ||
+      pathname.startsWith('/forums') ||
+      pathname.startsWith('/discuss') ||
+      pathname.startsWith('/discussions') ||
+      pathname.startsWith('/issues') ||
+      pathname.startsWith('/questions')
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export function isCanonicalFirstPartyPath(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const pathname = parsed.pathname.toLowerCase();
+    return (
+      pathname === '' ||
+      pathname === '/' ||
+      pathname.startsWith('/pricing') ||
+      pathname.startsWith('/plans') ||
+      pathname.startsWith('/billing') ||
+      pathname.startsWith('/docs') ||
+      pathname.startsWith('/documentation') ||
+      pathname.startsWith('/reference') ||
+      pathname.startsWith('/limits') ||
+      pathname.startsWith('/quotas') ||
+      pathname.startsWith('/legal') ||
+      pathname.startsWith('/terms') ||
+      pathname.startsWith('/policies') ||
+      pathname.startsWith('/security') ||
+      pathname.startsWith('/blog') ||
+      pathname.startsWith('/news') ||
+      pathname.startsWith('/announcements') ||
+      pathname.startsWith('/press') ||
+      pathname.startsWith('/circulars') ||
+      pathname.startsWith('/about')
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function extractEntityTokens(
+  source: ClaimTicket | VerificationProperty[]
+): string[] {
+  const props = Array.isArray(source) ? source : source.verificationContext ?? [];
+  const tokens = new Set<string>();
+
+  for (const p of props) {
+    if (
+      p.key === 'productName' ||
+      p.key === 'provider' ||
+      p.key === 'vendor' ||
+      p.key === 'company' ||
+      p.key === 'organization' ||
+      p.key === 'regulator' ||
+      p.key === 'agency' ||
+      p.key === 'entity' ||
+      p.key === 'service' ||
+      p.key === 'platform' ||
+      p.key === 'manufacturer'
+    ) {
+      if (typeof p.value === 'string' && p.value.trim().length > 0) {
+        const val = p.value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+        for (const word of val.split(/\s+/)) {
+          if (
+            word.length >= 3 &&
+            !['the', 'and', 'for', 'inc', 'ltd', 'corp', 'functions', 'service', 'services', 'platform'].includes(word)
+          ) {
+            tokens.add(word);
+          }
+        }
+      }
+    }
+  }
+
+  if (!Array.isArray(source)) {
+    const text = (source.normalizedProposition || source.originalStatement || '').toLowerCase();
+    const commonEntities = text.match(/\b([A-Z][a-zA-Z0-9]+)\b/g);
+    if (commonEntities) {
+      for (const e of commonEntities) {
+        const lower = e.toLowerCase();
+        if (
+          lower.length >= 3 &&
+          !['the', 'and', 'for', 'any', 'all', 'what', 'when', 'under', 'from', 'with'].includes(lower)
+        ) {
+          tokens.add(lower);
+        }
+      }
+    }
+  }
+
+  return Array.from(tokens);
+}
+
+export function isFirstPartyDomainForEntity(
   url: string,
-  publisher?: string | null
+  entityTokens?: string[]
+): boolean {
+  if (!url || !entityTokens || entityTokens.length === 0) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    const hostParts = host.split('.').filter(
+      (part) => !['com', 'org', 'net', 'io', 'ai', 'co', 'gov', 'edu', 'nic', 'in', 'uk', 'us', 'eu', 'www'].includes(part)
+    );
+    const domainBody = hostParts.join('-');
+
+    return entityTokens.some((token) => {
+      if (token.length < 3) return false;
+      return hostParts.includes(token) || domainBody.includes(token);
+    });
+  } catch {
+    return false;
+  }
+}
+
+export function inferDocumentSourceRole(
+  url: string,
+  publisher?: string | null,
+  entityTokens?: string[]
 ): SourceDocument['sourceRole'] {
   const u = (url || '').toLowerCase();
   const p = (publisher || '').toLowerCase();
+
+  // UGC / Community Guardrail: Never grant primary_authority to forums or user discussions
+  if (isUserGeneratedContentUrl(url)) {
+    return 'counter_perspective';
+  }
 
   // 1. Regulatory filings and legislative registries globally
   if (
@@ -90,7 +243,15 @@ function inferDocumentSourceRole(
     return 'primary_authority';
   }
 
-  // 4. Established reputable news, encyclopedias, and wire services globally
+  // 4. Dynamic First-Party Entity Authority Resolution:
+  // When a source is hosted on the subject entity's own official domain on canonical first-party paths
+  if (entityTokens && entityTokens.length > 0 && isFirstPartyDomainForEntity(url, entityTokens)) {
+    if (isCanonicalFirstPartyPath(url)) {
+      return 'primary_authority';
+    }
+  }
+
+  // 5. Established reputable news, encyclopedias, and wire services globally
   if (
     u.includes('wikipedia.org') ||
     u.includes('britannica.com') ||
@@ -555,6 +716,33 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           }
         }
 
+        const rawTicket = claim?.spec as unknown as ClaimTicket | null;
+        const entityTokens = rawTicket ? extractEntityTokens(rawTicket) : [];
+
+        // Live Content Extraction Over Stale Search Snippets for Top Primary URLs
+        const primaryDocsToExtract = docs.filter(
+          (d) =>
+            (isSovereignDomain(d.url) || isFirstPartyDomainForEntity(d.url, entityTokens)) &&
+            d.rawContent.length < 500
+        );
+
+        if (primaryDocsToExtract.length > 0) {
+          try {
+            const extractedLive = await tavilyExtract({
+              urls: primaryDocsToExtract.map((d) => d.url),
+            });
+            for (const liveDoc of extractedLive) {
+              const target = docs.find((d) => d.url === liveDoc.url);
+              if (target && liveDoc.rawContent && liveDoc.rawContent.length > target.rawContent.length) {
+                target.rawContent = liveDoc.rawContent;
+                target.contentHash = liveDoc.contentHash;
+              }
+            }
+          } catch (extractErr) {
+            console.warn('[search_evidence] Live extraction fallback failed:', extractErr);
+          }
+        }
+
         const savedDocIds: string[] = [];
         for (const d of docs) {
           try {
@@ -566,7 +754,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 title: d.title,
                 publisher: d.publisher,
                 contentHash: d.contentHash,
-                sourceRole: inferDocumentSourceRole(d.url, d.publisher),
+                sourceRole: inferDocumentSourceRole(d.url, d.publisher, entityTokens),
                 rawContent: d.rawContent,
               },
             });
@@ -1163,9 +1351,17 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 (a) => a.sourceSuitability === 'credible_secondary'
               );
 
+              const entityTokens = extractEntityTokens(ticket);
+              const isFirstParty =
+                isFirstPartyDomainForEntity(doc.url, entityTokens) &&
+                isCanonicalFirstPartyPath(doc.url) &&
+                !isUserGeneratedContentUrl(doc.url);
               const isSovereign = isSovereignDomain(doc.url);
-              // Protect sovereign domains from LLM downgrade to reputable_secondary
-              if (!isSovereign && (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary')) {
+
+              // Protect sovereign and first-party vendor domains from LLM downgrade to reputable_secondary
+              if (isFirstParty || isSovereign) {
+                doc.sourceRole = 'primary_authority';
+              } else if (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary') {
                 if (doc.sourceRole !== 'counter_perspective') {
                   doc.sourceRole = 'reputable_secondary';
                 }

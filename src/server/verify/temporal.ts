@@ -176,6 +176,8 @@ export function evaluateTemporalApplicability(params: {
   effectiveDate?: string | null;
   announcementDate?: string | null;
   publicationDate?: string | null;
+  isLivingDocument?: boolean;
+  retrievedAt?: string | null;
 }): {
   temporalApplicability: 'active_at_target_time' | 'historical_prior' | 'future_pending' | 'undetermined';
   reasoning: string;
@@ -240,7 +242,31 @@ export function evaluateTemporalApplicability(params: {
     }
   }
 
-  // 4. Evidence publication date on or before target time (publication alone does not guarantee active validity)
+  // 4. Contemporaneous Living Reference Documents (undated active official /docs, /pricing, service quotas, consolidated statute)
+  // When targetTime is contemporaneous with the run retrieval window, an undated living canonical reference document
+  // fetched live at retrievedAt represents the current active state without requiring an artificial timestamp.
+  if (params.isLivingDocument && !params.publicationDate && !params.effectiveDate) {
+    const refDateStr = params.retrievedAt ? params.retrievedAt.slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const refInterval = parseDateToInterval(refDateStr);
+
+    // If targetTime is contemporaneous (overlaps or extends to current retrievedAt window)
+    const isContemporaneous =
+      !params.claimTime &&
+      Boolean(
+        refInterval &&
+        targetInterval &&
+        (doIntervalsOverlap(targetInterval, refInterval) || targetInterval.end >= refInterval.start)
+      );
+
+    if (isContemporaneous) {
+      return {
+        temporalApplicability: 'active_at_target_time',
+        reasoning: `Living canonical reference document retrieved contemporaneously at ${refDateStr} represents current active state at target time.`,
+      };
+    }
+  }
+
+  // 5. Evidence publication date on or before target time (publication alone does not guarantee active validity)
   if (params.publicationDate) {
     const pubInterval = parseDateToInterval(params.publicationDate);
     if (pubInterval && pubInterval.start <= targetPoint) {

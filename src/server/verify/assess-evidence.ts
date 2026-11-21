@@ -309,12 +309,25 @@ export async function assessEvidenceAgainstClaim(
     }
 
     // INVARIANT 2: Deterministic Temporal Applicability Check
+    const docUrl = (parentDoc?.url || '').toLowerCase();
+    const isLivingDoc =
+      parentDoc?.sourceRole === 'primary_authority' ||
+      parentDoc?.sourceRole === 'official_changelog' ||
+      docUrl.includes('/docs') ||
+      docUrl.includes('/pricing') ||
+      docUrl.includes('/limits') ||
+      docUrl.includes('/quotas') ||
+      docUrl.includes('.gov.') ||
+      docUrl.includes('.gov/');
+
     const temporalResult = evaluateTemporalApplicability({
       targetTime: ticket.targetTime,
       claimTime: claimTimeStr,
       effectiveDate: unit.effectiveDate ?? parentDoc?.effectiveDate ?? null,
       publicationDate: unit.publicationDate ?? parentDoc?.publicationDate ?? null,
       announcementDate: unit.announcementDate ?? null,
+      isLivingDocument: isLivingDoc,
+      retrievedAt: parentDoc?.retrievedAt ?? null,
     });
 
     const rawTemporal = typeof rawAsm.temporalApplicability === 'string' ? rawAsm.temporalApplicability : null;
@@ -367,24 +380,75 @@ export async function assessEvidenceAgainstClaim(
     // If temporal applicability is confirmed active at target time, evaluation target dates match
     if (temporalApplicability === 'active_at_target_time' || temporalApplicability === 'historical_prior') {
       for (const p of ticket.verificationContext) {
-        if (p.key === 'asOfDate' || p.key === 'targetDate') {
+        if (
+          p.key === 'asOfDate' ||
+          p.key === 'targetDate' ||
+          p.key === 'statedEffectiveDate' ||
+          p.key === 'effective_date'
+        ) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
         }
       }
     }
 
-    // Grounded document metadata: if entity/manufacturer is established by doc content/title, mark matching
+    // Sovereign jurisdiction inheritance
+    const docHost = (() => {
+      try {
+        return new URL(docUrl.startsWith('http') ? docUrl : `https://${docUrl}`).hostname.toLowerCase();
+      } catch {
+        return '';
+      }
+    })();
+
+    let sovereignJur: string | null = null;
+    if (docHost.endsWith('.gov.in') || docHost.endsWith('.nic.in')) sovereignJur = 'IN';
+    else if (docHost.endsWith('.gov.uk')) sovereignJur = 'UK';
+    else if (docHost.endsWith('.gov') || docHost.endsWith('.mil')) sovereignJur = 'US';
+    else if (docHost.endsWith('.europa.eu')) sovereignJur = 'EU';
+    else if (docHost.endsWith('.admin.ch')) sovereignJur = 'CH';
+    else if (docHost.endsWith('.gov.au')) sovereignJur = 'AU';
+    else if (docHost.endsWith('.gc.ca') || docHost.endsWith('.canada.ca')) sovereignJur = 'CA';
+    else if (parentDoc?.sourceRole === 'primary_authority' || parentDoc?.sourceRole === 'regulatory_filing') {
+      if (docHost.endsWith('.uk')) sovereignJur = 'UK';
+      else if (docHost.endsWith('.in')) sovereignJur = 'IN';
+      else if (docHost.endsWith('.au')) sovereignJur = 'AU';
+      else if (docHost.endsWith('.ca')) sovereignJur = 'CA';
+      else if (docHost.endsWith('.ch')) sovereignJur = 'CH';
+    }
+
+    if (sovereignJur) {
+      for (const p of ticket.verificationContext) {
+        if (p.key === 'jurisdiction' || p.key === 'country') {
+          const val = String(p.value).toLowerCase();
+          if (
+            (sovereignJur === 'IN' && (val === 'in' || val.includes('india'))) ||
+            (sovereignJur === 'US' && (val === 'us' || val.includes('united states') || val.includes('usa'))) ||
+            (sovereignJur === 'UK' && (val === 'uk' || val.includes('united kingdom') || val.includes('britain'))) ||
+            (sovereignJur === 'EU' && (val === 'eu' || val.includes('european union'))) ||
+            (sovereignJur === 'CH' && (val === 'ch' || val.includes('switzerland'))) ||
+            (sovereignJur === 'AU' && (val === 'au' || val.includes('australia')))
+          ) {
+            matchingSet.add(p.key);
+            missingInEvidenceSet.delete(p.key);
+          }
+        }
+      }
+    }
+
+    // Grounded document metadata: if entity/manufacturer/regulator is established by doc content/title/url, mark matching
     for (const p of ticket.verificationContext) {
       if (
         p.key === 'manufacturer' ||
         p.key === 'company' ||
         p.key === 'organization' ||
-        p.key === 'vendor'
+        p.key === 'vendor' ||
+        p.key === 'provider' ||
+        p.key === 'regulator' ||
+        p.key === 'agency' ||
+        p.key === 'entity'
       ) {
-        const entityVal = String(p.value).toLowerCase();
-        // DEF-002 Fix: Do NOT include parentDoc?.publisher to prevent competitor reporting
-        // from falsely satisfying the manufacturer of the subject entity.
+        const entityVal = String(p.value).toLowerCase().trim();
         const docText = [
           parentDoc?.title,
           unit.verbatimText,
@@ -394,12 +458,13 @@ export async function assessEvidenceAgainstClaim(
           .join(' ')
           .toLowerCase();
 
-        if (docText.includes(entityVal)) {
+        const isPrimaryDoc = parentDoc?.sourceRole === 'primary_authority';
+        if (docText.includes(entityVal) || (isPrimaryDoc && docHost && docHost.includes(entityVal))) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
         }
       } else if (p.key === 'publisher' || p.key === 'source_organization') {
-        const pubVal = String(p.value).toLowerCase();
+        const pubVal = String(p.value).toLowerCase().trim();
         if (parentDoc?.publisher && parentDoc.publisher.toLowerCase().includes(pubVal)) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);

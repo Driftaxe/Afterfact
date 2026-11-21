@@ -259,6 +259,18 @@ export async function extractEvidenceUnits(
       continue;
     }
 
+    // Markdown header preservation fallback: if surroundingHeaders is empty, scan backward for nearest parent heading
+    if (surroundingHeaders.length === 0 && offsets.start > 0) {
+      const precedingText = rawDocText.slice(0, offsets.start);
+      const headingMatches = Array.from(precedingText.matchAll(/^(#{1,4})\s+(.+)$/gm));
+      if (headingMatches.length > 0) {
+        const lastHeading = headingMatches[headingMatches.length - 1][2].trim();
+        if (lastHeading) {
+          surroundingHeaders.push(lastHeading);
+        }
+      }
+    }
+
     const footnotes = Array.isArray(p.footnotes)
       ? (p.footnotes as unknown[]).filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
       : [];

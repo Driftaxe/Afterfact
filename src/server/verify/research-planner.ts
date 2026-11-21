@@ -315,6 +315,52 @@ export async function generateResearchPlan(
     }
   }
 
+  // 8c. First-Party Canonical Retrieval Branch Guarantee
+  const entityProp = ticket.verificationContext.find(
+    (p) =>
+      (p.key === 'productName' ||
+        p.key === 'provider' ||
+        p.key === 'vendor' ||
+        p.key === 'company' ||
+        p.key === 'organization' ||
+        p.key === 'regulator' ||
+        p.key === 'agency' ||
+        p.key === 'entity' ||
+        p.key === 'service') &&
+      typeof p.value === 'string' &&
+      p.value.trim().length > 0
+  );
+
+  const rawEntity = entityProp ? String(entityProp.value).trim() : null;
+  if (rawEntity && rawEntity.length >= 3) {
+    const hasOfficialTargetQuery = queries.some(
+      (q) =>
+        (q.targetSourceRoles.includes('primary_authority') || q.targetSourceRoles.includes('official_changelog')) &&
+        (q.query.toLowerCase().includes('official') || q.query.toLowerCase().includes('docs') || q.query.toLowerCase().includes('pricing'))
+    );
+
+    if (!hasOfficialTargetQuery && queries.length > 0) {
+      let officialSuffix = 'official documentation specification';
+      if (ticket.domain === 'pricing') {
+        officialSuffix = 'official pricing plans -calculator -review -blog';
+      } else if (ticket.domain === 'regulation') {
+        officialSuffix = 'official regulation circular gazette';
+      }
+
+      const officialQueryText = `${rawEntity} ${officialSuffix}`.slice(0, MAX_QUERY_LENGTH).trim();
+      const targetIdx = queries.length >= 3 ? 0 : queries.length - 1;
+
+      queries[targetIdx] = {
+        queryId: `qry_${ticket.ticketId}_r${round}_fp`,
+        claimTicketId: ticket.ticketId,
+        query: officialQueryText,
+        purpose: 'establish_current_state',
+        targetSourceRoles: ['primary_authority'],
+        round,
+      };
+    }
+  }
+
   const rawStopping = Array.isArray(parsedPayload.stoppingConditions)
     ? parsedPayload.stoppingConditions.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
     : [];

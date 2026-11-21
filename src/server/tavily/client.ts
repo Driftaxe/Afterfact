@@ -23,14 +23,21 @@ export interface RawSourceDoc {
 }
 
 /**
- * Sanitizes passage text by collapsing redundant whitespace and bounding length to worker prompt budget.
+ * Sanitizes passage text by removing HTML tags and collapsing horizontal whitespace,
+ * while strictly preserving line breaks and markdown headings/tables.
  */
-export function sanitizePassageText(rawText: string, maxChars: number = 8000): string {
+export function sanitizePassageText(rawText: string, maxChars: number = 24000): string {
   if (!rawText) return '';
   const cleaned = rawText
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
     .replace(/<[^>]*>/g, ' ') // Strip HTML tags
-    .replace(/[\r\n\t]+/g, ' ') // Collapse whitespace
-    .replace(/\s{2,}/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[ \t]+/g, ' ') // Collapse horizontal whitespace
+    .replace(/\n[ \t]+/g, '\n') // Trim line starts
+    .replace(/[ \t]+\n/g, '\n') // Trim line ends
+    .replace(/\n{3,}/g, '\n\n') // Collapse excessive blank lines
     .trim();
   return cleaned.length > maxChars ? cleaned.slice(0, maxChars) + '... [truncated]' : cleaned;
 }
@@ -56,6 +63,7 @@ export async function tavilySearch(params: TavilySearchParams): Promise<RawSourc
       include_domains: params.includeDomains,
       exclude_domains: params.excludeDomains,
       max_results: params.maxResults ?? 5,
+      include_raw_content: true,
     }),
   });
 
@@ -64,7 +72,15 @@ export async function tavilySearch(params: TavilySearchParams): Promise<RawSourc
     throw new Error(`Tavily search HTTP ${res.status}: ${errText}`);
   }
 
-  const data = (await res.json()) as { results?: Array<{ url: string; title?: string; content?: string; published_date?: string }> };
+  const data = (await res.json()) as {
+    results?: Array<{
+      url: string;
+      title?: string;
+      content?: string;
+      raw_content?: string;
+      published_date?: string;
+    }>;
+  };
   return (data.results ?? []).map((r) => {
     let hostname = '';
     try {
@@ -72,7 +88,10 @@ export async function tavilySearch(params: TavilySearchParams): Promise<RawSourc
     } catch {
       hostname = 'unknown';
     }
-    const raw = sanitizePassageText(r.content ?? '');
+    const rawSrc = (r.raw_content && r.raw_content.trim().length > (r.content?.trim().length ?? 0))
+      ? r.raw_content
+      : (r.content ?? '');
+    const raw = sanitizePassageText(rawSrc);
     return {
       url: r.url,
       finalUrl: r.url,
