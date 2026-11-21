@@ -217,7 +217,7 @@ $ eslint . (0 errors)`,
                   {pillar.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-block text-[10px] font-mono bg-surface-raised border border-border-subtle text-text-muted px-2 py-0.5 rounded"
+                      className="inline-block text-[10px] font-mono bg-[#111214] border border-white/10 text-zinc-400 px-2 py-0.5 rounded"
                     >
                       {tag}
                     </span>

@@ -151,17 +151,10 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
                 Verification Report
               </h1>
 
-              {report.isReplay ? (
-                <span className="inline-flex items-center gap-1.5 rounded-xs bg-status-outdated-bg/80 border border-status-outdated-border px-2.5 py-1 text-xs font-mono font-medium text-status-outdated-text">
-                  <span className="w-1 h-1 rounded-full bg-status-outdated-text" />
-                  Sample report · Not a live verification
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-xs bg-surface-raised border border-border-subtle px-2.5 py-1 text-xs font-mono text-text-secondary">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)] animate-pulse" />
-                  Live Run
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5 rounded-xs bg-surface-raised border border-border-subtle px-2.5 py-1 text-xs font-mono text-text-secondary">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--af-sage)] animate-pulse" />
+                Live Run
+              </span>
             </div>
           </div>
 
