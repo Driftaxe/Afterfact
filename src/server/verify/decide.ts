@@ -565,6 +565,13 @@ function evaluateScopeAndProperties(
     const role = roleByKey.get(property.key);
     const required = role ? role.required : true;
     if (!required) continue;
+
+    // For contradictory evidence, asserted_value properties are expected to conflict or be absent
+    // from the true state of affairs. Only scope_qualifiers must be affirmatively matched.
+    if (assessment.relationship === 'contradicts' && role?.role === 'asserted_value') {
+      continue;
+    }
+
     if (mismatched.has(property.key)) continue;
     if (missing.has(property.key)) {
       return {

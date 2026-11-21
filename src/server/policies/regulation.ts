@@ -20,7 +20,8 @@ import {
   type SemanticIntentFacts,
 } from './types';
 
-const REGULATION_TERMS_REGEX = /\b(regulation|regulatory|compliance|gdpr|ccpa|eu ai act|sec rule|ftc|statute|law|fines?|penalty|mandate|enacted|in force)\b/i;
+const REGULATION_TERMS_REGEX =
+  /\b(regulation|regulatory|compliance|gdpr|ccpa|eu ai act|sec rule|ftc|statute|law|fines?|penalt(y|ies)|mandate|enacted|in force|statutory|ordinance|decree|tariffs?|customs duty|stamp duty|taxes?|taxation|franchise tax|road tax|vehicle tax|property tax|income tax|lev(y|ies)|filing fees?|court fees?|licensing fees?|registration fees?|permit fees?|challans?)\b/i;
 
 export class RegulationPolicy implements DomainPolicyModule {
   public readonly domainId = 'regulation' as const;
@@ -75,7 +76,16 @@ export class RegulationPolicy implements DomainPolicyModule {
         prop.key === 'mandate' ||
         prop.key === 'penalty' ||
         prop.key === 'fine' ||
-        prop.key === 'fine_amount'
+        prop.key === 'fine_amount' ||
+        prop.key === 'fee' ||
+        prop.key === 'fee_amount' ||
+        prop.key === 'feeAmount' ||
+        prop.key === 'fee_structure' ||
+        prop.key === 'deadline' ||
+        prop.key === 'timeframe' ||
+        prop.key === 'statutory_deadline' ||
+        prop.key === 'obligation_actor' ||
+        prop.key === 'levying_authority'
       ) {
         role = 'asserted_value';
       } else {
@@ -109,6 +119,7 @@ export class RegulationPolicy implements DomainPolicyModule {
       authoritativeSourceRoles: options?.customAuthoritativeRoles ?? [
         'regulatory_filing',
         'primary_authority',
+        'reputable_secondary',
       ],
     };
   }

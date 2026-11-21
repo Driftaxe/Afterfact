@@ -29,6 +29,10 @@ Your task is to evaluate individual EvidenceUnits against a specific ClaimTicket
        - Do NOT demand verbatim occurrences of the phrase "latest model" if the release chronology itself decisively refutes or supports recency.
        - Capability rankings or model size (e.g. "most capable", "largest") do NOT establish release recency.
        - Announcement does NOT establish general availability (GA) or effective release.
+     * Structural & Formulaic Conflicts:
+       - If a claim asserts a flat, fixed fee/threshold without qualification (e.g., "flat $500 fee regardless of company size"), and authoritative evidence establishes that the requirement is calculated via variable formula, sliding scale, or decentralized regional schedules, this is a DIRECT CONTRADICTION ('contradicts') with scopeMatching: 'match', NOT inconclusive.
+     * Actor-Obligation Directionality & Compliance Windows:
+       - If a claim asserts an actor (e.g., user, corporate filer) must complete an act within N days, but governing rules assign that N-day timeframe to the adjudicating authority (e.g., authority must decide within 30 days) or grant an opposing statutory window (e.g., filers have up to 12 months), this constitutes an evidentiary contradiction ('contradicts') with scopeMatching: 'match', NOT inconclusive.
    - 'relevant_but_inconclusive': The excerpt mentions the entity or topic, but lacks decisive qualifiers or values necessary to confirm or refute the claim. Absence of evidence is NEVER contradiction.
    - 'unrelated': The excerpt lacks semantic relevance to the asserted fact.
    - 'historical_state': The excerpt proves the claim WAS valid in the past, but subsequent evidence or dates establish it has since been superseded.
@@ -121,11 +125,12 @@ export function buildSemanticAssessmentUserPrompt(params: {
           p.key === 'manufacturer' ||
           p.key === 'company' ||
           p.key === 'organization';
+        const assignedRole = p.role ?? (isScope ? 'scope_qualifier' : 'asserted_value');
         return {
           key: p.key,
           label: p.label,
           value: p.value,
-          role: isScope ? 'scope_qualifier' : 'asserted_value',
+          role: assignedRole,
           propertyType: p.propertyType,
           origin: p.origin,
         };

@@ -582,6 +582,95 @@ export function synthesizeBoundedInference(
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Pattern 6: Exhaustive Rule / Formula Conflict & Actor-Obligation Inversion
+  // ---------------------------------------------------------------------------
+  if (bundles.length < 3) {
+    const claimLower = claimText.toLowerCase();
+
+    // Sub-pattern A: Structural / Formula vs Flat assertion conflict
+    const assertsFlat = /\b(flat|fixed|uniform|standard flat)\b/i.test(claimLower) || /\bregardless of\b/i.test(claimLower);
+    const mentionsFeeOrRate = /\b(fee|fees|cost|costs|tax|taxes|rate|rates|charge|charges|price|pricing|levy|levies|amount)\b/i.test(claimLower);
+
+    if (assertsFlat && mentionsFeeOrRate) {
+      for (const u of eligibleUnits) {
+        if (bundles.length >= 3) break;
+        const text = u.verbatimText.toLowerCase();
+        const provesFormulaOrVariable =
+          /\b(formula|calculated|pro-rata|pro rata|percentage|sliding scale|based on|depends on|schedule|tiered|varies by|state-level|local jurisdiction|differing rates?)\b/i.test(text);
+
+        if (provesFormulaOrVariable) {
+          const bundleId = `inf_formula_conflict_${u.evidenceId.slice(0, 8)}`;
+          const candidate = {
+            bundleId,
+            claimTicketId: ticket.ticketId,
+            evidenceIds: [u.evidenceId],
+            premises: [
+              {
+                evidenceId: u.evidenceId,
+                premiseText: u.verbatimText.slice(0, 200),
+              },
+            ],
+            conclusion: 'Governing authority establishes a formulaic, tiered, or regionally variable calculation, refuting the asserted flat mechanism.',
+            relationship: 'contradicts' as const,
+            rationale: 'Authoritative evidence proves the fee/charge structure is variable or formulaic rather than a flat fixed rate.',
+            limitations: [],
+            assumptionsOrGaps: [],
+            validated: true,
+          };
+
+          const validated = validateInferenceBundle(candidate, ticket, eligibleUnitsMap, docMap);
+          if (validated.valid && !bundles.some((b) => b.bundleId === bundleId)) {
+            bundles.push(validated.bundle);
+          }
+        }
+      }
+    }
+
+    // Sub-pattern B: Actor-Obligation Window Inversion
+    const assertsTimeWindow = /\bwithin\s+(\d+|thirty|sixty|ninety|twelve)\s+(days?|months?|weeks?|years?)\b/i.test(claimLower);
+    const assertsObligation = /\b(must|required to|shall|obligat(ed|ion)|has to)\b/i.test(claimLower);
+
+    if (assertsTimeWindow && assertsObligation) {
+      for (const u of eligibleUnits) {
+        if (bundles.length >= 3) break;
+        const text = u.verbatimText.toLowerCase();
+        const assignsAuthorityObligation =
+          /\b(shall (issue|grant|refuse|dispose|respond|decide|process)|within \d+ days of receipt|within thirty days of receipt)\b/i.test(text);
+        const assignsAlternativeWindow =
+          /\b(up to (12|twelve) months|within 1 year|within one year|period of twelve months|up to \d+ (days|months|years))\b/i.test(text);
+
+        if (assignsAuthorityObligation || assignsAlternativeWindow) {
+          const bundleId = `inf_obligation_inversion_${u.evidenceId.slice(0, 8)}`;
+          const candidate = {
+            bundleId,
+            claimTicketId: ticket.ticketId,
+            evidenceIds: [u.evidenceId],
+            premises: [
+              {
+                evidenceId: u.evidenceId,
+                premiseText: u.verbatimText.slice(0, 200),
+              },
+            ],
+            conclusion: assignsAuthorityObligation
+              ? 'Statutory deadline governs administrative authority processing obligations rather than individual compliance timing.'
+              : 'Governing rules establish a different statutory timeframe than the asserted compliance window.',
+            relationship: 'contradicts' as const,
+            rationale: 'Evidence demonstrates actor obligation directionality or statutory compliance window divergence.',
+            limitations: [],
+            assumptionsOrGaps: [],
+            validated: true,
+          };
+
+          const validated = validateInferenceBundle(candidate, ticket, eligibleUnitsMap, docMap);
+          if (validated.valid && !bundles.some((b) => b.bundleId === bundleId)) {
+            bundles.push(validated.bundle);
+          }
+        }
+      }
+    }
+  }
+
   return {
     bundles: bundles.slice(0, 3),
     limitations,

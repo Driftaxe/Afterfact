@@ -131,13 +131,14 @@ export function ClaimList({
                 </div>
               </div>
 
-              <p className="mt-2.5 text-xs sm:text-[13px] font-normal text-text-primary leading-relaxed line-clamp-2">
-                {claim.rawText}
+              <p className="mt-2.5 text-xs sm:text-[13px] font-medium text-text-primary leading-relaxed">
+                {claim.normalizedProposition || claim.rawText}
               </p>
 
               {claim.normalizedProposition && claim.normalizedProposition.trim() !== claim.rawText.trim() && (
-                <p className="mt-1 text-[11px] font-sans italic text-text-muted line-clamp-1">
-                  ↳ Normalized: {claim.normalizedProposition}
+                <p className="mt-1 text-[11px] font-sans text-text-muted line-clamp-2">
+                  <span className="text-text-muted/70 font-normal">Context: </span>
+                  <span className="italic">“{claim.rawText}”</span>
                 </p>
               )}
 

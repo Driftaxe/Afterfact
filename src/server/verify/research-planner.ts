@@ -269,6 +269,36 @@ export async function generateResearchPlan(
     }
   }
 
+  // 8b. Deterministic canonical value-agnostic rule query guarantee
+  const statementForNumbers = `${ticket.originalStatement} ${ticket.normalizedProposition}`;
+  const hasNumericPredicate = /\b(\d+[\d,.]*|\$\d+|€\d+|£\d+|₹\d+)\b/.test(statementForNumbers);
+  const isQuantitativeOrRegulatory = ticket.domain === 'regulation' || ticket.domain === 'pricing' || hasNumericPredicate;
+
+  if (isQuantitativeOrRegulatory && queries.length >= 2) {
+    const numbersInClaim = Array.from(statementForNumbers.matchAll(/\b\d{2,}\b/g)).map((m) => m[0]);
+    const hasValueAgnosticQuery = queries.some((q) => !numbersInClaim.some((num) => q.query.includes(num)));
+
+    if (!hasValueAgnosticQuery && numbersInClaim.length > 0) {
+      const strippedQuery = queries[1].query
+        .replace(/[$€£₹]?\b\d+[\d,.]*\b/g, '')
+        .replace(/\b(flat|fixed|exact|only)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const canonicalSuffix = ticket.domain === 'regulation'
+        ? 'calculation rule statute'
+        : 'pricing structure calculation';
+
+      const adaptedQuery = `${strippedQuery} ${canonicalSuffix}`.slice(0, MAX_QUERY_LENGTH).trim();
+
+      queries[1] = {
+        ...queries[1],
+        query: adaptedQuery,
+        purpose: 'investigate_exceptions_or_scope',
+      };
+    }
+  }
+
   const rawStopping = Array.isArray(parsedPayload.stoppingConditions)
     ? parsedPayload.stoppingConditions.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
     : [];

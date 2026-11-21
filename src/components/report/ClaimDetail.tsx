@@ -462,22 +462,31 @@ export function ClaimDetail({
           )}
         </div>
 
-        {/* Claim Quote in Editorial Serif */}
-        <div className="relative pl-3.5 border-l-2 border-border-strong py-0.5">
-          <p className="font-serif text-base sm:text-lg text-text-primary leading-relaxed font-normal italic">
-            “{claim.rawText}”
-          </p>
-        </div>
-
-        {/* Normalized Proposition Evaluated */}
-        {claim.normalizedProposition && claim.normalizedProposition.trim() !== claim.rawText.trim() && (
-          <div className="p-3 rounded-lg bg-surface-raised/70 border border-border-subtle/70 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-muted">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <span>Evaluated Proposition (Normalized)</span>
+        {/* Claim Proposition & Source Excerpt */}
+        {claim.normalizedProposition && claim.normalizedProposition.trim() !== claim.rawText.trim() ? (
+          <div className="space-y-2">
+            <div className="p-3 rounded-lg bg-surface-raised/70 border border-border-subtle/70 space-y-1">
+              <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                <span>Evaluated Proposition (Normalized)</span>
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-text-primary leading-relaxed">
+                {claim.normalizedProposition}
+              </h3>
             </div>
-            <p className="text-xs sm:text-sm text-text-primary font-medium leading-relaxed">
-              {claim.normalizedProposition}
+            <div className="relative pl-3.5 border-l-2 border-border-strong py-0.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block mb-0.5">
+                Originating Source Sentence
+              </span>
+              <p className="font-serif text-sm sm:text-base text-text-secondary leading-relaxed font-normal italic">
+                “{claim.rawText}”
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="relative pl-3.5 border-l-2 border-border-strong py-0.5">
+            <p className="font-serif text-base sm:text-lg text-text-primary leading-relaxed font-normal italic">
+              “{claim.rawText}”
             </p>
           </div>
         )}

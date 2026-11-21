@@ -180,12 +180,17 @@ export const ClaimEvidenceAssessmentSchema = z.object({
 
 export type ClaimEvidenceAssessment = z.infer<typeof ClaimEvidenceAssessmentSchema>;
 
+function normalizeWhitespace(text: string): string {
+  return text.replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g, ' ').trim();
+}
+
 /**
  * Pure aggregate validation boundary between a SourceDocument and an EvidenceUnit:
  * - Ensures evidence unit refers to the given source document.
  * - Rejects dangling source IDs or missing raw text.
  * - Verifies verbatim excerpt substring presence in the source document.
  * - If character offsets are present, verifies exact character offset slice matches verbatim text.
+ * - Includes safe whitespace-normalized fallback for tabular/HTML extraction breaks.
  */
 export function validateEvidenceUnitAgainstSource(
   source: SourceDocument,
@@ -217,19 +222,27 @@ export function validateEvidenceUnitAgainstSource(
 
     const sliced = source.rawText.slice(charOffsetStart, charOffsetEnd);
     if (sliced !== unit.verbatimText) {
-      return {
-        valid: false,
-        reason: `Source text slice at [${charOffsetStart}, ${charOffsetEnd}] does not match verbatim text`,
-      };
+      // Step B: Whitespace-normalized fallback for multi-space or newline differences
+      if (normalizeWhitespace(sliced) !== normalizeWhitespace(unit.verbatimText)) {
+        return {
+          valid: false,
+          reason: `Source text slice at [${charOffsetStart}, ${charOffsetEnd}] does not match verbatim text`,
+        };
+      }
     }
   }
 
   // 2. Substring presence check
   if (!source.rawText.includes(unit.verbatimText)) {
-    return {
-      valid: false,
-      reason: `Source document does not contain verbatim text excerpt`,
-    };
+    // Step B fallback: compare whitespace-normalized text while preserving exact token sequence
+    const normSource = normalizeWhitespace(source.rawText);
+    const normVerbatim = normalizeWhitespace(unit.verbatimText);
+    if (!normSource.includes(normVerbatim)) {
+      return {
+        valid: false,
+        reason: `Source document does not contain verbatim text excerpt`,
+      };
+    }
   }
 
   return { valid: true };

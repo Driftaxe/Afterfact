@@ -28,22 +28,55 @@ const qstash = new Client({
   token: process.env.QSTASH_TOKEN || 'mock_token',
 });
 
+export function isSovereignDomain(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host.endsWith('.gov') ||
+      /\.gov\.[a-z]{2,}$/.test(host) ||
+      /\.nic\.[a-z]{2,}$/.test(host) ||
+      /\.gob\.[a-z]{2,}$/.test(host) ||
+      /\.gouv\.[a-z]{2,}$/.test(host) ||
+      /\.go\.[a-z]{2,}$/.test(host) ||
+      host.endsWith('.europa.eu') ||
+      host.endsWith('.mil') ||
+      host.endsWith('.admin.ch')
+    );
+  } catch {
+    const u = url.toLowerCase();
+    return (
+      u.includes('.gov.') ||
+      u.includes('.gov/') ||
+      u.includes('.nic.') ||
+      u.includes('.europa.eu') ||
+      u.includes('.admin.ch')
+    );
+  }
+}
+
 function inferDocumentSourceRole(
   url: string,
   publisher?: string | null
-): 'primary_authority' | 'regulatory_filing' | 'official_changelog' | 'reputable_secondary' {
+): SourceDocument['sourceRole'] {
   const u = (url || '').toLowerCase();
   const p = (publisher || '').toLowerCase();
 
+  // 1. Regulatory filings and legislative registries globally
   if (
     u.includes('sec.gov') ||
     u.includes('edgar') ||
     u.includes('legislation.gov') ||
     u.includes('eur-lex.europa.eu') ||
+    u.includes('federalregister.gov') ||
+    u.includes('indiacode.nic.in') ||
     p.includes('securities and exchange commission')
   ) {
     return 'regulatory_filing';
   }
+
+  // 2. Official changelogs / releases
   if (
     u.includes('/changelog') ||
     u.includes('/releases') ||
@@ -51,6 +84,13 @@ function inferDocumentSourceRole(
   ) {
     return 'official_changelog';
   }
+
+  // 3. Sovereign government, legislative, regulatory, and judicial domains globally
+  if (isSovereignDomain(url)) {
+    return 'primary_authority';
+  }
+
+  // 4. Established reputable news, encyclopedias, and wire services globally
   if (
     u.includes('wikipedia.org') ||
     u.includes('britannica.com') ||
@@ -59,12 +99,14 @@ function inferDocumentSourceRole(
     u.includes('bloomberg.com') ||
     u.includes('nytimes.com') ||
     u.includes('bbc.com') ||
+    u.includes('bbc.co.uk') ||
     u.includes('washingtonpost.com') ||
     u.includes('wsj.com') ||
     u.includes('theguardian.com') ||
     u.includes('cnn.com') ||
     u.includes('politico.com') ||
     u.includes('nbcnews.com') ||
+    u.includes('ft.com') ||
     p.includes('wikipedia') ||
     p.includes('reuters') ||
     p.includes('associated press') ||
@@ -72,10 +114,14 @@ function inferDocumentSourceRole(
   ) {
     return 'reputable_secondary';
   }
-  if (u.includes('.gov') || u.includes('.edu') || u.includes('docs.') || u.includes('/docs')) {
+
+  // 5. Academic institutions, official technical docs, and developer portals
+  if (u.includes('.edu') || u.includes('docs.') || u.includes('/docs')) {
     return 'primary_authority';
   }
-  return 'reputable_secondary';
+
+  // Unvetted blogs, personal sites, and user forums are treated as counter_perspective (not reputable secondary)
+  return 'counter_perspective';
 }
 
 /**
@@ -1064,8 +1110,12 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 (a) => a.sourceSuitability === 'credible_secondary'
               );
 
-              if (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary') {
-                doc.sourceRole = 'reputable_secondary';
+              const isSovereign = isSovereignDomain(doc.url);
+              // Protect sovereign domains from LLM downgrade to reputable_secondary
+              if (!isSovereign && (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary')) {
+                if (doc.sourceRole !== 'counter_perspective') {
+                  doc.sourceRole = 'reputable_secondary';
+                }
               }
 
               const isPrimary =
@@ -1073,11 +1123,22 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 doc.sourceRole === 'regulatory_filing' ||
                 doc.sourceRole === 'official_changelog';
 
+              const basis: ProvenanceFact['basis'] =
+                doc.sourceRole === 'regulatory_filing'
+                  ? 'regulatory_filing'
+                  : doc.sourceRole === 'official_changelog'
+                    ? 'official_changelog'
+                    : doc.sourceRole === 'primary_authority'
+                      ? 'official_primary_record'
+                      : doc.sourceRole === 'reputable_secondary'
+                        ? 'independent_secondary_report'
+                        : 'unknown';
+
               provenanceMap[doc.documentId] = {
                 documentId: doc.documentId,
                 claimId: ticket.claimId,
                 revision: ticket.revision,
-                basis: isPrimary ? 'official_primary_record' : 'independent_secondary_report',
+                basis,
                 entityMatch: true,
                 claimApplicability: 'applicable',
                 isIndependentSecondary: !isPrimary,
