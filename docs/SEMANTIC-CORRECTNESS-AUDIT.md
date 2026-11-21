@@ -485,3 +485,8 @@ $$\text{INVARIANT} \longrightarrow \text{PRODUCTION ENTRY POINT} \longrightarrow
 - Reusable repair engine in [model-repair.ts](file:///C:/Users/Mayur/Desktop/Afterfact/src/server/verify/model-repair.ts) via `executeBoundedModelRepair<T>()`.
 - Strictly separates repairable failures (malformed JSON, schema violation on model-owned fields, non-verbatim excerpts) from non-repairable failures (transport 500, quota 429, missing server IDs, database losses).
 - Enforces at most 1 repair attempt sharing stage deadlines and budgets. Verified in `Case 4, 5, 9, 10`.
+
+### 6.5 Linked Investigation: Evidence Reasoning and Claim Relationships Audit
+- Follow-up investigation into compound assertion decomposition, indirect evidence reasoning, and entity coupling:
+  👉 [docs/EVIDENCE-REASONING-AUDIT.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/EVIDENCE-REASONING-AUDIT.md)
+  (Findings `ERA-001` through `ERA-009`, incident `cmwp7mvt90000gc289mw15klr`).

@@ -231,6 +231,13 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       timeline,
       correction,
       missingMaterialContext,
+      components: Array.isArray(decRecord?.components)
+        ? decRecord.components
+        : Array.isArray(spec.components)
+          ? spec.components
+          : [],
+      relationships: Array.isArray(spec.relationships) ? spec.relationships : [],
+      inferredBundles: Array.isArray(decRecord?.inferredBundles) ? decRecord.inferredBundles : [],
     };
   });
 

@@ -84,6 +84,9 @@ export function requiresCounterevidencePolicy(ticket: ClaimTicket): boolean {
   // Active validity markers
   if (/\b(currently|current|active|now)\b/.test(text)) return true;
 
+  // Severe life-event, death, or legal consequence markers requiring falsification check
+  if (/\b(dead|death|died|killed|murdered|arrested|hospitalized)\b/.test(text)) return true;
+
   return false;
 }
 

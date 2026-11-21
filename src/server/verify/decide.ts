@@ -1080,6 +1080,12 @@ function buildRecordId(aggregate: Aggregate): string {
       ),
       authoritativeSourceRoles: [...policy.authoritativeSourceRoles].sort(),
     },
+    components: [...(aggregate.ticket.components ?? [])].sort((a, b) =>
+      a.id.localeCompare(b.id)
+    ),
+    inferenceBundles: [...(aggregate.input.inferenceBundles ?? [])].sort((a, b) =>
+      a.bundleId.localeCompare(b.bundleId)
+    ),
     // decidedAt and traceIds are audit metadata, not decision inputs.
   };
 
@@ -1202,6 +1208,8 @@ function makeDecision(
     ),
     excludedEvidence: buildExcludedEvidence(evaluations),
     extractedQualifiers: ticket.verificationContext,
+    components: ticket.components ?? [],
+    inferredBundles: aggregate.input.inferenceBundles ?? [],
     temporalBasis: buildTemporalBasis(
       ticket.targetTime,
       draft.primary,
@@ -1339,6 +1347,43 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
       evaluation.assessment.relationship === 'contradicts'
   );
 
+  // Cross-evidence inference bundle integration
+  const contradictingBundles = (aggregate.input.inferenceBundles ?? []).filter(
+    (b) => b.relationship === 'contradicts'
+  );
+  if (contradictingBundles.length > 0) {
+    const bundleEvidenceIds = new Set(
+      contradictingBundles.flatMap((b) => b.evidenceIds)
+    );
+    for (const evaluation of evaluations) {
+      if (
+        bundleEvidenceIds.has(evaluation.unit.evidenceId) &&
+        isEligible(evaluation) &&
+        !currentOppositions.includes(evaluation)
+      ) {
+        currentOppositions.push(evaluation);
+      }
+    }
+  }
+
+  const supportingBundles = (aggregate.input.inferenceBundles ?? []).filter(
+    (b) => b.relationship === 'supports'
+  );
+  if (supportingBundles.length > 0) {
+    const bundleEvidenceIds = new Set(
+      supportingBundles.flatMap((b) => b.evidenceIds)
+    );
+    for (const evaluation of evaluations) {
+      if (
+        bundleEvidenceIds.has(evaluation.unit.evidenceId) &&
+        isEligible(evaluation) &&
+        !currentSupports.includes(evaluation)
+      ) {
+        currentSupports.push(evaluation);
+      }
+    }
+  }
+
   let supports = currentSupports;
   let oppositions = currentOppositions;
   if (historicalClaim) {
@@ -1443,6 +1488,85 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
       }
     }
 
+    // Component-level contradiction propagation check (Section 5)
+    if (Array.isArray(aggregate.ticket.components) && aggregate.ticket.components.length > 0) {
+      const components = aggregate.ticket.components;
+      const relationships = aggregate.ticket.relationships ?? [];
+
+      const targetedCompIds = new Set<string>();
+      for (const op of oppositions) {
+        if (op.assessment.componentId) {
+          targetedCompIds.add(op.assessment.componentId);
+        }
+      }
+      for (const b of contradictingBundles) {
+        if (b.componentId) {
+          targetedCompIds.add(b.componentId);
+        }
+      }
+
+      if (targetedCompIds.size > 0) {
+        let hasRefutedNecessaryComponent = false;
+        let refutedCompStatement = '';
+        let refutedCompId = '';
+
+        for (const compId of targetedCompIds) {
+          const comp = components.find((c) => c.id === compId);
+          if (!comp) continue;
+
+          // Incidental components do not refute the core proposition
+          if (comp.necessity === 'incidental') {
+            continue;
+          }
+
+          // Non-entailment relationship check:
+          // Do not propagate through temporal_precedence or attribution as though they were entailment
+          const isNonEntailmentOnly = relationships.some(
+            (r) =>
+              (r.type === 'temporal_precedence' || r.type === 'attribution') &&
+              (r.sourceId === compId || r.targetId === compId)
+          ) && relationships.every((r) => r.type !== 'conjunction' && r.type !== 'entailment');
+
+          if (isNonEntailmentOnly) {
+            continue;
+          }
+
+          hasRefutedNecessaryComponent = true;
+          refutedCompStatement = comp.statement;
+          refutedCompId = comp.id;
+          break;
+        }
+
+        // If only incidental components were contradicted, do NOT mark parent contradicted
+        const hasHolisticOpposition = oppositions.some((op) => !op.assessment.componentId) ||
+          contradictingBundles.some((b) => !b.componentId);
+
+        if (!hasRefutedNecessaryComponent && !hasHolisticOpposition) {
+          return makeDecision(aggregate, evaluations, {
+            verdict: 'insufficient_evidence',
+            score: null,
+            reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
+            scoreReason: `Opposition was established solely for incidental component [${Array.from(targetedCompIds).join(', ')}], which does not refute the core proposition; essential assertions remain unresolved.`,
+            primary: [],
+            counter: oppositions,
+            transition: null,
+          });
+        }
+
+        if (hasRefutedNecessaryComponent) {
+          return makeDecision(aggregate, evaluations, {
+            verdict: 'contradicted',
+            score: 0,
+            reasonCode: DECISION_REASON_CODES.DECISIVE_CONTRADICTION,
+            scoreReason: `Decisive contradiction of necessary component [${refutedCompId}] ('${refutedCompStatement}') refutes the compound proposition under conjunction/entailment semantics.`,
+            primary: oppositions,
+            counter: supports,
+            transition: null,
+          });
+        }
+      }
+    }
+
     return makeDecision(aggregate, evaluations, {
       verdict: 'contradicted',
       score: 0,
@@ -1491,6 +1615,54 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
         counter: oppositions,
         transition: null,
       });
+    }
+
+    // Compound claim component coverage check:
+    // If a claim asserts multiple components under conjunction (or default decomposition),
+    // every necessary component must have qualified supporting evidence or a supporting inference bundle.
+    if (Array.isArray(aggregate.ticket.components) && aggregate.ticket.components.length > 1) {
+      const components = aggregate.ticket.components;
+      const supportedCompIds = new Set<string>();
+      const supportingBundlesList = (aggregate.input.inferenceBundles ?? []).filter(
+        (b) => b.relationship === 'supports'
+      );
+
+      for (const comp of components) {
+        // 1. Direct assessment explicitly targeting this component
+        const hasDirectSupport = qualifiedSupports.some(
+          (evalItem) => evalItem.assessment.componentId === comp.id
+        );
+        // 2. Holistic assessment without componentId (evaluates the whole compound proposition)
+        const hasHolisticSupport = qualifiedSupports.some(
+          (evalItem) => !evalItem.assessment.componentId
+        );
+        // 3. Supporting inference bundle targeting this component or the whole claim
+        const hasBundleSupport = supportingBundlesList.some(
+          (b) => !b.componentId || b.componentId === comp.id
+        );
+
+        if (hasDirectSupport || hasHolisticSupport || hasBundleSupport) {
+          supportedCompIds.add(comp.id);
+        }
+      }
+
+      const necessaryComponents = components.filter((c) => c.necessity !== 'incidental');
+      const unsupportedNecessary = necessaryComponents.filter((c) => !supportedCompIds.has(c.id));
+
+      if (unsupportedNecessary.length > 0) {
+        for (const evalItem of qualifiedSupports) {
+          evalItem.limitationCodes.push('PARTIAL_COMPONENT_SUPPORT_INSUFFICIENT');
+        }
+        return makeDecision(aggregate, evaluations, {
+          verdict: 'insufficient_evidence',
+          score: null,
+          reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
+          scoreReason: `Grounded support was verified for component(s) (${Array.from(supportedCompIds).join(', ')}), but necessary component(s) (${unsupportedNecessary.map((c) => c.id).join(', ')}) lack sufficient supporting evidence; a compound assertion requires all necessary components to be substantiated.`,
+          primary: [],
+          counter: oppositions,
+          transition: null,
+        });
+      }
     }
 
     const qualifiedRank = maxRank(qualifiedSupports);

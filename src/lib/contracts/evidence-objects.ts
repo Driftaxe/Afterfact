@@ -154,6 +154,7 @@ export const ClaimEvidenceAssessmentSchema = z.object({
   claimTicketId: z.string().min(1, { message: 'Claim ticket ID is required' }),
   claimRevision: z.number().int().min(1, { message: 'Claim revision must be >= 1' }),
   evidenceId: z.string().min(1, { message: 'Evidence ID is required' }),
+  componentId: z.string().optional(),
   relationship: AssessmentRelationshipSchema,
   scopeMatching: ScopeMatchingSchema,
   quotationVerified: z.boolean(),

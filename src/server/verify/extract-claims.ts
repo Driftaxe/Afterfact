@@ -410,6 +410,8 @@ export async function extractClaimsFromText(
       targetTime: resolvedTargetTime,
       verificationContext: effectiveContext,
       missingMaterialContext: missingKeys,
+      components: claim.components ?? [],
+      relationships: claim.relationships ?? [],
     });
 
     if (!ticketParsed.success) {

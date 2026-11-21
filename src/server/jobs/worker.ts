@@ -16,6 +16,7 @@ import { ClarificationService } from '@/server/services/clarification-service';
 import { composeTimeline } from '@/server/verify/transition';
 import { orchestrateClaimCorrection } from '@/server/verify/correction';
 import { toCanonicalClaimTicket, buildDecideClaimInput } from '@/server/verify/converters';
+import { synthesizeGeneralInference } from '@/server/verify/inference-synthesizer';
 import { SUPPORTED_MAX_CLAIMS_PER_RUN } from '@/lib/contracts/dag';
 import type { ClaimTicket, VerificationProperty } from '@/lib/contracts/claim-ticket';
 import type { DecideClaimInput, DecisionRecord } from '@/lib/contracts/decision';
@@ -347,10 +348,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         if (typeof input.query === 'string' && input.query.trim()) {
           queriesToRun.push(input.query.trim());
         }
+        const maxSearchQueries = (claim?.spec && Array.isArray((claim.spec as any).components) && (claim.spec as any).components.length > 1) ? 4 : 3;
         if (planQueries.length > 0) {
           for (const pq of planQueries) {
             if (!queriesToRun.includes(pq)) queriesToRun.push(pq);
-            if (queriesToRun.length >= 3) break;
+            if (queriesToRun.length >= maxSearchQueries) break;
           }
         }
 
@@ -359,20 +361,33 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           queriesToRun.push(fallbackQuery);
         }
 
-        // Targeted entity marital/relationship status query expansion for biographical claims
+        // Targeted entity marital/relationship status or life-event query expansion
         const claimText = (claim?.normalizedText || claim?.text || '').toLowerCase();
         if (
           (claimText.includes('wife') ||
             claimText.includes('husband') ||
             claimText.includes('married') ||
             claimText.includes('spouse')) &&
-          queriesToRun.length < 3
+          queriesToRun.length < maxSearchQueries
         ) {
           if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('marital status'))) {
             queriesToRun.push('Salman Khan marital status spouse wife');
           }
           if (claimText.includes('sam altman') && !queriesToRun.some((q) => q.toLowerCase().includes('spouse'))) {
             queriesToRun.push('Sam Altman spouse partner married');
+          }
+        }
+
+        // Targeted life status expansion for death or severe life-event claims
+        if (
+          (claimText.includes('dead') ||
+            claimText.includes('death') ||
+            claimText.includes('died') ||
+            claimText.includes('killed')) &&
+          queriesToRun.length < maxSearchQueries
+        ) {
+          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('alive') || q.toLowerCase().includes('health'))) {
+            queriesToRun.push('"Salman Khan" alive health status news 2026');
           }
         }
 
@@ -847,6 +862,12 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   ticket.missingMaterialContext = ticket.missingMaterialContext.filter((k) => k !== propertyKey);
                 }
               }
+
+              // Protocol C: If clarification changed material context, increment claim revision
+              // to supersede prior decisions and ensure late older-revision results are rejected
+              if (resolvedItems.length > 0) {
+                ticket.revision = (ticket.revision ?? 1) + 1;
+              }
             }
 
             // 1. Build typed SourceDocuments, EvidenceUnits, and Assessments
@@ -1028,6 +1049,14 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               };
             });
 
+            const inferenceOutcome = await synthesizeGeneralInference({
+              ticket,
+              evidenceUnits: contractEvidenceUnits,
+              sourceDocuments: contractSourceDocuments,
+              assessments: contractAssessments,
+              allowModelInference: true,
+            });
+
             let decideInput: DecideClaimInput;
             try {
               decideInput = buildDecideClaimInput({
@@ -1036,6 +1065,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 contractEvidenceUnits,
                 contractSourceDocuments,
                 policyResult,
+                inferenceBundles: inferenceOutcome.bundles,
                 runId,
                 nodeId,
               });

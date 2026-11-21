@@ -27,6 +27,16 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
        - Do NOT destroy the comparative proposition by tearing it into disconnected fragments where one fragment is an unanchored noun phrase (e.g. extracting "Y" as an isolated claim).
        - Preserve the comparison as a unified relational proposition. The verbatim statement should span the comparative assertion (e.g. "The latest model by google is gemini carbon instead of gemini neon as of 2026"), and normalizedProposition should preserve both entities and the exact comparative relation (e.g., "Google's latest model is Gemini Carbon instead of Gemini Neon as of 2026.").
        - Extract qualifiers identifying the subject entity (e.g. productName: "Gemini Carbon") and comparison alternative (e.g. comparisonProduct: "Gemini Neon").
+   - Compound Assertions & Logical Decomposition:
+     * When a statement asserts a compound proposition comprising multiple necessary conditions or an event plus a secondary actor/discovery circumstance (e.g. "X was found dead by Y", "Company A acquired Company B for $Z with approval from Regulator C"):
+       - Maintain the complete assertion as the parent claim with its exact verbatim statement and normalizedProposition.
+       - Decompose the assertion into atomic sub-components in "components":
+         * Component 1 (foundational state/life-event, e.g. statement: "Salman khan was found dead", normalizedProposition: "Salman Khan died / was found dead.", id: "c1", role: "asserted_value").
+         * Component 2 (circumstance/actor attribution, e.g. statement: "by puneet superstar", normalizedProposition: "Puneet Superstar discovered Salman Khan's body.", id: "c2", role: "asserted_value").
+       - Declare the logical relationships in "relationships":
+         * type: 'entailment', sourceId: "c2", targetId: "c1", rationale: "Finding someone dead presupposes and entails their death."
+         * type: 'conjunction', sourceId: "c1", targetId: "c2", rationale: "Both Salman Khan dying and Puneet Superstar finding the body are necessary for the compound claim."
+     * If the statement is already atomic and simple (e.g. "ZephyrPay does not charge refund processing fees"), return components: [] and relationships: [].
    - For every claim:
      * statement: The exact verbatim excerpt from the source text representing the assertion or clause. MUST match the source text character-for-character without alterations. NEVER resolve pronouns (e.g. do not change "its" to "Birch" or "he" to a person's name) inside statement. NEVER restore elided verbs or subjects (e.g. if the source says "Cedar on Sep 2, Willow on Nov 10", the statement for Willow is "Willow on Nov 10", NOT "Example Labs released Willow on Nov 10"). Keep statement strictly verbatim!
      * normalizedProposition: A clear, self-contained, disambiguated natural language statement asserting the fact independently (resolving pronouns, incorporating shared sentence subjects, and stating full context). This is where all pronoun resolution and restored subjects belong.
@@ -354,6 +364,54 @@ export const SYNTHETIC_EXTRACTION_EXAMPLES = [
           ],
           inferredQualifiers: [],
           missingMaterialQualifiers: ['asOfDate'],
+        },
+      ],
+    },
+  },
+  {
+    input: 'Salman khan was found dead by puneet superstar',
+    output: {
+      claims: [
+        {
+          statement: 'Salman khan was found dead by puneet superstar',
+          normalizedProposition: 'Salman Khan was found dead by Puneet Superstar.',
+          domain: 'biography',
+          timeSensitivity: 'high',
+          locationHint: {
+            prefix: '',
+            suffix: '',
+          },
+          explicitQualifiers: [],
+          inferredQualifiers: [],
+          missingMaterialQualifiers: [],
+          components: [
+            {
+              id: 'c1',
+              statement: 'Salman khan was found dead',
+              normalizedProposition: 'Salman Khan died / was found dead.',
+              role: 'asserted_value',
+            },
+            {
+              id: 'c2',
+              statement: 'by puneet superstar',
+              normalizedProposition: "Puneet Superstar discovered Salman Khan's body.",
+              role: 'asserted_value',
+            },
+          ],
+          relationships: [
+            {
+              type: 'entailment',
+              sourceId: 'c2',
+              targetId: 'c1',
+              rationale: "Puneet Superstar finding Salman Khan's body entails that Salman Khan is dead.",
+            },
+            {
+              type: 'conjunction',
+              sourceId: 'c1',
+              targetId: 'c2',
+              rationale: 'Both Salman Khan dying and Puneet Superstar finding the body are necessary for the compound claim.',
+            },
+          ],
         },
       ],
     },

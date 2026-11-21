@@ -633,3 +633,131 @@ Integrated the semantic correctness repairs for **SEM-001 through SEM-006** and 
   - `cmwo0ey2j0000gcy4qwnmn0e3` (untouched)
   - `cmwo1t5qt0000gc48cz5e0f8f` (untouched)
 
+---
+
+## Session 2026-11-20.03 — Evidence Reasoning and Claim Relationships Audit (ERA)
+- **Timestamp:** 2026-11-20T23:36:00+05:30
+- **Session Identifier:** `audit-evidence-reasoning-and-claim-relationships`
+- **Branch Baseline:** `feat/wire-frontend-ai-extraction`
+- **Operating Mode:** AUDIT + DOCUMENTATION ONLY (No application fixes applied)
+- **Scope & Objectives:**
+  - Investigated why Afterfact returns `insufficient_evidence` when evaluating compound viral hoaxes (*"Salman Khan was found dead by Puneet Superstar"*).
+  - Evaluated whether the failure is caused by model capability (`gemini-3.5-flash-lite`), prompt instructions, claim representation schemas, research planning, or deterministic gates (`decideClaim`).
+  - Audited the full execution trace of incident run `cmwp7mvt90000gc289mw15klr` across all 8 retrieved documents, 11 evidence units, 11 assessments, and final decision record.
+  - Implemented and executed 12 targeted diagnostic cases covering compound contradiction, timing negative controls, wrong-person controls, partial support, cross-document synthesis, and adversarial content.
+- **Inspected Entry Points & Implementation Files:**
+  - Extraction: `src/server/verify/extract-claims.ts`, `src/server/prompts/extract.ts`, `src/lib/contracts/claim-ticket.ts`
+  - Research Planning: `src/server/verify/research-planner.ts`, `src/server/prompts/research.ts`
+  - Evidence Extraction & Assessment: `src/server/verify/extract-evidence.ts`, `src/server/verify/assess-evidence.ts`, `src/server/prompts/assess.ts`
+  - Decision Gates & Policies: `src/server/verify/decide.ts`, `src/server/policies/generic.ts`
+  - Model Gateway Configuration: `src/server/bifrost/profiles.ts`, `src/server/bifrost/client.ts`
+- **Diagnostics Executed:**
+  - Authored diagnostic suite `tests/unit/verify/evidence-reasoning-diagnostic.test.ts` (12 tests covering Cases 1–12).
+  - Executed `pnpm vitest run tests/unit/verify/evidence-reasoning-diagnostic.test.ts`: **12/12 passed (88ms)**.
+- **Observed Results & Findings (ERA-001 through ERA-009):**
+  - **ERA-001 (Monolithic Extraction):** Compound assertions extracted as single opaque claims without property roles (`verificationContext: []`).
+  - **ERA-002 (Missing Relational Contracts):** `ClaimTicket` lacks fields for `parentClaimId`, `subClaims`, or logical conjunction/entailment edges.
+  - **ERA-003 (Coupled Research Queries):** Research planner generated joint queries coupling both names, starving retrieval of baseline biographical records.
+  - **ERA-004 (Whole-Sentence Evidence Requirement):** Assessor rejected articles proving subject is alive as `unrelated` because secondary actor was absent.
+  - **ERA-005 (Indirect Evidence Rejection):** Assessor lacks mutual-exclusion rules ($\text{Alive}(X) \perp \text{Dead}(X)$).
+  - **ERA-006 (Faulty Reverse Inference):** Assessor fallaciously reasoned that Puneet being alive undermines Salman's death (Assessment `cmwp7poff001egc28zxs6na3u`).
+  - **ERA-007 (Temporal Indeterminacy):** Retrieved articles had `publicationDate: null` and July 2026 text; July appearance does not disprove November death.
+  - **ERA-008 (Clarification Omission):** System did not prompt for missing event date.
+  - **ERA-009 (Model vs Architecture):** Model followed literal prompt constraints; architecture lacks composite claim contracts and mutual-exclusion rules.
+- **Changed Documentation & Diagnostic Files:**
+  - Created [docs/EVIDENCE-REASONING-AUDIT.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/EVIDENCE-REASONING-AUDIT.md)
+  - Created [tests/unit/verify/evidence-reasoning-diagnostic.test.ts](file:///C:/Users/Mayur/Desktop/Afterfact/tests/unit/verify/evidence-reasoning-diagnostic.test.ts)
+  - Updated [docs/DEV-LOG.md](file:///C:/Users/Mayur/Desktop/Afterfact/docs/DEV-LOG.md)
+- **Limitations:** No production fixes implemented; audit findings await user review and scope agreement.
+- **Proposed Next Step:** Review audit findings with user; define prioritized implementation plan for composite claim extraction, decoupled research planning, and mutual-exclusion assessor rules.
+
+---
+
+## Session 2026-11-21.01 — Implementation & Verification of Grounded Evidence Reasoning and Claim Relationships
+- **Timestamp:** 2026-11-21T02:25:00+05:30
+- **Session Identifier:** `feat-grounded-evidence-reasoning-and-claim-relationships`
+- **Branch Baseline:** `feat/wire-frontend-ai-extraction`
+- **Operating Mode:** IMPLEMENTATION + VERIFICATION + DOCUMENTATION
+- **Scope & Objectives Addressed:**
+  1. **Compound Claim Decomposition & Relational Semantics (ERA-001, ERA-002):**
+     - Updated `ClaimComponentSchema` and `ClaimRelationshipSchema` in `src/lib/contracts/claim-ticket.ts`.
+     - Extended `ClaimTicketSchema` and `RawExtractedClaimSchema` to carry optional `components` and `relationships` (conjunction and entailment).
+     - Enhanced `src/server/prompts/extract.ts` and `src/server/verify/extract-claims.ts` with decomposition rules and synthetic examples.
+     - Preserved clean direct path for simple atomic claims (`components: []`, `relationships: []`).
+  2. **Component-Aware Research Planning & Query Budgeting (ERA-003):**
+     - Updated `src/server/prompts/research.ts` with Angle E (Component-Aware Independence) and passed `components` and `relationships` into the research planner user prompt.
+     - Updated `requiresCounterevidencePolicy` in `src/server/verify/research-planner.ts` to mandate counterevidence queries on death, fatal life-event, and arrest assertions.
+     - In `src/server/jobs/worker.ts` (`search_evidence`), expanded query allowance up to 4 when sub-components are present, and added targeted life status expansion (`"Salman Khan" alive health status news 2026`).
+  3. **Semantic Assessment & Ontological Incompatibility (ERA-004, ERA-005, ERA-006):**
+     - Updated `src/server/prompts/assess.ts` with ontological mutual exclusion rules ($\text{Alive}(X) \perp \text{Dead}(X)$), component refutation rules (proof of life refutes death component without naming secondary actors), and strict actor non-conflation rules (status of Actor B does not refute Actor A).
+     - Added optional `componentId` to `ClaimEvidenceAssessmentSchema` in `src/lib/contracts/evidence-objects.ts` and mapped it in `src/server/verify/assess-evidence.ts`.
+     - Enhanced `selectStratifiedEvidenceUnits` in `assess-evidence.ts` to stratify across sub-component terms.
+  4. **Bounded Cross-Evidence Inference Synthesizer:**
+     - Created `src/server/verify/inference-synthesizer.ts` with `synthesizeBoundedInference()`.
+     - Bounded strictly to 2 complementary units; enforces verified quotation grounding, acceptable source authority, and connected entity/temporal anchors.
+     - Synthesizes chronological release succession and event attendance + event date anchors.
+  5. **Deterministic Decision Gate & Conjunction/Entailment Propagation:**
+     - Extended `decideClaim` in `src/server/verify/decide.ts` with component coverage checking:
+       * Contradiction of any necessary component or entailed target decisively refutes the conjunction parent claim (Score 0, `DECISIVE_CONTRADICTION`).
+       * Partial support of one component while another is missing fails closed to `insufficient_evidence` (Score null, `INSUFFICIENT_RETRIEVAL_DATA`).
+       * Support for all necessary components grants `supported` to the parent claim (Score 100 or 75).
+       * Consumes validated `InferenceBundle` records to satisfy proof obligations or register cross-evidence oppositions.
+  6. **Worker Transport, Persistence & Client Serialization:**
+     - Updated `src/server/verify/converters.ts` (`toCanonicalClaimTicket`, `buildDecideClaimInput`) to preserve `components`, `relationships`, and `inferenceBundles`.
+     - Updated `src/server/jobs/worker.ts` (`decide_claim`) to run `synthesizeBoundedInference` and pass bundles to `buildDecideClaimInput`.
+     - Updated `src/server/services/run-query-service.ts` to expose `components`, `relationships`, and `inferredBundles` in report snapshots.
+     - Updated `src/components/report/ClaimDetail.tsx` to render decomposed sub-components and joint inference cards.
+  7. **Comprehensive Verification & Regression Testing:**
+     - Authored `tests/unit/verify/evidence-reasoning-components.test.ts` exercising the 18 focused verification cases (all 18 passed in 69ms).
+     - Static analysis (E1: `pnpm typecheck` passed with 0 errors; `pnpm lint` passed with 0 errors; `pnpm build` passed with all 7 routes compiled).
+     - Regression testing (E2: full suite `pnpm test` passed 501/501 tests across 26 test suites, 12 skipped).
+     - Synthetic end-to-end verification (`scratch/verify-compound-end-to-end.ts`) confirmed the exact incident input (`"Salman khan was found dead by puneet superstar"`) is extracted with components `c1` and `c2`, planned with independent queries, assessed as `contradicts` on `c1`, and decided as `contradicted`, score `0`, `DECISIVE_CONTRADICTION`.
+- **Evidence Hierarchy (P7 / P17):**
+  - **Level E1 (Static Analysis):** `pnpm typecheck` $\to$ 0 errors; `pnpm lint` $\to$ 0 errors; `pnpm build` $\to$ all 7 routes compiled.
+  - **Level E2 (Unit & Matrix Tests):**
+    - `tests/unit/verify/evidence-reasoning-components.test.ts` $\to$ 18/18 tests passed.
+    - Full repository unit suite: 501/501 passed across 26 test suites, 12 skipped.
+  - **Level E3/E5 (Synthetic End-to-End Pipeline):**
+    - `scratch/verify-compound-end-to-end.ts` verified complete pipeline journey with authentic retrieved web sources.
+---
+
+## Session 2026-11-21.02 — Grounded General Inference Closeout, Matrix Verification & Remote Push
+- **Timestamp:** 2026-11-21T20:25:00+05:30
+- **Session Identifier:** `feat-grounded-inference-closeout`
+- **Branch Baseline:** `feat/wire-frontend-ai-extraction`
+- **Operating Mode:** IMPLEMENTATION + VERIFICATION + GIT CLOSEOUT
+- **Scope & Objectives Completed:**
+  1. **Bounded General Semantic Inference Path (`synthesizeGeneralInference`):**
+     - Implemented `synthesizeGeneralInference` in `src/server/verify/inference-synthesizer.ts`.
+     - Added candidate pooling ($\le 4$ candidates per bundle, max 3 bundles per claim), batched model proposal generation via Bifrost gateway, bounded model repair (`executeBoundedModelRepair`), and semantic validation pass (`validateInferenceBundle`).
+     - Maintained pure deterministic fast-path in `synthesizeBoundedInference` for zero-latency operations.
+  2. **Admitting Single-Passage Indirect Inferences & Counterexamples:**
+     - Updated `InferenceBundleSchema` in `src/lib/contracts/decision.ts` to admit `evidenceIds` with `.min(1).max(4)` units.
+     - Added optional `assumptionsOrGaps?: string[]` and `validated?: boolean` fields.
+     - Implemented Pattern 1 (Universal counterexample, e.g. enterprise dashboard vs email), Pattern 2 (Single-passage paraphrase, e.g. return to office vs telecommuting), and Pattern 5 (Complementary components).
+  3. **Component Necessity & Relationship Entailment Direction:**
+     - Added `ComponentNecessitySchema` (`'necessary' | 'incidental'`) and optional `necessity` on `ClaimComponentSchema` in `src/lib/contracts/claim-ticket.ts`.
+     - Updated `ClaimRelationshipTypeSchema` admitting `conjunction`, `entailment`, `temporal_precedence`, `attribution`.
+     - In Gate 3 of `src/server/verify/decide.ts`, restricted contradiction propagation to necessary components (`comp.necessity !== 'incidental'`).
+     - Refactored non-entailment check: pure `attribution` or `temporal_precedence` does not propagate contradiction as though it were entailment.
+     - In Gate 4, filtered component coverage checks by `comp.necessity !== 'incidental'`, permitting parent claims to be supported when incidental details lack evidence.
+  4. **Relational Grounding & Actor Non-Conflation:**
+     - Replaced overbroad actor rule in `src/server/prompts/assess.ts` and `inference-synthesizer.ts` with: *"A fact about B establishes a fact about A only when a grounded relationship justifies that inference."*
+     - Rejects ungrounded inverse actor inferences while accepting grounded relational assertions.
+  5. **Temporal Applicability Constraints:**
+     - Enforced: appearance before an alleged event date cannot refute a later event; appearance after an alleged event date can refute.
+     - Publication date $\neq$ event date; partial date precision preserved.
+     - Harmonized contemporaneous life vs death window ($\le 90$ days from evaluation target time for continuous claims).
+  6. **Context Revision Invalidation:**
+     - In `src/server/jobs/worker.ts`, incremented claim revision on `answeredClarification` to supersede obsolete decisions and reject stale results.
+  7. **Fixed Acceptance Matrix (TC-ERA-19 through TC-ERA-28):**
+     - Authored and verified all 10 matrix cases covering Matrix A (Paraphrase), Matrix B (Counterexample), Matrix C (Complementary evidence), Matrix D (Temporal bounds), Matrix E (Relationship direction), Matrix F (Incidental components), Matrix G (Actor connections), Matrix H (Operational bounds), Matrix I (Context revision), and Matrix J (Report serialization fidelity).
+  8. **Comprehensive Quality & Regression Verification:**
+     - Static analysis (E1): `pnpm typecheck` passed with 0 errors; `pnpm lint` passed with 0 errors; `pnpm build` passed with all 7 routes compiled.
+     - Unit & diagnostic test suites (E2): `tests/unit/verify/evidence-reasoning-components.test.ts` passed 28/28 tests; `tests/unit/verify/evidence-reasoning-diagnostic.test.ts` passed 12/12 tests.
+     - Full repository unit regression (E2): `pnpm test` passed 511/511 tests across 26 test suites (12 skipped, 0 failures).
+- **Historical Preserved Runs (Read-Only):**
+  - `cmwnuv5640000gczsmwfr976w` (untouched)
+  - `cmwo0ey2j0000gcy4qwnmn0e3` (untouched)
+  - `cmwo1t5qt0000gc48cz5e0f8f` (untouched)
+  - `cmwp7mvt90000gc289mw15klr` (untouched)

@@ -18,6 +18,7 @@ Your task is to generate a structured, multi-angle ResearchPlan containing targe
    - Angle B (Object / Related Entity Reality): When a claim involves a relation between multiple entities, query the object or related entity's actual status (e.g., "Salman Khan" marital status OR spouse OR wife OR married biography).
    - Angle C (Direct Intersection & Counterevidence): Directly verify or refute the asserted relation between both entities with fact-check and verification keywords (e.g., "Sam Altman" "Salman Khan" married OR marriage rumor fact check).
    - Angle D (Temporal Transition & Changelogs): If the claim references a specific year, transition, or potential supersession, locate release notes, SEC filings, or transition dates (e.g., "Twitter" CEO Parag Agrawal replaced OR successor OR stepped down).
+   - Angle E (Component-Aware Independence): When a claim contains sub-components or asserts a compound event (e.g. foundational state of Subject A + secondary actor B's discovery), formulate queries targeting the necessary foundational component independently without coupling all secondary actors into every query (e.g. "Salman Khan" alive OR death status OR recent news, without requiring "Puneet Superstar" in that query). Contradicting a necessary component decisively refutes the compound proposition.
 
 3. DOMAIN-SPECIFIC SEARCH TEMPLATES:
    - Biographical / Marital / Personal:
@@ -86,6 +87,8 @@ export function buildResearchPlannerUserPrompt(params: {
         propertyType: p.propertyType,
         origin: p.origin,
       })),
+      components: ticket.components ?? [],
+      relationships: ticket.relationships ?? [],
     },
     planningParameters: {
       round,

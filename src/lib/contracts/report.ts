@@ -164,6 +164,9 @@ const BaseClaimFields = {
   normalizedProposition: z.string().nullable().optional(),
   extractedQualifiers: z.array(z.any()).optional(),
   verificationContext: z.array(z.any()).optional(),
+  components: z.array(z.any()).optional(),
+  relationships: z.array(z.any()).optional(),
+  inferredBundles: z.array(z.any()).optional(),
 };
 
 /**

@@ -98,6 +98,12 @@ function selectStratifiedEvidenceUnits(
       claimTerms.push(prop.value.trim().toLowerCase());
     }
   }
+  if (Array.isArray(ticket.components)) {
+    for (const comp of ticket.components) {
+      const words = comp.normalizedProposition.split(/\s+/).filter((w) => w.length > 3);
+      for (const w of words) claimTerms.push(w.toLowerCase());
+    }
+  }
 
   // Sort units within each document: units containing distinct claim terms are prioritized first
   for (const [, docUnits] of unitsByDoc.entries()) {
@@ -426,6 +432,11 @@ export async function assessEvidenceAgainstClaim(
         ? rawAsm.reasoning.trim()
         : temporalResult.reasoning;
 
+    const componentId =
+      typeof rawAsm.componentId === 'string' && rawAsm.componentId.trim().length > 0
+        ? rawAsm.componentId.trim()
+        : undefined;
+
     const assessmentId = `asm_${ticket.ticketId.replace(/^tkt_/, '')}_${unit.evidenceId.replace(/^evi_/, '')}`;
 
     const candidateAssessment: ClaimEvidenceAssessment = {
@@ -433,6 +444,7 @@ export async function assessEvidenceAgainstClaim(
       claimTicketId: ticket.ticketId,
       claimRevision: ticket.revision,
       evidenceId: unit.evidenceId,
+      componentId,
       relationship,
       scopeMatching,
       quotationVerified: true,
