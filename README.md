@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="public/media/hero/afterfact-hero-poster.webp" width="100%" alt="Afterfact — Real-Time Temporal Fact Verification" style="border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+  <br />
+  <img src="public/afterfact-wordmark-transparent.svg" alt="AFTERFACT" width="640" />
+  <br />
+  <sub><strong>REAL-TIME TEMPORAL FACT VERIFICATION & DRIFT DETECTION ENGINE</strong></sub>
+  <br />
 </p>
 
 # Afterfact (working name: Stale-Answer Detector)
@@ -75,24 +79,21 @@ Explore live interfaces locally or inspect golden audit traces:
 Real-time claim navigation with verbatim text spans, dynamic claim chips, authority badges, and empirical citation cards.
 
 <p align="center">
-  <img src="docs/audit-evidence/workspace-desktop-1440x900-dark.png" alt="Afterfact Workspace - Dark Mode" width="49%" />
-  <img src="docs/audit-evidence/workspace-desktop-1440x900-light.png" alt="Afterfact Workspace - Light Mode" width="49%" />
+  <img src="docs/audit-evidence/workspace-desktop-1440x900-dark.png" alt="Afterfact Interactive Verification Workspace - Dark Mode" width="100%" />
 </p>
 
 ### 2. Deep-Dive Verification Report & Transition Timeline
 Inspect deterministic verdict reasons, then-vs-now supersession timelines, scheduled change indicators, and surgical text corrections.
 
 <p align="center">
-  <img src="docs/audit-evidence/report-demo-desktop-1440x900-dark.png" alt="Afterfact Verification Report - Dark Mode" width="49%" />
-  <img src="docs/audit-evidence/report-demo-desktop-1440x900-light.png" alt="Afterfact Verification Report - Light Mode" width="49%" />
+  <img src="docs/audit-evidence/report-demo-desktop-1440x900-dark.png" alt="Afterfact Deep-Dive Verification Report & Transition Timeline - Dark Mode" width="100%" />
 </p>
 
 ### 3. Multi-Context Input Composer & Preparation Review
 Dissect incoming AI answers or questions into atomic propositions with strongly typed property qualifiers before executing web retrieval.
 
 <p align="center">
-  <img src="docs/audit-evidence/landing-desktop-1440x900-dark.png" alt="Afterfact Landing - Dark Mode" width="49%" />
-  <img src="docs/audit-evidence/landing-desktop-1440x900-light.png" alt="Afterfact Landing - Light Mode" width="49%" />
+  <img src="docs/audit-evidence/landing-desktop-1440x900-dark.png" alt="Afterfact Multi-Context Input Composer & Preparation Review - Dark Mode" width="100%" />
 </p>
 
 ### 4. Fully Responsive Mobile Experience
