@@ -167,6 +167,32 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
     fs.writeFileSync(path.join(ARTIFACT_DIR, 'report-desktop-dark.png'), darkScreenshot);
     fs.writeFileSync(path.join(process.cwd(), 'docs', 'audit-evidence', 'report-demo-desktop-1440x900-dark.png'), darkScreenshot);
 
+    // 1b. Capture Context Drift Analysis in Dark Mode
+    const twitterClaimBtn = page.getByRole('button', {
+      name: /Parag Agrawal is the current CEO of Twitter/i,
+    });
+    await twitterClaimBtn.click();
+    await page.waitForTimeout(300);
+
+    const contextComparisonViewer = page.locator('div[role="region"][aria-label="Context comparison viewer"]');
+    await expect(contextComparisonViewer).toBeVisible();
+
+    await contextComparisonViewer.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+
+    await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
+    const contextDriftScreenshot = await page.screenshot({ fullPage: false });
+    fs.writeFileSync(path.join(ARTIFACT_DIR, 'context-drift-dark.png'), contextDriftScreenshot);
+    fs.writeFileSync(path.join(process.cwd(), 'docs', 'audit-evidence', 'context-drift-dark.png'), contextDriftScreenshot);
+
+    // Reset back to top and first claim for consistent downstream tests
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const firstHighlight = page.getByRole('button', {
+      name: /Anthropic Claude Pro costs \$20 per month/i,
+    });
+    await firstHighlight.click();
+    await page.waitForTimeout(200);
+
     // 2. Desktop Light
     const toggleToLight = page.getByRole('button', { name: /switch to light theme/i }).first();
     await expect(toggleToLight).toHaveAttribute('data-hydrated', 'true');
@@ -204,10 +230,9 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
     expect(overflowMobile).toBe(false);
 
     await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
-    await page.screenshot({
-      path: path.join(ARTIFACT_DIR, 'report-mobile-dark.png'),
-      fullPage: false,
-    });
+    const mobileDarkScreenshot = await page.screenshot({ fullPage: false });
+    fs.writeFileSync(path.join(ARTIFACT_DIR, 'report-mobile-dark.png'), mobileDarkScreenshot);
+    fs.writeFileSync(path.join(process.cwd(), 'docs', 'audit-evidence', 'report-demo-mobile-390x844-dark.png'), mobileDarkScreenshot);
 
     // 5. Mobile Light
     const toggleToLightMobile = page.getByRole('button', { name: /switch to light theme/i }).first();

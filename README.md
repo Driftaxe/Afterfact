@@ -89,14 +89,21 @@ Inspect deterministic verdict reasons, then-vs-now supersession timelines, sched
   <img src="docs/audit-evidence/report-demo-desktop-1440x900-dark.png" alt="Afterfact Deep-Dive Verification Report & Transition Timeline - Dark Mode" width="100%" />
 </p>
 
-### 3. Multi-Context Input Composer & Preparation Review
+### 3. Word-by-Word Context Drift & Comparative Qualifier Diff
+Examine token-level drift between asserted propositions and authoritative empirical evidence, highlighting drifted phrases, discovered replacements, and shifted qualifier boundaries (`entity`, `office`, `effectiveDate`).
+
+<p align="center">
+  <img src="docs/audit-evidence/context-drift-dark.png" alt="Afterfact Word-by-Word Context Drift & Comparative Qualifier Diff - Dark Mode" width="100%" />
+</p>
+
+### 4. Multi-Context Input Composer & Preparation Review
 Dissect incoming AI answers or questions into atomic propositions with strongly typed property qualifiers before executing web retrieval.
 
 <p align="center">
   <img src="docs/audit-evidence/landing-desktop-1440x900-dark.png" alt="Afterfact Multi-Context Input Composer & Preparation Review - Dark Mode" width="100%" />
 </p>
 
-### 4. Fully Responsive Mobile Experience
+### 5. Fully Responsive Mobile Experience
 Compact 390px mobile viewport rendering with zero horizontal drift, accessible touch targets, and sticky claim context sheets.
 
 <p align="center">
@@ -189,7 +196,8 @@ Implemented in [`src/server/verify/inference-synthesizer.ts`](src/server/verify/
 When evaluating compound assertions ($c_1 \wedge c_2$, e.g., *"Salman Khan was found dead by Puneet Superstar"*):
 
 - **Necessary Component Falsification:** Contradicting a necessary component ($c_1$, where `necessity !== 'incidental'`) refutes the conjunction:
-  $$\neg c_1 \implies \neg(c_1 \wedge c_2) \quad \longrightarrow \quad \text{verdict: 'contradicted', score: 0, reasonCode: 'DECISIVE_CONTRADICTION'}$$
+  $$\neg c_1 \implies \neg(c_1 \wedge c_2)$$
+  *Result:* `verdict: 'contradicted'`, `score: 0`, `reasonCode: 'DECISIVE_CONTRADICTION'`.
 - **Incidental Insulation:** Contradiction of an incidental detail (`necessity === 'incidental'`) does **not** refute the core assertion and fails closed to `insufficient_evidence`.
 - **Directional Entailment:** If $c_2 \implies c_1$ (Puneet finding the body entails Salman died), refuting $c_1$ undermines $c_2$. Relationships labeled `attribution` or `temporal_precedence` are strictly excluded from falsifying parent propositions.
 - **Conjunction Partial Support Guard:** Supporting $c_1$ while $c_2$ lacks evidence fails closed to `insufficient_evidence` (`score: null`, `INSUFFICIENT_RETRIEVAL_DATA`). Partial support is never promoted to `supported`.
@@ -327,27 +335,13 @@ Afterfact is engineered by the **Driftaxe Engineering Team**, partitioned across
 
 ## Authoritative Documentation Index
 
-All architectural specifications, protocols, and audit traces are preserved across 16 authoritative documents in [`docs/`](docs/):
+All architectural specifications, protocols, generation procedures, and document blueprints are comprehensively documented in [DEV_DOCS.md](DEV_DOCS.md):
 
 | Category | Document | Description |
 | :--- | :--- | :--- |
-| **Operating Standards** | [AGENTS.md](AGENTS.md) | Agent operating rules, evidence hierarchy (E1–E5), secret safety (P28), and invariants |
+| **Documentation Playbook** | [DEV_DOCS.md](DEV_DOCS.md) | Full 16-document inventory, generation methodology, prompt templates, and evidence tiers |
+| **Operating Standards** | [AGENTS.md](AGENTS.md) | Agent operating rules, evidence hierarchy (E1–E5), secret safety, and invariants |
 | **Contribution Guide** | [CONTRIBUTING.md](CONTRIBUTING.md) | Team lane distribution (A/B/C), branch workflow, and pull request checklist |
-| **Product Specification**| [docs/PRODUCT.md](docs/PRODUCT.md) | User journeys, claim categories, domain policies, and user experience |
-| **System Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Component architecture, DAG execution lifecycle, and fault isolation |
-| **Data & Jobs** | [docs/DATA-AND-JOBS.md](docs/DATA-AND-JOBS.md) | Prisma schema, lease fencing, QStash worker lifecycle, and retries |
-| **Verification Logic** | [docs/VERIFICATION.md](docs/VERIFICATION.md) | Extraction rules, passage scoring, 3-date resolution, and decision gates |
-| **API Specifications** | [docs/API.md](docs/API.md) | Public and internal API route contracts, idempotency, and SSE streaming |
-| **Platform Handbook** | [docs/lane-b/README.md](docs/lane-b/README.md) | Step-by-step beginner handbook for all Lane B infrastructure tasks |
-| **Setup & Cloud** | [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md) | Railway Bifrost deployment, Neon branching, and environment inventory |
-| **Testing & Evaluation** | [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md) | E1–E5 evidence levels, benchmark design, and release gates |
-| **Decisions (ADRs)** | [docs/DECISIONS.md](docs/DECISIONS.md) | Architectural Decision Records (ADR-001 through ADR-023) |
-| **Master Phase Tracker**| [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md) | Single source of truth for all 28 task tickets and gates (G0–G4) |
-| **Parallel Work Plan** | [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) | Execution waves, DAG topologies, and cross-lane handoff contracts |
-| **Demo & Judging** | [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md) | 3-minute judge script, sponsor proof, and submission checklist |
-| **Finalization Audit** | [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md) | Comprehensive system readiness audit, journey matrix, and finding register |
-| **Evidence Reasoning** | [docs/EVIDENCE-REASONING-AUDIT.md](docs/EVIDENCE-REASONING-AUDIT.md) | Problem register, component decomposition, and semantic reasoning evaluation |
-| **Development Log** | [docs/DEV-LOG.md](docs/DEV-LOG.md) | Chronological record of engineering sessions, commands, and observed evidence |
 
 ---
 

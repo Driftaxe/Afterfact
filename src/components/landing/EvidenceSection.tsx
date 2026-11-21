@@ -66,7 +66,7 @@ export function EvidenceSection() {
             </span>
             <span className="text-status-supported-text flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-status-supported-text" />
-              INVARIANT P10 ENFORCED
+              INVARIANT ENFORCED
             </span>
           </div>
 

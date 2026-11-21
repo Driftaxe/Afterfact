@@ -95,7 +95,7 @@ export function Footer() {
               EVIDENCE INTEGRITY
             </div>
             <p className="text-xs text-text-muted leading-relaxed font-light">
-              All runs strictly enforce invariant P10: unsupported citations fail closed. Claims without primary
+              All runs strictly enforce citation grounding: unsupported citations fail closed. Claims without primary
               authority backing never receive positive scores.
             </p>
             <div className="pt-2">

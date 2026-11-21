@@ -47,7 +47,7 @@ export function IntroductionSection() {
               <div className="p-3.5 rounded-md bg-surface border border-border-subtle space-y-1">
                 <span className="text-accent font-semibold text-[11px]">03 // CITATION GROUNDING</span>
                 <p className="text-text-secondary text-[11px] leading-relaxed">
-                  Enforces invariant P10: unsupported citations fail closed without positive score hallucination.
+                  Enforces strict citation grounding: unsupported citations fail closed without positive score hallucination.
                 </p>
               </div>
 
