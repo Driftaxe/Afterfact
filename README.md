@@ -13,20 +13,58 @@
 [![Bifrost Gateway](https://img.shields.io/badge/Bifrost-Maxim_Model_Gateway-7c3aed)](https://github.com/maximhq/bifrost)
 [![Upstash QStash](https://img.shields.io/badge/Upstash-QStash_v2-00e699)](https://upstash.com/docs/qstash)
 [![Tavily Search](https://img.shields.io/badge/Tavily-Search_%26_Extract-4f46e5)](https://tavily.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-147_passed-success?logo=vitest)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-511_passed-success?logo=vitest)](https://vitest.dev/)
 
 ---
 
 ## Current Status & Roadmap
 
 - **Foundation Checkpoint (Gate G0):** Completed. Scaffolding pinned, contracts established (Universal Claim Tickets, Dynamic DAG, Actions, Reports, Events), paired semantic dark/light tokens implemented, and interactive component gallery live.
-- **Current Milestone (Phase 1 / Gate G1):** Persisted DAG execution slice, live Tavily retrieval adapter, and Bifrost model routing underway.
-- **147 Automated Unit Tests Passing:** Zero lint or typecheck errors across all schema, UI, and fixture test suites.
+- **Dynamic DAG & Worker Pipeline (Gates G1–G3):** Persisted DAG execution in Neon PostgreSQL, Upstash QStash flow control, live Tavily retrieval, and Maxim Bifrost model routing operational.
+- **Grounded Evidence Reasoning Engine:** Advanced component decomposition, directional entailment, general counterexamples, single-passage paraphrases, and bounded inference synthesis fully verified.
+- **511 Automated Tests Passing:** Zero lint or typecheck errors across all 26 test suites covering schemas, UI, policies, deterministic gates, and multi-document synthesis.
 
 Explore live interactive interfaces:
 - **Interactive Input Composer:** [`/`](http://localhost:3000)
 - **Live Verification Report Showcase:** [`/report/sample-run`](http://localhost:3000/report/sample-run)
 - **Paired Semantic Design Reference:** [`/design`](http://localhost:3000/design)
+
+---
+
+## Interface & Verification Showcase
+
+### 1. Interactive Verification Workspace (55:45 Split Inspector)
+Real-time claim navigation with verbatim text spans, dynamic claim chips, authority badges, and empirical citation cards.
+
+<p align="center">
+  <img src="docs/audit-evidence/workspace-desktop-1440x900-dark.png" alt="Afterfact Workspace - Dark Mode" width="49%" />
+  <img src="docs/audit-evidence/workspace-desktop-1440x900-light.png" alt="Afterfact Workspace - Light Mode" width="49%" />
+</p>
+
+### 2. Deep-Dive Verification Report & Transition Timeline
+Inspect deterministic verdict reasons, then-vs-now supersession timelines, scheduled change indicators, and surgical text corrections.
+
+<p align="center">
+  <img src="docs/audit-evidence/report-demo-desktop-1440x900-dark.png" alt="Afterfact Verification Report - Dark Mode" width="49%" />
+  <img src="docs/audit-evidence/report-demo-desktop-1440x900-light.png" alt="Afterfact Verification Report - Light Mode" width="49%" />
+</p>
+
+### 3. Multi-Context Input Composer & Preparation Review
+Dissect incoming AI answers or questions into atomic propositions with strongly typed property qualifiers before executing web retrieval.
+
+<p align="center">
+  <img src="docs/audit-evidence/landing-desktop-1440x900-dark.png" alt="Afterfact Landing - Dark Mode" width="49%" />
+  <img src="docs/audit-evidence/landing-desktop-1440x900-light.png" alt="Afterfact Landing - Light Mode" width="49%" />
+</p>
+
+### 4. Fully Responsive Mobile Experience
+Compact 390px mobile viewport rendering with zero horizontal drift, accessible touch targets, and sticky claim context sheets.
+
+<p align="center">
+  <img src="docs/audit-evidence/workspace-mobile-390x844-dark.png" alt="Afterfact Mobile Workspace" width="32%" />
+  <img src="docs/audit-evidence/report-demo-mobile-390x844-dark.png" alt="Afterfact Mobile Report" width="32%" />
+  <img src="docs/audit-evidence/landing-mobile-390x844-dark.png" alt="Afterfact Mobile Landing" width="32%" />
+</p>
 
 ---
 
@@ -237,7 +275,7 @@ pnpm typecheck
 # Run Next.js and ESLint code checks
 pnpm lint
 
-# Run contract, schema, and UI unit tests (147 tests)
+# Run contract, schema, and UI unit tests (511 tests across 26 suites)
 pnpm test
 
 # Run Playwright E2E browser smoke tests
@@ -306,4 +344,5 @@ Refer to [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) and [docs/PHAS
 | **Parallel Work Plan** | [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) | Execution waves, DAG topologies, and cross-lane handoff contracts |
 | **Demo & Judging** | [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md) | 3-minute judge script, sponsor proof, and submission checklist |
 | **Finalization Audit** | [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md) | Comprehensive system readiness audit, journey matrix, and finding register |
+| **Evidence Reasoning Audit** | [docs/EVIDENCE-REASONING-AUDIT.md](docs/EVIDENCE-REASONING-AUDIT.md) | Problem register, component decomposition, and semantic reasoning evaluation |
 | **Development Log** | [docs/DEV-LOG.md](docs/DEV-LOG.md) | Chronological record of engineering sessions, commands, and observed evidence |
