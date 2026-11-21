@@ -189,7 +189,8 @@ Implemented in [`src/server/verify/inference-synthesizer.ts`](src/server/verify/
 When evaluating compound assertions ($c_1 \wedge c_2$, e.g., *"Salman Khan was found dead by Puneet Superstar"*):
 
 - **Necessary Component Falsification:** Contradicting a necessary component ($c_1$, where `necessity !== 'incidental'`) refutes the conjunction:
-  $$\neg c_1 \implies \neg(c_1 \wedge c_2) \quad \longrightarrow \quad \text{verdict: 'contradicted', score: 0, reasonCode: 'DECISIVE_CONTRADICTION'}$$
+  $$\neg c_1 \implies \neg(c_1 \wedge c_2)$$
+  *Result:* `verdict: 'contradicted'`, `score: 0`, `reasonCode: 'DECISIVE_CONTRADICTION'`.
 - **Incidental Insulation:** Contradiction of an incidental detail (`necessity === 'incidental'`) does **not** refute the core assertion and fails closed to `insufficient_evidence`.
 - **Directional Entailment:** If $c_2 \implies c_1$ (Puneet finding the body entails Salman died), refuting $c_1$ undermines $c_2$. Relationships labeled `attribution` or `temporal_precedence` are strictly excluded from falsifying parent propositions.
 - **Conjunction Partial Support Guard:** Supporting $c_1$ while $c_2$ lacks evidence fails closed to `insufficient_evidence` (`score: null`, `INSUFFICIENT_RETRIEVAL_DATA`). Partial support is never promoted to `supported`.
