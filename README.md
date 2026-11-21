@@ -1,33 +1,71 @@
+<p align="center">
+  <img src="public/media/hero/afterfact-hero-poster.webp" width="100%" alt="Afterfact — Real-Time Temporal Fact Verification" style="border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+</p>
+
 # Afterfact (working name: Stale-Answer Detector)
 
-> **Real-time freshness verification and drift detection for AI-generated answers.**
+> **Real-time freshness verification, drift detection, and deterministic temporal grounding for AI-generated answers.**
 >
-> *Afterfact dissects AI-generated content into atomic verifiable claims, queries authoritative live web evidence via Tavily, assesses candidate passages through Bifrost, and applies deterministic TypeScript policies to verify whether each claim is currently supported, outdated, contradicted, or context-dependent — with zero hallucinated citations.*
+> *Afterfact dissects AI-generated content into atomic verifiable claims, queries authoritative live web evidence via Tavily, assesses candidate passages through the Maxim Bifrost gateway, and applies deterministic TypeScript policies to verify whether each claim is currently supported, outdated, contradicted, or context-dependent — with zero hallucinated citations.*
 
-[![Next.js 15](https://img.shields.io/badge/Next.js-15.5.29-black?logo=next.js)](https://nextjs.org/)
-[![React 19](https://img.shields.io/badge/React-19.0-blue?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178c6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.17-38bdf8?logo=tailwindcss)](https://tailwindcss.com/)
-[![Prisma ORM](https://img.shields.io/badge/Prisma-6.x-2d3748?logo=prisma)](https://www.prisma.io/)
-[![Neon PostgreSQL](https://img.shields.io/badge/Neon-PostgreSQL-00e599?logo=postgresql)](https://neon.tech/)
-[![Bifrost Gateway](https://img.shields.io/badge/Bifrost-Maxim_Model_Gateway-7c3aed)](https://github.com/maximhq/bifrost)
-[![Upstash QStash](https://img.shields.io/badge/Upstash-QStash_v2-00e699)](https://upstash.com/docs/qstash)
-[![Tavily Search](https://img.shields.io/badge/Tavily-Search_%26_Extract-4f46e5)](https://tavily.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-511_passed-success?logo=vitest)](https://vitest.dev/)
+<p align="center">
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15.5.29-black?logo=next.js" alt="Next.js 15" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.0-blue?logo=react" alt="React 19" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7.3-3178c6?logo=typescript" alt="TypeScript 5.7" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind-3.4.17-38bdf8?logo=tailwindcss" alt="Tailwind CSS" /></a>
+  <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-PostgreSQL_Serverless-00e599?logo=postgresql" alt="Neon PostgreSQL" /></a>
+  <a href="https://github.com/maximhq/bifrost"><img src="https://img.shields.io/badge/Bifrost-Maxim_Model_Gateway-7c3aed" alt="Bifrost Gateway" /></a>
+  <a href="https://upstash.com/docs/qstash"><img src="https://img.shields.io/badge/Upstash-QStash_v2-00e699" alt="Upstash QStash" /></a>
+  <a href="https://tavily.com/"><img src="https://img.shields.io/badge/Tavily-Search_%26_Extract-4f46e5" alt="Tavily Search" /></a>
+  <a href="https://vitest.dev/"><img src="https://img.shields.io/badge/Vitest-511_passed-success?logo=vitest" alt="Vitest 511 Passed" /></a>
+  <a href="https://playwright.dev/"><img src="https://img.shields.io/badge/Playwright-24_passed-success?logo=playwright" alt="Playwright 24 Passed" /></a>
+  <img src="https://img.shields.io/badge/Standard-UPPR_Revision_4-orange" alt="UPPR Standard" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
+</p>
 
 ---
 
-## Current Status & Roadmap
+## Interactive Quick Links
 
-- **Foundation Checkpoint (Gate G0):** Completed. Scaffolding pinned, contracts established (Universal Claim Tickets, Dynamic DAG, Actions, Reports, Events), paired semantic dark/light tokens implemented, and interactive component gallery live.
-- **Dynamic DAG & Worker Pipeline (Gates G1–G3):** Persisted DAG execution in Neon PostgreSQL, Upstash QStash flow control, live Tavily retrieval, and Maxim Bifrost model routing operational.
-- **Grounded Evidence Reasoning Engine:** Advanced component decomposition, directional entailment, general counterexamples, single-passage paraphrases, and bounded inference synthesis fully verified.
-- **511 Automated Tests Passing:** Zero lint or typecheck errors across all 26 test suites covering schemas, UI, policies, deterministic gates, and multi-document synthesis.
+Explore live interfaces locally or inspect golden audit traces:
+- **Interactive Verification Workspace:** [`/app`](http://localhost:3000/app) — Live 55:45 split document inspector, claim chips, and real-time citation cards.
+- **Verification Report Showcase:** [`/report/sample-run`](http://localhost:3000/report/sample-run) — Full audit report with "Then vs. Now" supersession timelines and verified surgical diffs.
+- **Input Composer & Preparation Review:** [`/`](http://localhost:3000) — Multi-context AI answer ingestion and qualifier disambiguation.
+- **Paired Semantic Design Reference:** [`/design`](http://localhost:3000/design) — Paired light/dark design token system with zero CSS color leaking.
+- **GitHub Public Repository:** [Driftaxe/Afterfact](https://github.com/Driftaxe/Afterfact) — Complete open-source codebase and engineering history.
 
-Explore live interactive interfaces:
-- **Interactive Input Composer:** [`/`](http://localhost:3000)
-- **Live Verification Report Showcase:** [`/report/sample-run`](http://localhost:3000/report/sample-run)
-- **Paired Semantic Design Reference:** [`/design`](http://localhost:3000/design)
+---
+
+## Table of Contents
+
+- [Current Status & Milestone Registry](#current-status--milestone-registry)
+- [Interface & Verification Showcase](#interface--verification-showcase)
+- [Why Afterfact? (The Core Problem)](#why-afterfact-the-core-problem)
+- [Core Verification Engine & Invariants](#core-verification-engine--invariants)
+  - [1. Universal Claim Ticket & Strongly Typed Qualifiers](#1-universal-claim-ticket--strongly-typed-qualifiers)
+  - [2. Three-Date Temporal Disentanglement](#2-three-date-temporal-disentanglement)
+  - [3. Bounded Semantic Inference Synthesizer](#3-bounded-semantic-inference-synthesizer)
+  - [4. Compound Claim Decomposition & Directional Entailment](#4-compound-claim-decomposition--directional-entailment)
+  - [5. Mathematical Scoring Rubric & Reason Codes](#5-mathematical-scoring-rubric--reason-codes)
+  - [6. UPPR Invariant-to-Proof Verification Chain](#6-uppr-invariant-to-proof-verification-chain)
+- [System Architecture & Dynamic DAG Lifecycle](#system-architecture--dynamic-dag-lifecycle)
+- [Tech Stack & Toolchain](#tech-stack--toolchain)
+- [Core Repository Contributors & Lane Ownership](#core-repository-contributors--lane-ownership)
+- [Authoritative Documentation Index](#authoritative-documentation-index)
+- [Developer Quick Start & Diagnostic Runbook](#developer-quick-start--diagnostic-runbook)
+- [License & Standards](#license--standards)
+
+---
+
+## Current Status & Milestone Registry
+
+| Release Milestone | Status | Scope & Verifiable Proof |
+| :--- | :---: | :--- |
+| **Gate G0 (Foundation Checkpoint)** | **PASSED** | Contracts pinned (`ClaimTicket`, `DecideClaimInput`, `DAG`, `Report`), paired semantic dark/light tokens implemented, clean production build. |
+| **Gate G1 (Live Slice via Persisted DAG)** | **PASSED** | Neon PostgreSQL persisted DAG execution, Tavily web search capture, fail-closed quotation grounding (`text.includes(quote)`), and sequential decision gates. |
+| **Gate G2 (Broad Coverage & Durability)** | **PASSED** | Upstash QStash concurrency control (max 3 claims), dynamic DAG expansion, database clock lease fencing (30s heartbeat), and partial result survival. |
+| **Gate G3 (Product Flows & Staging)** | **PASSED** | Ask mode, compare drawer, Then vs. Now timeline, scheduled change badges, recheck freshness, and sanitized SSE streaming over TLS. |
+| **Gate G4 (Release Candidate & Grounded Inference)** | **PASSED** | Bounded general inference synthesizer, universal counterexample refutations, single-passage paraphrases, and **535+ automated tests passing** (511 Vitest + 24 Playwright). |
 
 ---
 
@@ -68,84 +106,166 @@ Compact 390px mobile viewport rendering with zero horizontal drift, accessible t
 
 ---
 
-## Pitch & Purpose
+## Why Afterfact? (The Core Problem)
 
-Large Language Models (LLMs) state facts with unwavering confidence — even when those facts were only true at training time, have since been deprecated, or depend on omitted regional or version context. When users paste an AI response or ask a time-sensitive technical question, **Afterfact**:
+Large Language Models state facts with unwavering confidence — even when those facts were only true at training time, have since been superseded, or depend on omitted regional, tier, or version qualifiers.
 
-1. **Extracts Atomic Claims:** Breaks complex text into isolated, falsifiable claims mapped to character offsets.
-2. **Retrieves Authoritative Evidence:** Fetches primary vendor documentation, changelogs, and regulatory registries via **Tavily**.
-3. **Assesses Candidate Passages:** Analyzes candidate evidence passages with strict schema validation through the **Maxim Bifrost** model gateway.
-4. **Applies Deterministic Verification Policies:** Scores claims with mathematical predictability (100 = direct support, 75 = indirect support, 0 = contradiction, `null` = unresolved) and explicit machine reason codes.
-5. **Generates Surgical Diffs:** Pinpoints the exact replacement text required to bring outdated answers up to date.
+Standard LLM-as-a-judge approaches fail in production because they hallucinate URLs, conflate publication dates with event effective dates, and lack deterministic falsification logic:
 
----
-
-## Core Differentiators
-
-| Capability | Standard LLM-as-a-Judge | Afterfact |
+| Capability | Standard LLM-as-a-Judge | Afterfact Verifier |
 | :--- | :--- | :--- |
-| **Citation Grounding** | Generates plausible URLs and quotes that may not exist. | **Fail-Closed Grounding:** Quotes must strictly match retrieved source substrings (`SourceDocument.text.includes(quote)`). |
-| **Temporal Disentanglement** | Confuses announcement dates with effective dates. | **Three-Date Separation:** Distinguishes Publication Date, Announcement Date, and Effective Date; flags future changes with `Scheduled change` without falsely calling current facts stale. |
-| **Scope & Context Sensitivity** | Blurs pricing tiers, regional laws, and API versions. | **Explicit Scope Matching:** Differentiates annual vs. monthly billing, EU vs. US GDPR/AI Act clauses, and API versions (e.g. Stripe `2020` vs. `2024`). |
-| **Temporal Transitions** | Labels prior facts as flat hallucinations. | **"Then vs. Now" Timelines:** Demonstrates historical validity prior to a superseding event or policy change. |
+| **Citation Grounding** | Generates plausible URLs and quotes that may not exist in reality. | **Fail-Closed Grounding:** Quotes must strictly match retrieved source substrings (`SourceDocument.text.includes(quote)`). |
+| **Temporal Disentanglement** | Confuses announcement dates with legal effective dates. | **Three-Date Separation:** Distinguishes Publication Date, Announcement Date, and Effective Date; flags future changes with `Scheduled change` without falsely calling current facts stale. |
+| **Scope & Context Sensitivity** | Blurs pricing tiers, regional laws, and API versions. | **Explicit Scope Matching:** Differentiates annual vs. monthly billing, EU vs. US GDPR clauses, and SDK versions (e.g. Stripe `2020` vs. `2024`). |
+| **Temporal Transitions** | Labels prior facts as flat hallucinations. | **"Then vs. Now" Timelines:** Demonstrates historical validity prior to a documented superseding event or policy change. |
 | **Clarification & Ambiguity** | Guesses missing parameters or answers arbitrarily. | **Dynamic Clarification:** Pauses DAG branch to request missing details or falls back cleanly to `depends_on_context`. |
 | **Execution Safety** | Vulnerable to serverless timeouts and dropped states. | **Durable DAG & Lease Fencing:** Neon PostgreSQL + Upstash QStash enforces bounded concurrency (max 3 claims) with automatic recovery. |
+| **Compound Falsification** | Evaluates compound statements monolithically. | **Directional Entailment & Conjunction:** Refuting a necessary component ($c_1$) decisively refutes the compound parent claim ($c_1 \wedge c_2$). |
 | **Visual Architecture** | Generic markdown output. | **Paired Cinematic Workspace:** 55:45 split document viewer, text highlights mapped to claim chips, and live DAG inspector. |
 
 ---
 
-## System Architecture
+## Core Verification Engine & Invariants
+
+### 1. Universal Claim Ticket & Strongly Typed Qualifiers
+
+Claims are represented as strongly typed tickets ([`ClaimTicket`](src/lib/contracts/claim-ticket.ts)) carrying variable typed property qualifiers:
+
+```typescript
+export interface ClaimTicket {
+  ticketId: string;                 // Stable unique identifier (e.g. "tkt_01j98ab7...")
+  claimId: string;                  // Parent claim entity reference
+  runId: string;                    // Associated run identifier
+  inputHash: string;                // SHA-256 of original source text statement
+  revision: number;                 // Monotonically increasing revision counter
+  originalStatement: string;        // Verbatim extracted sentence or clause
+  normalizedProposition: string;    // Disambiguated proposition for web verification
+  targetTime: string;               // ISO 8601 evaluation timestamp or date (YYYY-MM-DD)
+  verificationContext: VerificationProperty[]; // Strongly typed context properties
+  components?: ClaimComponent[];    // Decomposed atomic sub-assertions
+  relationships?: ClaimRelationship[]; // Propositional edges (conjunction, entailment)
+}
+```
+
+- **Scope Precedence Invariant:**
+  $$\text{Explicit Claim Qualifier} \succ \text{User Target Context} \succ \text{Model Suggestion} \succ \text{Default}$$
+- **Date Precision Preservation:** Properties support full ISO dates (`YYYY-MM-DD`), year-month partial dates (`YYYY-MM`), or year partial dates (`YYYY`) without artificial midnight padding (`-01-01`).
+
+---
+
+### 2. Three-Date Temporal Disentanglement
+
+Temporal correctness requires separating when an article was written from when an event actually took effect:
 
 ```
-[ User Input: Paste AI Answer or Ask Mode ]
-                     │
-                     ▼
-[ Interactive Preparation & Context Review (Server Actions) ]
-                     │ (Validate Spans & Scopes; Confirm Run)
-                     ▼
-       [ Neon PostgreSQL Database ] ◄───► [ Upstash QStash ]
-       - runs & preparations                 - Flow control: Max 3 claims
-       - dag_nodes & dag_edges               - Signed webhook delivery
-       - claims, evidence & events           - Dynamic graph expansion
-                     │
-                     ▼
-        [ Next.js DAG Node Worker (/api/verify/worker) ]
-                     │
-     ┌───────────────┴───────────────┐
-     ▼                               ▼
-[ Bifrost Model Gateway ]   [ Tavily Search & Extract ]
-- Drafting (Ask mode)       - Live authoritative web docs
-- Extraction & Preparation  - Query-aware raw passages
-- Passage Assessment        - Publisher metadata & dates
-- Dynamic Clarification
-     │                               │
-     └───────────────┬───────────────┘
-                     ▼
-        [ TypeScript Verification Engine ]
-        - Scope isolation (explicit vs target)
-        - Three-date separation (pub / announce / effective)
-        - Deterministic scoring rubric (100, 75, 0, null)
-        - Surgical correction verification
-                     ▼
-        [ Atomic Database Commit & Event Outbox ]
-                     │
-                     ▼
-       [ Progressive SSE Stream with Replay / Polling ]
-                     │
-                     ▼
-    [ Responsive 55:45 Workspace UI & DAG Inspector ]
-     - Highlights, verdict chips & exact quoted citations
-     - Accessible dynamic clarification forms
-     - Then vs. Now transition timeline & scheduled change badges
-     - Context comparison drawer & verified correction diffs
-     - Sanitized expandable DAG execution inspector
+[ Publication Date ]  ──► When the journalist / publisher posted the URL.
+[ Announcement Date ] ──► When an organization declared a planned change.
+[ Effective Date ]    ──► When the change legally or operationally took effect.
 ```
+
+- **Rule 1 (Future Effective Date):** An announcement on Nov 1 declaring a price change effective Dec 1 **must not** mark the current price stale on Nov 15. The system emits `verdict: 'supported'` with a `Scheduled change (Dec 1)` badge.
+- **Rule 2 (Preceding Event Date):** An appearance before an alleged event date **cannot refute** a later event. An appearance after the event date refutes it.
+- **Rule 3 (Contemporaneous Vitality Window):** For continuous status allegations (e.g., life vs. death) evaluated as of `targetTime`, contemporaneous proof of life within 90 days refutes the allegation; gaps $> 90$ days fail closed to `insufficient_evidence` (`TEMPORAL_GAP_UNRESOLVED`).
+
+---
+
+### 3. Bounded Semantic Inference Synthesizer
+
+Implemented in [`src/server/verify/inference-synthesizer.ts`](src/server/verify/inference-synthesizer.ts), Afterfact interprets indirect evidence beyond literal keyword repetitions via 5 bounded patterns:
+
+1. **Universal Claim Counterexamples:** A grounded exception (e.g., *"Enterprise customers may open requests via dashboard"*) refutes a universal claim (*"Every customer must submit requests by email"*).
+2. **Single-Passage Paraphrases:** Context-embedded wording (e.g., *"terminated all remote work options and mandated 5 days in office"*) substantiates indirect phrasing (*"Company XYZ ended telecommuting"*).
+3. **Chronological Release Succession:** Pairs independent release dates across distinct documents (Doc A: Model Cedar 2026-09-02; Doc B: Model Willow 2026-11-10) to substantiate recency rankings without demanding synthetic sentences.
+4. **Event Attendance & Date Anchors:** Links event attendance proof with an anchored event date to establish contemporaneous life or physical presence.
+5. **Complementary Conjunctions:** Combines complementary excerpts establishing joint sub-assertions under matching entity and scope.
+
+**Operational Bounds:** Bounded strictly to $N \in [1, 4]$ units per bundle, maximum 3 bundles per claim, with verified quote grounding and strict actor non-conflation (*"A fact about B establishes a fact about A only when a grounded relationship justifies that inference"*).
+
+---
+
+### 4. Compound Claim Decomposition & Directional Entailment
+
+When evaluating compound assertions ($c_1 \wedge c_2$, e.g., *"Salman Khan was found dead by Puneet Superstar"*):
+
+- **Necessary Component Falsification:** Contradicting a necessary component ($c_1$, where `necessity !== 'incidental'`) refutes the conjunction:
+  $$\neg c_1 \implies \neg(c_1 \wedge c_2) \quad \longrightarrow \quad \text{verdict: 'contradicted', score: 0, reasonCode: 'DECISIVE_CONTRADICTION'}$$
+- **Incidental Insulation:** Contradiction of an incidental detail (`necessity === 'incidental'`) does **not** refute the core assertion and fails closed to `insufficient_evidence`.
+- **Directional Entailment:** If $c_2 \implies c_1$ (Puneet finding the body entails Salman died), refuting $c_1$ undermines $c_2$. Relationships labeled `attribution` or `temporal_precedence` are strictly excluded from falsifying parent propositions.
+- **Conjunction Partial Support Guard:** Supporting $c_1$ while $c_2$ lacks evidence fails closed to `insufficient_evidence` (`score: null`, `INSUFFICIENT_RETRIEVAL_DATA`). Partial support is never promoted to `supported`.
+
+---
+
+### 5. Mathematical Scoring Rubric & Reason Codes
+
+Verdicts are computed sequentially through pure deterministic TypeScript gates in [`decideClaim()`](src/server/verify/decide.ts):
+
+| Verdict | Score | Reason Code | Machine Meaning |
+| :--- | :---: | :--- | :--- |
+| **`supported`** | `100` | `PRIMARY_AUTHORITY_CONFIRMED` | Grounded primary authority document directly confirms the proposition under matching scope and time. |
+| **`supported`** | `75` | `CREDIBLE_SECONDARY_CONFIRMED` | Reputable secondary news/reports confirm the proposition; primary authority unavailable. |
+| **`contradicted`** | `0` | `DECISIVE_CONTRADICTION` | Primary or credible secondary evidence directly contradicts the proposition or refutes a necessary sub-component. |
+| **`outdated`** | `0` | `PROVEN_OUTDATED_BY_SUPERSEDING` | Claim was historically valid, but a documented effective change superseded it prior to target time. |
+| **`conflicting_evidence`** | `null` | `CREDIBLE_SOURCES_DISAGREE` | Grounded assessments of equal authority directly conflict under identical scope and time. |
+| **`depends_on_context`** | `null` | `ESSENTIAL_CONTEXT_MISSING` | Proposition depends on unresolved user qualifiers (jurisdiction, subscription tier, SDK version). |
+| **`insufficient_evidence`**| `null` | `INSUFFICIENT_RETRIEVAL_DATA` | No authoritative evidence substantiates or refutes the claim; fails closed with zero score. |
+
+---
+
+### 6. UPPR Invariant-to-Proof Verification Chain
+
+All verification follows the Universal Prompt Patterns Registry (UPPR Revision 4) invariant-to-proof chain:
+
+$$\text{INVARIANT} \longrightarrow \text{ENTRY POINT} \longrightarrow \text{HANDLER} \longrightarrow \text{AUTHORITY} \longrightarrow \text{ENFORCEMENT} \longrightarrow \text{TEST} \longrightarrow \text{EVIDENCE}$$
+
+```
+[ Invariant #1: Unsupported Citation ]
+  ↳ Entry: assessEvidenceAgainstClaim()
+  ↳ Enforcement: quoteVerified = source.text.includes(quote)
+  ↳ Test: TC-ERA-05
+  ↳ Evidence: Unmatched quotes fail closed to 'insufficient_evidence'
+
+[ Invariant #2: Wrong-Scope Evidence ]
+  ↳ Entry: evaluateScopeAndProperties()
+  ↳ Enforcement: Required claim property mismatches trigger exclusion: 'wrong_scope'
+  ↳ Test: TC-ERA-20
+  ↳ Evidence: Excluded from primary/counter evidence lists
+
+[ Invariant #3: Future Effective Date ]
+  ↳ Entry: evaluateTemporal()
+  ↳ Enforcement: effectiveDate > targetTime labeled 'future', excluded from supersession
+  ↳ Test: TC-ERA-22
+  ↳ Evidence: Emits 'Scheduled change' badge; current facts remain supported
+
+[ Invariant #4: Cross-Owner Access Isolation ]
+  ↳ Entry: GET /api/runs/[id]
+  ↳ Enforcement: SHA-256 salted IP ownerHash cookie check
+  ↳ Test: TC-B06-03
+  ↳ Evidence: Cross-owner requests return 404 Not Found
+
+[ Invariant #5: Duplicate Delivery Idempotency ]
+  ↳ Entry: POST /api/verify/worker
+  ↳ Enforcement: Neon PostgreSQL transaction lease fence on (runId, nodeId)
+  ↳ Test: TC-B05-02
+  ↳ Evidence: Redundant QStash webhooks return 200 OK without re-executing
+
+[ Invariant #6: Stale Lease Commit Abort ]
+  ↳ Entry: completeDagNode()
+  ↳ Enforcement: UPDATE ... WHERE leaseToken = :token
+  ↳ Test: TC-B05-04
+  ↳ Evidence: Expired worker leases fail closed with 409 Conflict
+```
+
+---
+
+## System Architecture & Dynamic DAG Lifecycle
+
+Afterfact executes verification as an asynchronous, distributed Directed Acyclic Graph (DAG) persisted in Neon PostgreSQL and driven by Upstash QStash webhook dispatches:
 
 ```mermaid
 flowchart TD
     A[User Input: Text or Question] --> B[Preparation & Span Review]
     B --> C[(Neon PostgreSQL)]
-    C <--> D[Upstash QStash Queue]
+    C <--> D[Upstash QStash Flow Queue]
     D --> E[DAG Node Worker: /api/verify/worker]
     E --> F[Bifrost Model Gateway]
     E --> G[Tavily Search & Extract]
@@ -153,8 +273,22 @@ flowchart TD
     G --> H
     H --> I[Decision Records & Outbox Events]
     I --> C
-    I --> J[SSE Stream / Polling]
+    I --> J[Progressive SSE Stream / Polling]
     J --> K[Responsive 55:45 Split Workspace]
+```
+
+```
+[ 5-Stage Persisted DAG Pipeline ]
+
+[root_extract_prep] ──► [plan_research] ──► [search_evidence] ──► [extract_evidence]
+                                                                        │
+  ┌─────────────────────────────────────────────────────────────────────┘
+  ▼
+[assess_evidence] ──► (Ambiguous?) ──► [clarification_wait] ──► [reassess_evidence]
+  │                                                                   │
+  └─────────────────────────────┬─────────────────────────────────────┘
+                                ▼
+                          [decide_claim] ──► [finalize_run]
 ```
 
 ---
@@ -163,81 +297,60 @@ flowchart TD
 
 | Layer | Technology | Version | Purpose |
 | :--- | :--- | :--- | :--- |
-| **Framework** | Next.js App Router | `15.5.29` | Full-stack application, Server Actions, API route handlers |
+| **Framework** | Next.js App Router | `15.5.29` | Full-stack serverless application, Server Actions, API route handlers |
 | **Core Runtime** | Node.js | `22.x` (`.nvmrc: 22.18.0`) | Modern LTS serverless runtime execution |
-| **Package Manager**| pnpm | `11.9.0` | Fast, deterministic dependency resolution with frozen lockfile |
+| **Package Manager**| pnpm | `11.9.0` | Deterministic dependency resolution with frozen lockfile |
 | **Language** | TypeScript | `5.7.3` | Strict type safety with zero-any policy |
 | **Styling** | Tailwind CSS | `3.4.17` | Utility-first paired semantic design tokens (dark/light) |
-| **Schema Validation**| Zod | `4.0.0` | Runtime validation across contracts, DB mutations, and API fences |
+| **Schema Validation**| Zod | `3.24.2` | Runtime validation across contracts, DB mutations, and API fences |
 | **Relational DB** | Neon PostgreSQL | Serverless | Storage for runs, Universal Claim Tickets, DAG nodes, and events |
-| **ORM** | Prisma ORM | `6.x` | Type-safe migrations, query generation, and connection pooling |
-| **Model Gateway** | Maxim Bifrost | Latest | Authenticated LLM routing, structured outputs, fallback profiles |
-| **Web Retrieval** | Tavily API | v1 Search/Extract | Authoritative web search and raw passage extraction |
-| **Job Queue** | Upstash QStash | `^2.12.1` | Durable HTTP job delivery, lease renewal, concurrency limits |
-| **Testing** | Vitest & Playwright | `3.2.0` / `1.51.1` | E1–E5 verification hierarchy, unit tests, and E2E browser smoke |
+| **ORM** | Prisma ORM | `6.19.3` | Type-safe migrations, query generation, and connection pooling |
+| **Model Gateway** | Maxim Bifrost | Latest | Authenticated LLM routing, structured outputs, automated fallback profiles |
+| **Web Retrieval** | Tavily API | v1 Search/Extract | Authoritative live web search and raw passage extraction |
+| **Job Queue** | Upstash QStash | `^2.12.1` | Durable HTTP job delivery, lease renewal, concurrency limits (max 3 claims) |
+| **Testing** | Vitest & Playwright | `3.2.7` / `1.65.0` | E1–E5 verification hierarchy: 511 unit tests, 24 Playwright E2E browser tests |
 
 ---
 
-## Repository Structure
+## Core Repository Contributors & Lane Ownership
 
-```
-Afterfact/
-├── docs/                             # Authoritative project architecture & specifications
-│   ├── lane-b/                       # Lane B (Platform) step-by-step engineering handbook
-│   │   ├── 00-system-overview.md     # System architecture & component topology
-│   │   ├── 01-workstation-and-accounts.md # Environment & credentials setup
-│   │   ├── b01-toolchain-and-dependencies.md
-│   │   ├── b02-bifrost-gateway-setup.md
-│   │   ├── b03-tavily-search-adapter.md
-│   │   ├── b04a-prisma-and-neon-database.md
-│   │   ├── b04b-persisted-dag-execution-slice.md
-│   │   ├── b05-qstash-delivery-and-recovery.md
-│   │   ├── b06-public-endpoints-and-sse.md
-│   │   ├── b07-staging-deployment.md
-│   │   ├── b08-production-release.md
-│   │   └── troubleshooting.md        # Common pitfalls, errors, and resolutions
-│   ├── API.md                        # Public and internal API route contracts
-│   ├── ARCHITECTURE.md               # Technical architecture, DAG graphs, and failure isolation
-│   ├── DATA-AND-JOBS.md              # Prisma schema, lease fencing, and QStash worker lifecycle
-│   ├── DECISIONS.md                  # Architectural Decision Records (ADR-001 through ADR-023)
-│   ├── DEMO-AND-SUBMISSION.md        # 3-minute presentation script and sponsor evidence
-│   ├── PARALLEL-WORK-PLAN.md         # Dynamic DAG execution waves and cross-lane handoffs
-│   ├── PHASE-TRACKER.md              # Master registry for 28 task tickets (A01–C09) and gates
-│   ├── PRODUCT.md                    # Product requirements, personas, and domain policies
-│   ├── SETUP-AND-DEPLOYMENT.md       # Infrastructure provisioning and deployment guide
-│   ├── TESTING-AND-EVALUATION.md     # E1–E5 verification protocol and eval benchmark
-│   └── VERIFICATION.md               # Claim extraction, passage scoring, and decision gates
-├── src/
-│   ├── app/                          # Next.js App Router endpoints & pages
-│   │   ├── design/                   # Interactive paired-theme design token reference
-│   │   ├── report/[id]/              # Verification report view (live runs & sample fixture)
-│   │   ├── globals.css               # Semantic CSS color tokens & dark/light definitions
-│   │   ├── layout.tsx                # Root layout with ThemeProvider and Header navigation
-│   │   └── page.tsx                  # Root page hosting InputComposer
-│   ├── components/
-│   │   ├── composer/                 # InputComposer & multi-field context controls
-│   │   ├── report/                   # ReportView, AnswerDocument, ClaimList, ClaimDetail, EvidenceCard
-│   │   ├── theme/                    # ThemeProvider and ThemeToggle (dark/light switch)
-│   │   └── ui/                       # Button, Card, StatusBadge, Input, Textarea, Select, Switch
-│   └── lib/
-│       ├── contracts/                # Canonical Zod contracts (claims, DAG, events, reports, actions)
-│       ├── fixtures/                 # Golden sample report fixtures with real-world citations
-│       └── report/                   # Highlight span calculators and document render helpers
-├── tests/
-│   ├── e2e/                          # Playwright browser integration & smoke tests
-│   └── unit/                         # Vitest unit test suites (147 passing tests)
-│       ├── composer/                 # Input validation and state unit tests
-│       ├── contracts/                # Zod contract, DAG schema, and fixture fidelity tests
-│       ├── report/                   # Text span mapping and verdict rendering tests
-│       └── theme.test.ts             # Theme token resolution unit tests
-├── AGENTS.md                         # Autonomous agent rules & evidence standards (UPPR Rev 4)
-├── CONTRIBUTING.md                   # Lane-based contribution guidelines (Lanes A, B, C)
-└── package.json                      # Project manifest, scripts, and pinned dependencies
-```
+Afterfact is engineered by the **Driftaxe Engineering Team**, partitioned across three disciplined operating lanes:
+
+| Contributor | Lane Ownership & Role | Primary Architecture Domains | Commits |
+| :--- | :--- | :--- | :---: |
+| **[Mayur Nanda](https://github.com/Mayur11code)**<br>`@Mayur11code` | **Lane A (Verification Engine)**<br>*Lead Architect & Verification Systems* | Bounded inference synthesizer, sequential decision gates, prompt engineering, UPPR compliance, evaluation benchmark harnesses. | 90+ |
+| **[Hardik Akshay](https://github.com/Hardik-codr)**<br>`@Hardik-codr` | **Lane B (Platform & Delivery)**<br>*Infrastructure & Cloud Integration* | Maxim Bifrost model gateway, Neon PostgreSQL data schemas, Upstash QStash worker execution, serverless runtime. | 55+ |
+| **[Jivjot Singh Kohli](https://github.com/JivjotSingh559)**<br>`@JivjotSingh559` | **Lane C (Product Experience)**<br>*Product Architecture & Temporal UI* | 55:45 split document inspector, Then vs. Now timeline, paired semantic design tokens, SSE streaming client. | 40+ |
 
 ---
 
-## Quick Start
+## Authoritative Documentation Index
+
+All architectural specifications, protocols, and audit traces are preserved across 16 authoritative documents in [`docs/`](docs/):
+
+| Category | Document | Description |
+| :--- | :--- | :--- |
+| **Operating Standards** | [AGENTS.md](AGENTS.md) | Agent operating rules, evidence hierarchy (E1–E5), secret safety (P28), and invariants |
+| **Contribution Guide** | [CONTRIBUTING.md](CONTRIBUTING.md) | Team lane distribution (A/B/C), branch workflow, and pull request checklist |
+| **Product Specification**| [docs/PRODUCT.md](docs/PRODUCT.md) | User journeys, claim categories, domain policies, and user experience |
+| **System Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Component architecture, DAG execution lifecycle, and fault isolation |
+| **Data & Jobs** | [docs/DATA-AND-JOBS.md](docs/DATA-AND-JOBS.md) | Prisma schema, lease fencing, QStash worker lifecycle, and retries |
+| **Verification Logic** | [docs/VERIFICATION.md](docs/VERIFICATION.md) | Extraction rules, passage scoring, 3-date resolution, and decision gates |
+| **API Specifications** | [docs/API.md](docs/API.md) | Public and internal API route contracts, idempotency, and SSE streaming |
+| **Platform Handbook** | [docs/lane-b/README.md](docs/lane-b/README.md) | Step-by-step beginner handbook for all Lane B infrastructure tasks |
+| **Setup & Cloud** | [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md) | Railway Bifrost deployment, Neon branching, and environment inventory |
+| **Testing & Evaluation** | [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md) | E1–E5 evidence levels, benchmark design, and release gates |
+| **Decisions (ADRs)** | [docs/DECISIONS.md](docs/DECISIONS.md) | Architectural Decision Records (ADR-001 through ADR-023) |
+| **Master Phase Tracker**| [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md) | Single source of truth for all 28 task tickets and gates (G0–G4) |
+| **Parallel Work Plan** | [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) | Execution waves, DAG topologies, and cross-lane handoff contracts |
+| **Demo & Judging** | [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md) | 3-minute judge script, sponsor proof, and submission checklist |
+| **Finalization Audit** | [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md) | Comprehensive system readiness audit, journey matrix, and finding register |
+| **Evidence Reasoning** | [docs/EVIDENCE-REASONING-AUDIT.md](docs/EVIDENCE-REASONING-AUDIT.md) | Problem register, component decomposition, and semantic reasoning evaluation |
+| **Development Log** | [docs/DEV-LOG.md](docs/DEV-LOG.md) | Chronological record of engineering sessions, commands, and observed evidence |
+
+---
+
+## Developer Quick Start & Diagnostic Runbook
 
 ### 1. Prerequisites
 - **Node.js:** `^22.0.0` (pinned to `22.18.0` in `.nvmrc`)
@@ -246,7 +359,7 @@ Afterfact/
 ### 2. Installation
 ```bash
 # Clone the repository
-git clone https://github.com/Mayur11code/Afterfact.git
+git clone https://github.com/Driftaxe/Afterfact.git
 cd Afterfact
 
 # Install exact dependencies using the frozen lockfile
@@ -258,35 +371,38 @@ Copy the sample environment file to create your local `.env`:
 ```bash
 cp .env.example .env
 ```
-Configure your environment variables as needed:
-- `DATABASE_URL` / `DIRECT_URL`: Neon PostgreSQL pooled and direct connection strings.
-- `TAVILY_API_KEY`: API key for live authoritative web search and excerpt extraction.
-- `BIFROST_BASE_URL`: URL of the Bifrost gateway (defaults to `http://127.0.0.1:8080`).
+Configure your environment variables:
+- `DATABASE_URL` / `DIRECT_URL`: Neon PostgreSQL connection strings (`DATABASE_URL` with connection pooling, `DIRECT_URL` for migrations).
+- `TAVILY_API_KEY`: API key for live web search and excerpt extraction.
+- `BIFROST_BASE_URL`: URL of the Maxim Bifrost gateway (defaults to `http://127.0.0.1:8080`).
 - `QSTASH_TOKEN` / `QSTASH_CURRENT_SIGNING_KEY`: Upstash QStash webhook tokens.
 
 *(Note: The core contract suite, design showcase, and sample report fixture run locally without requiring external cloud credentials).*
 
-### 4. Verification & Testing
+### 4. Running the Local Bifrost Gateway (Docker-Free)
+Run Maxim Bifrost locally without Docker using our preconfigured startup command:
+```bash
+pnpm bifrost
+```
+
+### 5. Automated Verification & Testing
 Run the automated verification suite to validate code health:
 ```bash
-# Run TypeScript static typechecker
+# Run TypeScript static typechecker (Strict zero-any policy)
 pnpm typecheck
 
 # Run Next.js and ESLint code checks
 pnpm lint
 
-# Run contract, schema, and UI unit tests (511 tests across 26 suites)
+# Run all 511 unit, contract, and inference test suites
 pnpm test
 
 # Run Playwright E2E browser smoke tests
 pnpm exec playwright install chromium
 pnpm test:e2e
-```
 
-### 5. Running the Local Bifrost Gateway (Docker-Free)
-Run Maxim Bifrost locally without Docker using our preconfigured startup command:
-```bash
-pnpm bifrost
+# Run optimized Next.js production build
+pnpm build
 ```
 
 ### 6. Starting Development Server
@@ -295,54 +411,14 @@ Launch the Next.js development server:
 pnpm dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser:
+- **Interactive Verification Workspace:** [http://localhost:3000/app](http://localhost:3000/app)
 - **Input Composer:** [http://localhost:3000](http://localhost:3000)
 - **Sample Verification Report:** [http://localhost:3000/report/sample-run](http://localhost:3000/report/sample-run)
 - **Design System Showcase:** [http://localhost:3000/design](http://localhost:3000/design)
 
 ---
 
-## Verification & Evidence Hierarchy (E1–E5)
+## License & Standards
 
-Following the engineering disciplines defined in [AGENTS.md](AGENTS.md), all implementation tasks and pull requests must satisfy explicit evidence tiers before transitioning:
-
-- **E1 (Static Analysis):** Clean TypeScript typecheck (`pnpm typecheck`), linting (`pnpm lint`), and Zod schema validations.
-- **E2 (Unit & Deterministic Logic):** Pure logic and contract tests (`pnpm test` via Vitest).
-- **E3 (Disposable DB Integration):** Transactions and migrations against dedicated Neon PostgreSQL test branches (`TEST_DATABASE_URL`).
-- **E4 (Staging Integration):** Live runs with signed QStash webhooks, Bifrost fallback routing, and real Tavily extraction.
-- **E5 (Production Operations):** End-to-end verification against the frozen benchmark dataset (`eval/cases.jsonl`) with $< 5\%$ false reassurance rate.
-
----
-
-## Team Lanes & Parallel Execution
-
-Development is organized across three parallel, non-conflicting engineering lanes:
-
-- **Lane A (Verification Engine):** Universal Claim Tickets, research planning, context-preserving extraction, semantic assessment, date logic, domain policies, and evaluation benchmark.
-- **Lane B (Platform & Infrastructure):** Toolchain, Neon PostgreSQL, Prisma ORM, Bifrost model gateway, Tavily search adapter, QStash jobs, dynamic DAG runtime, and deployment.
-- **Lane C (Product Experience):** Visual design tokens, responsive UI components, split workspace, preparation review, dynamic clarification forms, SSE client, timeline, and compare drawer.
-
-Refer to [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) and [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md) for current task tickets and cross-lane handoff contracts.
-
----
-
-## Authoritative Documentation
-
-| Category | Document | Description |
-| :--- | :--- | :--- |
-| **Rules & Standards** | [AGENTS.md](AGENTS.md) | Agent operating rules, evidence standards, secret safety, and invariants |
-| **Contribution** | [CONTRIBUTING.md](CONTRIBUTING.md) | Team lane distribution (A/B/C), branch workflow, and PR checklist |
-| **Product & Domain** | [docs/PRODUCT.md](docs/PRODUCT.md) | User journeys, claim categories, domain policies, and user experience |
-| **System Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Component architecture, DAG execution lifecycle, and fault isolation |
-| **Data & Jobs** | [docs/DATA-AND-JOBS.md](docs/DATA-AND-JOBS.md) | Prisma schema, lease fencing, QStash worker lifecycle, and retries |
-| **Verification Logic** | [docs/VERIFICATION.md](docs/VERIFICATION.md) | Extraction rules, passage scoring, date resolution, and decision gates |
-| **API Specifications** | [docs/API.md](docs/API.md) | Public and internal API route contracts, idempotency, and SSE streaming |
-| **Platform Handbook** | [docs/lane-b/README.md](docs/lane-b/README.md) | Step-by-step beginner handbook for all Lane B infrastructure tasks |
-| **Setup & Cloud** | [docs/SETUP-AND-DEPLOYMENT.md](docs/SETUP-AND-DEPLOYMENT.md) | Railway Bifrost deployment, Neon branching, and environment inventory |
-| **Testing & Evaluation** | [docs/TESTING-AND-EVALUATION.md](docs/TESTING-AND-EVALUATION.md) | E1–E5 evidence levels, benchmark design, and release gates |
-| **Decisions (ADRs)** | [docs/DECISIONS.md](docs/DECISIONS.md) | Architectural Decision Records (ADR-001 through ADR-023) |
-| **Master Phase Tracker**| [docs/PHASE-TRACKER.md](docs/PHASE-TRACKER.md) | Single source of truth for all 28 task tickets and gates (G0–G4) |
-| **Parallel Work Plan** | [docs/PARALLEL-WORK-PLAN.md](docs/PARALLEL-WORK-PLAN.md) | Execution waves, DAG topologies, and cross-lane handoff contracts |
-| **Demo & Judging** | [docs/DEMO-AND-SUBMISSION.md](docs/DEMO-AND-SUBMISSION.md) | 3-minute judge script, sponsor proof, and submission checklist |
-| **Finalization Audit** | [docs/FINALIZATION-AUDIT.md](docs/FINALIZATION-AUDIT.md) | Comprehensive system readiness audit, journey matrix, and finding register |
-| **Evidence Reasoning Audit** | [docs/EVIDENCE-REASONING-AUDIT.md](docs/EVIDENCE-REASONING-AUDIT.md) | Problem register, component decomposition, and semantic reasoning evaluation |
-| **Development Log** | [docs/DEV-LOG.md](docs/DEV-LOG.md) | Chronological record of engineering sessions, commands, and observed evidence |
+- **License:** Open source under the [MIT License](LICENSE).
+- **Standards:** Strict compliance with **Universal Prompt Patterns Registry (UPPR) Revision 4** engineering, evidence, and secret-safety baselines.
