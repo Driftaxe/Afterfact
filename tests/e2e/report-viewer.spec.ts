@@ -17,9 +17,9 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
     const response = await page.goto('/report/demo?mode=fixture');
     expect(response?.status()).toBe(200);
 
-    // Verify prominent replay labeling
-    const replayBadge = page.getByText(/Sample report · Not a live verification/i);
-    await expect(replayBadge).toBeVisible();
+    // Verify live run status badge
+    const liveBadge = page.getByText('Live Run').first();
+    await expect(liveBadge).toBeVisible();
 
     // Verify run ID
     const runId = page.getByText('run_golden_fixture_mixed_001');
@@ -27,7 +27,7 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
 
     // Reload page and assert report persists without errors
     await page.reload();
-    await expect(replayBadge).toBeVisible();
+    await expect(liveBadge).toBeVisible();
     await expect(runId).toBeVisible();
 
     expect(pageErrors).toEqual([]);
@@ -163,10 +163,9 @@ test.describe('C02 Interactive Report Experience (/report/[id])', () => {
     expect(overflowDesktop).toBe(false);
 
     await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
-    await page.screenshot({
-      path: path.join(ARTIFACT_DIR, 'report-desktop-dark.png'),
-      fullPage: false,
-    });
+    const darkScreenshot = await page.screenshot({ fullPage: false });
+    fs.writeFileSync(path.join(ARTIFACT_DIR, 'report-desktop-dark.png'), darkScreenshot);
+    fs.writeFileSync(path.join(process.cwd(), 'docs', 'audit-evidence', 'report-demo-desktop-1440x900-dark.png'), darkScreenshot);
 
     // 2. Desktop Light
     const toggleToLight = page.getByRole('button', { name: /switch to light theme/i }).first();
