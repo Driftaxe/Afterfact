@@ -108,6 +108,7 @@ export class ClarificationService {
           data: {
             state: 'pending',
             status: 'PENDING',
+            attempt: 0,
           },
         });
       }

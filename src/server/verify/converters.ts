@@ -227,7 +227,7 @@ export function buildDecideClaimInput(params: BuildDecideClaimInputParams): Deci
   const normalizedAssessments: ClaimEvidenceAssessment[] = contractAssessments.map((a) => ({
     ...a,
     claimTicketId: a.claimTicketId || ticket.ticketId,
-    claimRevision: typeof a.claimRevision === 'number' ? a.claimRevision : ticket.revision,
+    claimRevision: ticket.revision,
   }));
 
   // Normalize evidenceUnits to ensure valid locators

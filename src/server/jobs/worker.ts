@@ -258,6 +258,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             const outcome = await extractClaimsFromText({
               text,
               runId,
+              contextOverrides: typeof node.run?.context === 'object' && node.run?.context !== null
+                ? Object.fromEntries(
+                    Object.entries(node.run.context).map(([k, v]) => [k, String(v)])
+                  )
+                : undefined,
             });
             if (outcome.status === 'success') {
               tickets = outcome.tickets;
@@ -963,6 +968,10 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               // to supersede prior decisions and ensure late older-revision results are rejected
               if (resolvedItems.length > 0) {
                 ticket.revision = (ticket.revision ?? 1) + 1;
+                await db.claimEvidenceAssessment.updateMany({
+                  where: { claimId: claim.id },
+                  data: { claimRevision: ticket.revision },
+                });
               }
             }
 
@@ -1083,7 +1092,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 assessmentId: a.id,
                 claimTicketId: ticket.ticketId,
                 evidenceId: a.evidenceUnitId,
-                claimRevision: a.claimRevision,
+                claimRevision: ticket.revision,
                 relationship: rel,
                 scopeMatching: 'match' as const,
                 quotationVerified: a.quotationVerified,
@@ -1455,7 +1464,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   assessmentId: a.id,
                   claimTicketId: ticket.ticketId,
                   evidenceId: a.evidenceUnitId,
-                  claimRevision: a.claimRevision,
+                  claimRevision: ticket.revision,
                   relationship: (a.relationship as AssessmentRelationship) ?? 'contradicts',
                   scopeMatching: 'match' as const,
                   modelConfidence: a.confidence ?? 0.9,
