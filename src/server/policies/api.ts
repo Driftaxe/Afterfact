@@ -37,6 +37,15 @@ export class ApiPolicy implements DomainPolicyModule {
     }
 
     const statement = ticket.originalStatement || ticket.normalizedProposition;
+
+    // Monetary pricing statements without technical API constructs belong to pricing
+    if (
+      /\$\d|£\d|€\d|₹\d|\bper month\b|\bpricing\b|\boverage\b|\bfee\b/i.test(statement) &&
+      !/\b(endpoint|method|parameter|schema|sdk|streaming|payload|response code|status code|rest|graphql)\b/i.test(statement)
+    ) {
+      return false;
+    }
+
     return API_TERMS_REGEX.test(statement);
   }
 
@@ -74,6 +83,8 @@ export class ApiPolicy implements DomainPolicyModule {
         role = 'asserted_value';
       } else if (explicitScope.has(prop.key)) {
         role = 'scope_qualifier';
+      } else if (prop.role === 'asserted_value' || prop.role === 'scope_qualifier') {
+        role = prop.role;
       } else if (prop.key === 'version') {
         role = isAssertingVersionValue ? 'asserted_value' : 'scope_qualifier';
       } else if (

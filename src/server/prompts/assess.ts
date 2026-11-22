@@ -29,6 +29,20 @@ Your task is to evaluate individual EvidenceUnits against a specific ClaimTicket
        - Do NOT demand verbatim occurrences of the phrase "latest model" if the release chronology itself decisively refutes or supports recency.
        - Capability rankings or model size (e.g. "most capable", "largest") do NOT establish release recency.
        - Announcement does NOT establish general availability (GA) or effective release.
+     * Active Zero-Fee & Fee-Exemption Refutation:
+       - If a claim asserts a fee, surcharge, tax, charge, or transaction cost (e.g., 1.1% fee, $10 charge, flat fee) was introduced or applies to a service/tier (at T_alleged <= targetTime):
+         - Authoritative evidence establishing that the scoped service/tier is free ($0), carries zero fee / no charges, or is exempt from fees under matching entity and jurisdiction at a date contemporaneous with or subsequent to T_alleged (T_evidence >= T_alleged), OR in active living official documentation at targetTime, constitutes a DIRECT CONTRADICTION ('contradicts') with scopeMatching: 'match'.
+         - CRITICAL Property Mapping: Place the asserted fee property in propertyMatchStatus.mismatched (reflecting $0 != asserted fee). Do NOT put the asserted fee in matching even if the article quotes the asserted fee while debunking it!
+         - Universal Exemption Subsumption: If evidence establishes the service is free for all transactions or regardless of amount/threshold, any asserted monetary threshold (e.g. >₹2,000, >$100) is governed and matched by the universal zero-fee rule; place the threshold property in matching (or note it is subsumed), NOT missingInEvidence.
+         - Temporal Invariant (TC-ERA-22): An article dated prior to T_alleged stating the service was free CANNOT refute a claim that a new fee was enacted or took effect at T_alleged. Only evidence dated >= T_alleged or active living official documentation at targetTime refutes an alleged enactment.
+     * Permissive / Disclosure-Only Statute Refutation:
+        - If a claim asserts that a statute or regulation mandates a substantive consumer floor, guarantee, or obligation (e.g., "mandates a compulsory 90-day return policy", "requires mandatory 30-day money-back guarantee"), and the governing statutory text or authoritative regulatory analysis establishes that the rule is permissive or disclosure-only (e.g., the statute explicitly permits sellers/manufacturers to offer no return policy or any return duration provided their return terms or lack thereof are stated/disclosed):
+          - This constitutes a DIRECT CONTRADICTION ('contradicts') with scopeMatching: 'match'.
+          - Place the asserted substantive mandate property in propertyMatchStatus.mismatched. A disclosure requirement is NOT a substantive minimum guarantee mandate.
+     * Structural & Formulaic Conflicts:
+       - If a claim asserts a flat, fixed fee/threshold without qualification (e.g., "flat $500 fee regardless of company size"), and authoritative evidence establishes that the requirement is calculated via variable formula, sliding scale, or decentralized regional schedules, this is a DIRECT CONTRADICTION ('contradicts') with scopeMatching: 'match', NOT inconclusive.
+     * Actor-Obligation Directionality & Compliance Windows:
+       - If a claim asserts an actor (e.g., user, corporate filer) must complete an act within N days, but governing rules assign that N-day timeframe to the adjudicating authority (e.g., authority must decide within 30 days) or grant an opposing statutory window (e.g., filers have up to 12 months), this constitutes an evidentiary contradiction ('contradicts') with scopeMatching: 'match', NOT inconclusive.
    - 'relevant_but_inconclusive': The excerpt mentions the entity or topic, but lacks decisive qualifiers or values necessary to confirm or refute the claim. Absence of evidence is NEVER contradiction.
    - 'unrelated': The excerpt lacks semantic relevance to the asserted fact.
    - 'historical_state': The excerpt proves the claim WAS valid in the past, but subsequent evidence or dates establish it has since been superseded.
@@ -121,11 +135,12 @@ export function buildSemanticAssessmentUserPrompt(params: {
           p.key === 'manufacturer' ||
           p.key === 'company' ||
           p.key === 'organization';
+        const assignedRole = p.role ?? (isScope ? 'scope_qualifier' : 'asserted_value');
         return {
           key: p.key,
           label: p.label,
           value: p.value,
-          role: isScope ? 'scope_qualifier' : 'asserted_value',
+          role: assignedRole,
           propertyType: p.propertyType,
           origin: p.origin,
         };

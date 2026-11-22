@@ -124,6 +124,10 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
     const isAssessed =
       claim.state === 'assessed' || claim.status === 'ASSESSED' || Boolean(dec && 'verdict' in dec);
     const isFailed = claim.state === 'failed' || claim.status === 'FAILED';
+    const isSkipped =
+      claim.state === 'skipped' ||
+      claim.status === 'SKIPPED' ||
+      (decRecord && decRecord.reasonCode === 'UNVERIFIED_CLAIM_BUDGET_EXCEEDED');
 
     for (const assessment of claim.assessments || []) {
       const unit = assessment.evidenceUnit;
@@ -193,40 +197,46 @@ export async function getSanitizedRunSnapshot(runId: string, ownerHash: string) 
       extractedQualifiers,
       verificationContext,
       span,
-      state: isAssessed ? 'assessed' : isFailed ? 'failed' : 'pending',
+      state: isSkipped ? 'skipped' : isAssessed ? 'assessed' : isFailed ? 'failed' : 'pending',
       error: isFailed
         ? ((decRecord as any)?.error?.message || (decRecord as any)?.error || 'Verification could not finish due to an internal processing error')
         : undefined,
       verdict:
-        isFailed
-          ? null
-          : decRecord && typeof decRecord.verdict === 'string'
-            ? decRecord.verdict
-            : isAssessed
-              ? 'insufficient_evidence'
-              : undefined,
+        isSkipped
+          ? 'insufficient_evidence'
+          : isFailed
+            ? null
+            : decRecord && typeof decRecord.verdict === 'string'
+              ? decRecord.verdict
+              : isAssessed
+                ? 'insufficient_evidence'
+                : undefined,
       score:
-        isFailed
+        isSkipped || isFailed
           ? null
           : decRecord && typeof decRecord.score === 'number'
             ? decRecord.score
             : null,
       scoreReason:
-        isFailed
-          ? null
-          : decRecord && typeof decRecord.scoreReason === 'string'
-            ? decRecord.scoreReason
-            : isAssessed
-              ? 'Evaluation concluded without conclusive evidence.'
-              : null,
+        isSkipped
+          ? 'Verification claim budget ceiling reached (max 8 claims per run). Claim was skipped.'
+          : isFailed
+            ? null
+            : decRecord && typeof decRecord.scoreReason === 'string'
+              ? decRecord.scoreReason
+              : isAssessed
+                ? 'Evaluation concluded without conclusive evidence.'
+                : null,
       reasonCode:
-        isFailed
-          ? 'PROCESSING_FAILURE'
-          : decRecord && typeof decRecord.reasonCode === 'string'
-            ? decRecord.reasonCode
-            : isAssessed
-              ? 'INSUFFICIENT_EVIDENCE'
-              : 'PENDING',
+        isSkipped
+          ? 'UNVERIFIED_CLAIM_BUDGET_EXCEEDED'
+          : isFailed
+            ? 'PROCESSING_FAILURE'
+            : decRecord && typeof decRecord.reasonCode === 'string'
+              ? decRecord.reasonCode
+              : isAssessed
+                ? 'INSUFFICIENT_EVIDENCE'
+                : 'PENDING',
       evidenceIds,
       timeline,
       correction,

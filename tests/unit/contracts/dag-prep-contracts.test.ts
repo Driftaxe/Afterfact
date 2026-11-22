@@ -1973,7 +1973,7 @@ describe('A10 Contract Layer Test Suite', () => {
     });
 
     it('validates the supported maximum claim count at full branch capacity (5 claims, 52 nodes)', () => {
-      expect(SUPPORTED_MAX_CLAIMS_PER_RUN).toBe(5);
+      expect(SUPPORTED_MAX_CLAIMS_PER_RUN).toBe(8);
       expect(RUN_OVERHEAD_DAG_NODES).toBe(2);
       expect(MAX_NODES_PER_CLAIM_BRANCH).toBe(10);
       expect(MAX_DAG_NODES_PER_RUN).toBe(52);

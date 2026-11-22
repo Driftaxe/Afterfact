@@ -5,8 +5,8 @@ import { DagService } from '@/server/services/dag-service';
 import { EventService } from '@/server/services/event-service';
 import { expandDag } from '@/server/dag/expand';
 import { extractClaimsFromText } from '@/server/verify/extract-claims';
-import { generateResearchPlan } from '@/server/verify/research-planner';
-import { tavilySearch, RawSourceDoc } from '@/server/tavily/client';
+import { generateResearchPlan, isBareTldSuffix, sanitizeQueryText } from '@/server/verify/research-planner';
+import { tavilySearch, tavilyExtract, RawSourceDoc } from '@/server/tavily/client';
 import { extractEvidenceUnits } from '@/server/verify/extract-evidence';
 import { assessEvidenceAgainstClaim } from '@/server/verify/assess-evidence';
 import { evaluatePolicy } from '@/server/policies';
@@ -28,22 +28,315 @@ const qstash = new Client({
   token: process.env.QSTASH_TOKEN || 'mock_token',
 });
 
-function inferDocumentSourceRole(
+export function isSovereignDomain(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host.endsWith('.gov') ||
+      /\.gov\.[a-z]{2,}$/.test(host) ||
+      /\.nic\.[a-z]{2,}$/.test(host) ||
+      /\.gob\.[a-z]{2,}$/.test(host) ||
+      /\.gouv\.[a-z]{2,}$/.test(host) ||
+      /\.go\.[a-z]{2,}$/.test(host) ||
+      host.endsWith('.europa.eu') ||
+      host.endsWith('.mil') ||
+      host.endsWith('.admin.ch')
+    );
+  } catch {
+    const u = url.toLowerCase();
+    return (
+      u.includes('.gov.') ||
+      u.includes('.gov/') ||
+      u.includes('.nic.') ||
+      u.includes('.europa.eu') ||
+      u.includes('.admin.ch')
+    );
+  }
+}
+
+export function isUserGeneratedContentUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    // UGC subdomains
+    if (
+      host.startsWith('community.') ||
+      host.startsWith('forum.') ||
+      host.startsWith('forums.') ||
+      host.startsWith('discuss.') ||
+      host.startsWith('repost.') ||
+      host.startsWith('gist.') ||
+      host.includes('stackoverflow.com') ||
+      host.includes('reddit.com') ||
+      host.includes('quora.com')
+    ) {
+      return true;
+    }
+
+    // UGC path prefixes and patterns
+    if (
+      pathname.startsWith('/community') ||
+      pathname.startsWith('/forum') ||
+      pathname.startsWith('/forums') ||
+      pathname.startsWith('/discuss') ||
+      pathname.startsWith('/discussions') ||
+      pathname.startsWith('/issues') ||
+      pathname.startsWith('/questions') ||
+      pathname.startsWith('/pull/') ||
+      pathname.startsWith('/pulls') ||
+      pathname.includes('/discussions/') ||
+      pathname.includes('/issues/') ||
+      pathname.includes('/orgs/') // e.g. github.com/orgs/community/discussions
+    ) {
+      return true;
+    }
+
+    // User profile/repo paths on code hosting platforms (github.com, gitlab.com)
+    if (host === 'github.com' || host === 'gitlab.com') {
+      const parts = pathname.split('/').filter(Boolean);
+      // Canonical vendor platform roots that are not individual user/org repos
+      const canonicalRootRoutes = new Set([
+        'pricing', 'features', 'enterprise', 'team', 'security', 'about',
+        'readme', 'contact', 'login', 'join', 'solutions', 'marketplace'
+      ]);
+      if (parts.length >= 2 && !canonicalRootRoutes.has(parts[0])) {
+        // e.g. /owner/repo -> arbitrary user project or community issue
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export function isCanonicalFirstPartyPath(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    // Dedicated documentation, developer, support, or legal subdomains are always authoritative
+    if (
+      host.startsWith('docs.') ||
+      host.startsWith('developer.') ||
+      host.startsWith('developers.') ||
+      host.startsWith('api.') ||
+      host.startsWith('support.') ||
+      host.startsWith('help.') ||
+      host.startsWith('learn.') ||
+      host.startsWith('kb.') ||
+      host.startsWith('legal.')
+    ) {
+      return true;
+    }
+
+    // Exclude non-authoritative marketing, career, partner, and event pages
+    if (
+      pathname.startsWith('/careers') ||
+      pathname.startsWith('/jobs') ||
+      pathname.startsWith('/events') ||
+      pathname.startsWith('/customer-stories') ||
+      pathname.startsWith('/case-studies') ||
+      pathname.startsWith('/partners') ||
+      pathname.startsWith('/users/')
+    ) {
+      return false;
+    }
+
+    // Default allow: official product pages, pricing schedules, app-store programs, localized routes (/en/..., /us/...)
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const GENERIC_ENTITY_STOPWORDS = new Set([
+  'the', 'and', 'for', 'any', 'all', 'what', 'when', 'under', 'from', 'with', 'per',
+  'of', 'in', 'on', 'at', 'by', 'to', 'into', 'onto',
+  'app', 'apps', 'store', 'team', 'free', 'pro', 'plus', 'max', 'enterprise',
+  'business', 'small', 'program', 'cloud', 'web', 'api', 'sdk', 'plan', 'plans',
+  'tier', 'tiers', 'act', 'law', 'rule', 'rules', 'regulation', 'regulations',
+  'union', 'commission', 'general', 'purpose', 'model', 'models', 'account',
+  'accounts', 'private', 'public', 'global', 'standard', 'code', 'system',
+  'data', 'platform', 'service', 'services', 'functions', 'function', 'fee', 'fees',
+  'rate', 'rates', 'fine', 'fines', 'penalty', 'penalties', 'month', 'months',
+  'year', 'years', 'inc', 'ltd', 'corp', 'llc', 'gmbh',
+  // Generic nouns, agencies, and geographic descriptors
+  'bank', 'banks', 'banking', 'board', 'council', 'authority', 'department',
+  'administration', 'agency', 'india', 'indian', 'america', 'american',
+  'national', 'federal', 'central'
+]);
+
+const PREPOSITION_WORDS = new Set([
+  'of', 'and', 'for', 'the', 'in', 'on', 'at', 'by', 'to', 'with', 'from', 'de', 'du', 'des', 'und', 'et'
+]);
+
+export function sanitizeTavilyIncludeDomains(
+  domains?: string[]
+): { validDomains: string[]; strippedTlds: string[] } {
+  if (!domains || domains.length === 0) return { validDomains: [], strippedTlds: [] };
+  const validDomains: string[] = [];
+  const strippedTlds: string[] = [];
+  for (const d of domains) {
+    if (isBareTldSuffix(d)) {
+      strippedTlds.push(d);
+    } else {
+      validDomains.push(d);
+    }
+  }
+  return { validDomains, strippedTlds };
+}
+
+export function extractEntityTokens(
+  source: ClaimTicket | VerificationProperty[]
+): string[] {
+  const props = Array.isArray(source) ? source : source.verificationContext ?? [];
+  const tokens = new Set<string>();
+
+  for (const p of props) {
+    if (
+      p.key === 'productName' ||
+      p.key === 'provider' ||
+      p.key === 'vendor' ||
+      p.key === 'company' ||
+      p.key === 'organization' ||
+      p.key === 'regulator' ||
+      p.key === 'agency' ||
+      p.key === 'entity' ||
+      p.key === 'service' ||
+      p.key === 'platform' ||
+      p.key === 'manufacturer'
+    ) {
+      if (typeof p.value === 'string' && p.value.trim().length > 0) {
+        const val = p.value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+        for (const word of val.split(/\s+/)) {
+          if (word.length >= 3 && !GENERIC_ENTITY_STOPWORDS.has(word)) {
+            tokens.add(word);
+          }
+        }
+        // Multi-word acronym generation for statutory/regulatory/corporate bodies
+        const rawWords = p.value.split(/\s+/).filter(Boolean);
+        if (rawWords.length >= 2) {
+          // Exclude grammatical prepositions to form clean acronyms (e.g. "Reserve Bank of India" -> "rbi", "Food and Drug Administration" -> "fda")
+          const nonPrepWords = rawWords.filter((w) => !PREPOSITION_WORDS.has(w.toLowerCase()));
+          if (nonPrepWords.length >= 2) {
+            const sigAcronym = nonPrepWords.map((w) => w[0].toLowerCase()).join('').replace(/[^a-z0-9]/g, '');
+            if (sigAcronym.length >= 2 && sigAcronym.length <= 6 && !GENERIC_ENTITY_STOPWORDS.has(sigAcronym)) {
+              tokens.add(sigAcronym);
+            }
+          }
+          const allAcronym = rawWords.map((w) => w[0].toLowerCase()).join('').replace(/[^a-z0-9]/g, '');
+          if (allAcronym.length >= 2 && allAcronym.length <= 6 && !GENERIC_ENTITY_STOPWORDS.has(allAcronym)) {
+            tokens.add(allAcronym);
+          }
+        }
+      }
+    }
+  }
+
+  if (!Array.isArray(source)) {
+    // CRITICAL: Extract capitalized proper nouns and acronyms on the ORIGINAL-CASE statement!
+    const rawText = source.normalizedProposition || source.originalStatement || '';
+    const commonEntities = rawText.match(/\b([A-Z][a-zA-Z0-9]+)\b/g);
+    if (commonEntities) {
+      for (const e of commonEntities) {
+        const lower = e.toLowerCase();
+        if (lower.length >= 3 && !GENERIC_ENTITY_STOPWORDS.has(lower)) {
+          tokens.add(lower);
+        }
+      }
+    }
+  }
+
+  return Array.from(tokens);
+}
+
+export function extractRegistrableDomainLabel(hostname: string): { registrableLabel: string; subdomains: string[] } {
+  const parts = hostname.toLowerCase().split('.').filter(Boolean);
+  const commonSuffixes = new Set([
+    'com', 'org', 'net', 'io', 'ai', 'co', 'gov', 'edu', 'nic', 'in', 'uk', 'us', 'eu', 'de', 'fr', 'jp', 'ca', 'au', 'ch',
+    'bank', 'int', 'mil', 'ac', 'gob', 'gouv', 'biz', 'info'
+  ]);
+  let endIdx = parts.length - 1;
+  while (endIdx >= 0 && commonSuffixes.has(parts[endIdx])) {
+    endIdx--;
+  }
+  if (endIdx < 0) {
+    return { registrableLabel: '', subdomains: [] };
+  }
+  const registrableLabel = parts[endIdx];
+  const subdomains = parts.slice(0, endIdx).filter((s) => s !== 'www');
+  return { registrableLabel, subdomains };
+}
+
+export function isFirstPartyDomainForEntity(
   url: string,
-  publisher?: string | null
-): 'primary_authority' | 'regulatory_filing' | 'official_changelog' | 'reputable_secondary' {
+  entityTokens?: string[]
+): boolean {
+  if (!url || !entityTokens || entityTokens.length === 0) return false;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    const { registrableLabel, subdomains } = extractRegistrableDomainLabel(host);
+    if (!registrableLabel) return false;
+
+    return entityTokens.some((rawToken) => {
+      const token = rawToken.toLowerCase().trim();
+      if (token.length < 3) return false;
+
+      // 1. Exact label match: e.g. "apple" === "apple", "github" === "github", or subdomain "aws" in aws.amazon.com
+      if (registrableLabel === token || subdomains.includes(token)) {
+        return true;
+      }
+
+      // 2. Clean compound brand match: e.g. "microsoft" in "microsoftcorp", token.length >= 5
+      // Never match short tokens (e.g. "act", "team", "app") inside third-party domains
+      if (token.length >= 5 && registrableLabel.startsWith(token)) {
+        return true;
+      }
+
+      return false;
+    });
+  } catch {
+    return false;
+  }
+}
+
+export function inferDocumentSourceRole(
+  url: string,
+  publisher?: string | null,
+  entityTokens?: string[]
+): SourceDocument['sourceRole'] {
   const u = (url || '').toLowerCase();
   const p = (publisher || '').toLowerCase();
 
+  // UGC / Community Guardrail: Never grant primary_authority to forums or user discussions
+  if (isUserGeneratedContentUrl(url)) {
+    return 'counter_perspective';
+  }
+
+  // 1. Regulatory filings and legislative registries globally
   if (
     u.includes('sec.gov') ||
     u.includes('edgar') ||
     u.includes('legislation.gov') ||
     u.includes('eur-lex.europa.eu') ||
+    u.includes('federalregister.gov') ||
+    u.includes('indiacode.nic.in') ||
     p.includes('securities and exchange commission')
   ) {
     return 'regulatory_filing';
   }
+
+  // 2. Official changelogs / releases
   if (
     u.includes('/changelog') ||
     u.includes('/releases') ||
@@ -51,6 +344,21 @@ function inferDocumentSourceRole(
   ) {
     return 'official_changelog';
   }
+
+  // 3. Sovereign government, legislative, regulatory, and judicial domains globally
+  if (isSovereignDomain(url)) {
+    return 'primary_authority';
+  }
+
+  // 4. Dynamic First-Party Entity Authority Resolution:
+  // When a source is hosted on the subject entity's own official domain on canonical first-party paths
+  if (entityTokens && entityTokens.length > 0 && isFirstPartyDomainForEntity(url, entityTokens)) {
+    if (isCanonicalFirstPartyPath(url)) {
+      return 'primary_authority';
+    }
+  }
+
+  // 5. Established reputable news, encyclopedias, wire services, tech press, and legal publications globally
   if (
     u.includes('wikipedia.org') ||
     u.includes('britannica.com') ||
@@ -58,24 +366,70 @@ function inferDocumentSourceRole(
     u.includes('apnews.com') ||
     u.includes('bloomberg.com') ||
     u.includes('nytimes.com') ||
-    u.includes('bbc.com') ||
-    u.includes('washingtonpost.com') ||
     u.includes('wsj.com') ||
+    u.includes('ft.com') ||
+    u.includes('cnbc.com') ||
+    u.includes('bbc.com') ||
+    u.includes('bbc.co.uk') ||
     u.includes('theguardian.com') ||
-    u.includes('cnn.com') ||
+    u.includes('washingtonpost.com') ||
+    u.includes('techcrunch.com') ||
+    u.includes('theverge.com') ||
+    u.includes('arstechnica.com') ||
+    u.includes('wired.com') ||
+    u.includes('forbes.com') ||
+    u.includes('fortune.com') ||
     u.includes('politico.com') ||
+    u.includes('cnn.com') ||
     u.includes('nbcnews.com') ||
+    u.includes('timesofindia.indiatimes.com') ||
+    u.includes('economictimes.indiatimes.com') ||
+    u.includes('indiatimes.com') ||
+    u.includes('deccanherald.com') ||
+    u.includes('thehindu.com') ||
+    u.includes('hindustantimes.com') ||
+    u.includes('indianexpress.com') ||
+    u.includes('livemint.com') ||
+    u.includes('moneycontrol.com') ||
+    u.includes('business-standard.com') ||
+    u.includes('lemonde.fr') ||
+    u.includes('spiegel.de') ||
+    u.includes('elpais.com') ||
+    u.includes('asahi.com') ||
+    u.includes('japantimes.co.jp') ||
+    u.includes('scmp.com') ||
+    u.includes('smh.com.au') ||
+    u.includes('theglobeandmail.com') ||
+    u.includes('afp.com') ||
+    u.includes('upi.com') ||
+    u.includes('dw.com') ||
+    u.includes('aljazeera.com') ||
+    u.includes('france24.com') ||
+    u.includes('natlawreview.com') ||
+    u.includes('law360.com') ||
     p.includes('wikipedia') ||
     p.includes('reuters') ||
     p.includes('associated press') ||
-    p.includes('encyclopedia')
+    p.includes('bloomberg') ||
+    p.includes('cnbc') ||
+    p.includes('wall street journal') ||
+    p.includes('financial times') ||
+    p.includes('techcrunch') ||
+    p.includes('the verge') ||
+    p.includes('ars technica') ||
+    p.includes('national law review') ||
+    p.includes('law360')
   ) {
     return 'reputable_secondary';
   }
-  if (u.includes('.gov') || u.includes('.edu') || u.includes('docs.') || u.includes('/docs')) {
+
+  // 6. Academic institutions, official technical docs, and developer portals
+  if (u.includes('.edu') || u.includes('docs.') || u.includes('/docs')) {
     return 'primary_authority';
   }
-  return 'reputable_secondary';
+
+  // Unvetted blogs, personal sites, and user forums start as counter_perspective (unclassified web)
+  return 'counter_perspective';
 }
 
 /**
@@ -212,6 +566,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             const outcome = await extractClaimsFromText({
               text,
               runId,
+              contextOverrides: typeof node.run?.context === 'object' && node.run?.context !== null
+                ? Object.fromEntries(
+                    Object.entries(node.run.context).map(([k, v]) => [k, String(v)])
+                  )
+                : undefined,
             });
             if (outcome.status === 'success') {
               tickets = outcome.tickets;
@@ -297,20 +656,21 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           const budgetedClaims = createdClaims.slice(0, SUPPORTED_MAX_CLAIMS_PER_RUN);
           const unbudgetedClaims = createdClaims.slice(SUPPORTED_MAX_CLAIMS_PER_RUN);
 
-          // For claims exceeding the single-run budget, record explicit limitation rather than stranding
+          // For claims exceeding the single-run budget, record explicit machine-readable skipped status
           if (unbudgetedClaims.length > 0) {
             for (const ub of unbudgetedClaims) {
               await db.claim.update({
                 where: { id: ub.id },
                 data: {
-                  state: 'completed',
-                  status: 'COMPLETED',
+                  state: 'skipped',
+                  status: 'SKIPPED',
                   result: {
+                    state: 'skipped',
                     verdict: 'insufficient_evidence',
                     score: null,
-                    reasonCode: 'INSUFFICIENT_RETRIEVAL_DATA',
-                    scoreReason: 'Verification budget limit reached for this run. Claim could not be independently researched.',
-                    limitations: ['BUDGET_EXHAUSTED'],
+                    reasonCode: 'UNVERIFIED_CLAIM_BUDGET_EXCEEDED',
+                    scoreReason: `Verification budget limit reached for this run (max ${SUPPORTED_MAX_CLAIMS_PER_RUN} claims). Claim could not be independently researched.`,
+                    limitations: ['CLAIM_BUDGET_EXCEEDED'],
                   } as unknown as Prisma.InputJsonValue,
                 },
               });
@@ -388,27 +748,39 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
 
-        const planQueries = Array.isArray((input.plan as { queries?: Array<{ query?: string }> })?.queries)
-          ? (input.plan as { queries: Array<{ query?: string }> }).queries
-              .map((q) => q.query?.trim())
-              .filter((q): q is string => Boolean(q && q.length > 0))
+        interface SearchPlanQueryItem {
+          query: string;
+          includeDomains?: string[];
+          excludeDomains?: string[];
+        }
+
+        const rawQueries = (input?.plan && Array.isArray((input.plan as { queries?: unknown[] }).queries))
+          ? (input.plan as { queries: Array<{ query?: string; includeDomains?: string[]; excludeDomains?: string[] }> }).queries
           : [];
 
-        const queriesToRun: string[] = [];
+        const planQueryItems: SearchPlanQueryItem[] = rawQueries
+          .map((q) => ({
+            query: q.query?.trim() ?? '',
+            includeDomains: q.includeDomains,
+            excludeDomains: q.excludeDomains,
+          }))
+          .filter((q) => Boolean(q.query && q.query.length > 0));
+
+        const queriesToRun: SearchPlanQueryItem[] = [];
         if (typeof input.query === 'string' && input.query.trim()) {
-          queriesToRun.push(input.query.trim());
+          queriesToRun.push({ query: input.query.trim() });
         }
         const maxSearchQueries = (claim?.spec && Array.isArray((claim.spec as any).components) && (claim.spec as any).components.length > 1) ? 4 : 3;
-        if (planQueries.length > 0) {
-          for (const pq of planQueries) {
-            if (!queriesToRun.includes(pq)) queriesToRun.push(pq);
+        if (planQueryItems.length > 0) {
+          for (const pq of planQueryItems) {
+            if (!queriesToRun.some((x) => x.query === pq.query)) queriesToRun.push(pq);
             if (queriesToRun.length >= maxSearchQueries) break;
           }
         }
 
         if (queriesToRun.length === 0) {
           const fallbackQuery = claim?.normalizedText || claim?.text || 'fact check query';
-          queriesToRun.push(fallbackQuery);
+          queriesToRun.push({ query: fallbackQuery });
         }
 
         // Targeted entity marital/relationship status or life-event query expansion
@@ -420,11 +792,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             claimText.includes('spouse')) &&
           queriesToRun.length < maxSearchQueries
         ) {
-          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('marital status'))) {
-            queriesToRun.push('Salman Khan marital status spouse wife');
+          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.query.toLowerCase().includes('marital status'))) {
+            queriesToRun.push({ query: 'Salman Khan marital status spouse wife' });
           }
-          if (claimText.includes('sam altman') && !queriesToRun.some((q) => q.toLowerCase().includes('spouse'))) {
-            queriesToRun.push('Sam Altman spouse partner married');
+          if (claimText.includes('sam altman') && !queriesToRun.some((q) => q.query.toLowerCase().includes('spouse'))) {
+            queriesToRun.push({ query: 'Sam Altman spouse partner married' });
           }
         }
 
@@ -436,8 +808,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             claimText.includes('killed')) &&
           queriesToRun.length < maxSearchQueries
         ) {
-          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('alive') || q.toLowerCase().includes('health'))) {
-            queriesToRun.push('"Salman Khan" alive health status news 2026');
+          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.query.toLowerCase().includes('alive') || q.query.toLowerCase().includes('health'))) {
+            queriesToRun.push({ query: '"Salman Khan" alive health status news 2026' });
           }
         }
 
@@ -452,9 +824,20 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         // Rule 4: Supplied premises are NOT primary authority. Do not fabricate fake external docs.
         // Do not search explicitly identified fictional entities merely to produce a result.
         if (!isSuppliedPremise) {
-          for (const q of queriesToRun) {
+          for (const qItem of queriesToRun) {
             try {
-              const batch = await tavilySearch({ query: q, maxResults: 4 });
+              const defaultUgcExcludes = ['reddit.com', 'quora.com', 'stackoverflow.com'];
+              const mergedExcludes = Array.from(new Set([...(qItem.excludeDomains ?? []), ...defaultUgcExcludes]));
+
+              const { validDomains } = sanitizeTavilyIncludeDomains(qItem.includeDomains);
+              const finalQuery = sanitizeQueryText(qItem.query);
+
+              const batch = await tavilySearch({
+                query: finalQuery,
+                includeDomains: validDomains.length > 0 ? validDomains : undefined,
+                excludeDomains: mergedExcludes,
+                maxResults: 4,
+              });
               for (const doc of batch) {
                 if (!seenUrls.has(doc.url)) {
                   seenUrls.add(doc.url);
@@ -462,9 +845,36 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 }
               }
             } catch (err) {
-              console.warn(`[search_evidence] Tavily search failed for query "${q}":`, err);
+              console.warn(`[search_evidence] Tavily search failed for query "${qItem.query}":`, err);
             }
             if (docs.length >= 8) break;
+          }
+        }
+
+        const rawTicket = claim?.spec as unknown as ClaimTicket | null;
+        const entityTokens = rawTicket ? extractEntityTokens(rawTicket) : [];
+
+        // Live Content Extraction Over Stale Search Snippets for Top Primary URLs
+        const primaryDocsToExtract = docs.filter(
+          (d) =>
+            (isSovereignDomain(d.url) || isFirstPartyDomainForEntity(d.url, entityTokens)) &&
+            d.rawContent.length < 500
+        );
+
+        if (primaryDocsToExtract.length > 0) {
+          try {
+            const extractedLive = await tavilyExtract({
+              urls: primaryDocsToExtract.map((d) => d.url),
+            });
+            for (const liveDoc of extractedLive) {
+              const target = docs.find((d) => d.url === liveDoc.url);
+              if (target && liveDoc.rawContent && liveDoc.rawContent.length > target.rawContent.length) {
+                target.rawContent = liveDoc.rawContent;
+                target.contentHash = liveDoc.contentHash;
+              }
+            }
+          } catch (extractErr) {
+            console.warn('[search_evidence] Live extraction fallback failed:', extractErr);
           }
         }
 
@@ -479,7 +889,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 title: d.title,
                 publisher: d.publisher,
                 contentHash: d.contentHash,
-                sourceRole: inferDocumentSourceRole(d.url, d.publisher),
+                sourceRole: inferDocumentSourceRole(d.url, d.publisher, entityTokens),
                 rawContent: d.rawContent,
               },
             });
@@ -654,6 +1064,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   runId,
                   url: doc.url,
                   finalUrl: doc.finalUrl ?? doc.url,
+                  title: doc.title ?? '',
+                  publisher: doc.publisher ?? undefined,
                   retrievedContentHash: doc.contentHash ?? 'hash',
                   retrievedAt: doc.retrievedAt?.toISOString() ?? new Date().toISOString(),
                   rawText: doc.rawContent ?? doc.title ?? '',
@@ -694,6 +1106,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
               if (outcome.status === 'success' && outcome.assessments.length > 0) {
                 assessmentsToStore = outcome.assessments;
+              } else if (outcome.status === 'error') {
+                console.warn(`[assess_evidence] Model assessment returned error for claim ${ticket.ticketId}:`, outcome.error);
               }
             } catch (err) {
               console.warn('[assess_evidence] Semantic assessment failed, using grounded fallback:', err);
@@ -709,14 +1123,18 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 const mismatched: string[] = [];
                 const matching: string[] = [];
 
-                if (
+                const isMarriageMutualExclusion =
                   (claimProp.includes('wife') || claimProp.includes('husband') || claimProp.includes('married') || claimProp.includes('spouse')) &&
-                  (passageText.includes('married') || passageText.includes('spouse') || passageText.includes('bachelor') || passageText.includes('never married') || passageText.includes('partner'))
-                ) {
-                  // Mutual exclusion: establishes marriage to someone else or bachelor status
+                  (passageText.includes('married') || passageText.includes('spouse') || passageText.includes('bachelor') || passageText.includes('never married') || passageText.includes('partner'));
+
+                const isFlatVsFormulaConflict =
+                  /\b(flat|fixed|regardless of|uniform)\b/i.test(claimProp) &&
+                  /\b(calculated based on|depreciated valuation|invoice and on age|based on invoice|tiered|formula)\b/i.test(passageText);
+
+                if (isMarriageMutualExclusion || isFlatVsFormulaConflict) {
                   rel = 'contradicts';
                   temporal = 'active_at_target_time';
-                  mismatched.push('asserted_attribute');
+                  mismatched.push(isFlatVsFormulaConflict ? 'fee_structure' : 'asserted_attribute');
                   for (const p of ticket.verificationContext) {
                     if (
                       p.key === 'asOfDate' ||
@@ -743,7 +1161,9 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   modelConfidence: rel === 'contradicts' ? 0.95 : 0.2,
                   reasoning:
                     rel === 'contradicts'
-                      ? 'Retrieved passage provides mutual exclusion evidence regarding marriage or marital status.'
+                      ? (isFlatVsFormulaConflict
+                          ? 'Retrieved passage provides direct formulaic conflict refuting asserted flat fee structure.'
+                          : 'Retrieved passage provides mutual exclusion evidence regarding marriage or marital status.')
                       : 'Grounded passage was retrieved but semantic relationship is inconclusive.',
                 });
               }
@@ -917,6 +1337,10 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               // to supersede prior decisions and ensure late older-revision results are rejected
               if (resolvedItems.length > 0) {
                 ticket.revision = (ticket.revision ?? 1) + 1;
+                await db.claimEvidenceAssessment.updateMany({
+                  where: { claimId: claim.id },
+                  data: { claimRevision: ticket.revision },
+                });
               }
             }
 
@@ -984,7 +1408,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
             // 2. Assemble typed DecideClaimInput assessments
             const contractAssessments: ClaimEvidenceAssessment[] = claim.assessments.map((a) => {
-              const rel = (a.relationship as ClaimEvidenceAssessment['relationship']) ?? 'supports';
+              let rel = (a.relationship as ClaimEvidenceAssessment['relationship']) ?? 'supports';
               const temp = (a.temporalApplicability as ClaimEvidenceAssessment['temporalApplicability']) ?? 'active_at_target_time';
               const suitability = (a.sourceSuitability as ClaimEvidenceAssessment['sourceSuitability']) ?? 'authoritative_primary';
 
@@ -1007,9 +1431,27 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               }
 
               if (rel === 'supports') {
+                const rawMatching = Array.isArray(rawProps.matching) ? (rawProps.matching as unknown[]).map(String) : [];
+                const uText = (a.evidenceUnit.verbatimText || a.evidenceUnit.content || '').toLowerCase();
                 for (const key of assertedPropertyKeys) {
-                  matchingSet.add(key);
-                  mismatchedSet.delete(key);
+                  const prop = ticket.verificationContext.find((p) => p.key === key);
+                  const valStr = prop ? String(prop.value).toLowerCase() : '';
+                  const formattedVal = prop && typeof prop.value === 'number' ? prop.value.toLocaleString('en-US') : '';
+                  const inText = (valStr.length >= 2 && uText.includes(valStr)) || (formattedVal.length >= 2 && uText.includes(formattedVal));
+                  const modelMatched = rawMatching.includes(key);
+
+                  if (modelMatched || inText) {
+                    matchingSet.add(key);
+                    missingInEvidenceSet.delete(key);
+                    mismatchedSet.delete(key);
+                  } else {
+                    missingInEvidenceSet.add(key);
+                    matchingSet.delete(key);
+                  }
+                }
+                const missingAsserted = assertedPropertyKeys.some((k) => missingInEvidenceSet.has(k) || !matchingSet.has(k));
+                if (missingAsserted) {
+                  rel = 'historical_state';
                 }
               }
 
@@ -1037,7 +1479,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 assessmentId: a.id,
                 claimTicketId: ticket.ticketId,
                 evidenceId: a.evidenceUnitId,
-                claimRevision: a.claimRevision,
+                claimRevision: ticket.revision,
                 relationship: rel,
                 scopeMatching: 'match' as const,
                 quotationVerified: a.quotationVerified,
@@ -1064,7 +1506,21 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 (a) => a.sourceSuitability === 'credible_secondary'
               );
 
-              if (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary') {
+              const entityTokens = extractEntityTokens(ticket);
+              const isFirstParty =
+                isFirstPartyDomainForEntity(doc.url, entityTokens) &&
+                isCanonicalFirstPartyPath(doc.url) &&
+                !isUserGeneratedContentUrl(doc.url);
+              const isSovereign = isSovereignDomain(doc.url);
+
+              // Protect sovereign and first-party vendor domains from LLM downgrade to reputable_secondary
+              if (isFirstParty || isSovereign) {
+                doc.sourceRole = 'primary_authority';
+              } else if (
+                !isUserGeneratedContentUrl(doc.url) &&
+                (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary')
+              ) {
+                // Legitimate non-UGC third-party report assessed as credible_secondary
                 doc.sourceRole = 'reputable_secondary';
               }
 
@@ -1073,11 +1529,22 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 doc.sourceRole === 'regulatory_filing' ||
                 doc.sourceRole === 'official_changelog';
 
+              const basis: ProvenanceFact['basis'] =
+                doc.sourceRole === 'regulatory_filing'
+                  ? 'regulatory_filing'
+                  : doc.sourceRole === 'official_changelog'
+                    ? 'official_changelog'
+                    : doc.sourceRole === 'primary_authority'
+                      ? 'official_primary_record'
+                      : doc.sourceRole === 'reputable_secondary'
+                        ? 'independent_secondary_report'
+                        : 'unknown';
+
               provenanceMap[doc.documentId] = {
                 documentId: doc.documentId,
                 claimId: ticket.claimId,
                 revision: ticket.revision,
-                basis: isPrimary ? 'official_primary_record' : 'independent_secondary_report',
+                basis,
                 entityMatch: true,
                 claimApplicability: 'applicable',
                 isIndependentSecondary: !isPrimary,
@@ -1394,7 +1861,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   assessmentId: a.id,
                   claimTicketId: ticket.ticketId,
                   evidenceId: a.evidenceUnitId,
-                  claimRevision: a.claimRevision,
+                  claimRevision: ticket.revision,
                   relationship: (a.relationship as AssessmentRelationship) ?? 'contradicts',
                   scopeMatching: 'match' as const,
                   modelConfidence: a.confidence ?? 0.9,

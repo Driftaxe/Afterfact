@@ -44,6 +44,8 @@ export const PlannedQuerySchema = z.object({
   purpose: PlannedQueryPurposeSchema,
   targetSourceRoles: z.array(SourceRoleSchema).min(1, { message: 'At least one target source role is required' }),
   scopeHints: z.record(z.string(), z.string()).optional(),
+  includeDomains: z.array(z.string()).optional(),
+  excludeDomains: z.array(z.string()).optional(),
   round: z.number().int().min(1).max(MAX_RESEARCH_ROUNDS).default(1),
 });
 

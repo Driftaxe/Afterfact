@@ -309,12 +309,25 @@ export async function assessEvidenceAgainstClaim(
     }
 
     // INVARIANT 2: Deterministic Temporal Applicability Check
+    const docUrl = (parentDoc?.url || '').toLowerCase();
+    const isLivingDoc =
+      parentDoc?.sourceRole === 'primary_authority' ||
+      parentDoc?.sourceRole === 'official_changelog' ||
+      docUrl.includes('/docs') ||
+      docUrl.includes('/pricing') ||
+      docUrl.includes('/limits') ||
+      docUrl.includes('/quotas') ||
+      docUrl.includes('.gov.') ||
+      docUrl.includes('.gov/');
+
     const temporalResult = evaluateTemporalApplicability({
       targetTime: ticket.targetTime,
       claimTime: claimTimeStr,
       effectiveDate: unit.effectiveDate ?? parentDoc?.effectiveDate ?? null,
       publicationDate: unit.publicationDate ?? parentDoc?.publicationDate ?? null,
       announcementDate: unit.announcementDate ?? null,
+      isLivingDocument: isLivingDoc,
+      retrievedAt: parentDoc?.retrievedAt ?? null,
     });
 
     const rawTemporal = typeof rawAsm.temporalApplicability === 'string' ? rawAsm.temporalApplicability : null;
@@ -367,42 +380,163 @@ export async function assessEvidenceAgainstClaim(
     // If temporal applicability is confirmed active at target time, evaluation target dates match
     if (temporalApplicability === 'active_at_target_time' || temporalApplicability === 'historical_prior') {
       for (const p of ticket.verificationContext) {
-        if (p.key === 'asOfDate' || p.key === 'targetDate') {
+        if (
+          p.key === 'asOfDate' ||
+          p.key === 'targetDate' ||
+          p.key === 'statedEffectiveDate' ||
+          p.key === 'effective_date'
+        ) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
         }
       }
     }
 
-    // Grounded document metadata: if entity/manufacturer is established by doc content/title, mark matching
+    // Sovereign jurisdiction inheritance
+    const docHost = (() => {
+      try {
+        return new URL(docUrl.startsWith('http') ? docUrl : `https://${docUrl}`).hostname.toLowerCase();
+      } catch {
+        return '';
+      }
+    })();
+
+    let sovereignJur: string | null = null;
+    if (docHost.endsWith('.gov.in') || docHost.endsWith('.nic.in')) sovereignJur = 'IN';
+    else if (docHost.endsWith('.gov.uk')) sovereignJur = 'UK';
+    else if (docHost.endsWith('.gov') || docHost.endsWith('.mil')) sovereignJur = 'US';
+    else if (docHost.endsWith('.europa.eu')) sovereignJur = 'EU';
+    else if (docHost.endsWith('.admin.ch')) sovereignJur = 'CH';
+    else if (docHost.endsWith('.gov.au')) sovereignJur = 'AU';
+    else if (docHost.endsWith('.gc.ca') || docHost.endsWith('.canada.ca')) sovereignJur = 'CA';
+    else if (parentDoc?.sourceRole === 'primary_authority' || parentDoc?.sourceRole === 'regulatory_filing') {
+      if (docHost.endsWith('.uk')) sovereignJur = 'UK';
+      else if (docHost.endsWith('.in')) sovereignJur = 'IN';
+      else if (docHost.endsWith('.au')) sovereignJur = 'AU';
+      else if (docHost.endsWith('.ca')) sovereignJur = 'CA';
+      else if (docHost.endsWith('.ch')) sovereignJur = 'CH';
+    }
+
+    const docContentText = [
+      parentDoc?.title,
+      unit.verbatimText,
+      ...(unit.surroundingHeaders || []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    // Grounded document metadata & jurisdiction inheritance
     for (const p of ticket.verificationContext) {
-      if (
+      if (p.key === 'jurisdiction' || p.key === 'country') {
+        const val = String(p.value).toLowerCase().trim();
+        const isIndiaMatch =
+          (val === 'in' || val.includes('india') || val.includes('reserve bank')) &&
+          (sovereignJur === 'IN' ||
+            /\b(india|indian|rbi|npci|inr|rs\.?|rupees?|₹)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isUSMatch =
+          (val === 'us' || val.includes('united states') || val.includes('usa')) &&
+          (sovereignJur === 'US' ||
+            /\b(united states|u\.s\.?|usa|irs|tsa|fdic|sec|ftc|usd|\$|dollars?)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isUKMatch =
+          (val === 'uk' || val.includes('united kingdom') || val.includes('britain')) &&
+          (sovereignJur === 'UK' ||
+            /\b(united kingdom|u\.k\.?|britain|british|hmrc|fca|gbp|£|pounds?)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isEUMatch =
+          (val === 'eu' || val.includes('european union')) &&
+          (sovereignJur === 'EU' ||
+            /\b(european union|eu|ec|euro|euros?|€|eur-lex)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isCHMatch =
+          (val === 'ch' || val.includes('switzerland')) &&
+          (sovereignJur === 'CH' ||
+            /\b(switzerland|swiss|chf)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isAUMatch =
+          (val === 'au' || val.includes('australia')) &&
+          (sovereignJur === 'AU' ||
+            /\b(australia|australian|aud|asic|apra)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        if (
+          isIndiaMatch ||
+          isUSMatch ||
+          isUKMatch ||
+          isEUMatch ||
+          isCHMatch ||
+          isAUMatch ||
+          (val.length >= 2 && docContentText.includes(val))
+        ) {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        }
+      } else if (
         p.key === 'manufacturer' ||
         p.key === 'company' ||
         p.key === 'organization' ||
-        p.key === 'vendor'
+        p.key === 'vendor' ||
+        p.key === 'provider' ||
+        p.key === 'regulator' ||
+        p.key === 'regulatoryBody' ||
+        p.key === 'regulatory_body' ||
+        p.key === 'agency' ||
+        p.key === 'entity' ||
+        (p.label && /\b(regulatory|agency|vendor|company|provider)\b/i.test(p.label))
       ) {
-        const entityVal = String(p.value).toLowerCase();
-        // DEF-002 Fix: Do NOT include parentDoc?.publisher to prevent competitor reporting
-        // from falsely satisfying the manufacturer of the subject entity.
-        const docText = [
-          parentDoc?.title,
-          unit.verbatimText,
-          ...(unit.surroundingHeaders || []),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
+        const entityVal = String(p.value).toLowerCase().trim();
+        const isPrimaryDoc = parentDoc?.sourceRole === 'primary_authority';
 
-        if (docText.includes(entityVal)) {
+        const isSovereignAgencyMatch =
+          Boolean(sovereignJur) &&
+          ((sovereignJur === 'UK' && (entityVal.includes('uk') || entityVal.includes('home office') || entityVal.includes('hmrc'))) ||
+           (sovereignJur === 'US' && (entityVal.includes('us') || entityVal.includes('united states') || entityVal.includes('dhs') || entityVal.includes('tsa') || entityVal.includes('irs') || entityVal.includes('sec') || entityVal.includes('fda') || entityVal.includes('ftc'))) ||
+           (sovereignJur === 'IN' && (entityVal.includes('india') || entityVal.includes('rbi') || entityVal.includes('npci') || entityVal.includes('uidai'))) ||
+           (sovereignJur === 'EU' && (entityVal.includes('eu') || entityVal.includes('european') || entityVal.includes('commission'))));
+
+        if (
+          (entityVal.length >= 2 && docContentText.includes(entityVal)) ||
+          (isPrimaryDoc && docHost && docHost.includes(entityVal)) ||
+          isSovereignAgencyMatch
+        ) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
         }
       } else if (p.key === 'publisher' || p.key === 'source_organization') {
-        const pubVal = String(p.value).toLowerCase();
+        const pubVal = String(p.value).toLowerCase().trim();
         if (parentDoc?.publisher && parentDoc.publisher.toLowerCase().includes(pubVal)) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
+        }
+      }
+    }
+
+    // When an excerpt documents a transition or context property mentioning a verified value
+    for (const p of ticket.verificationContext) {
+      const strVal = String(p.value).toLowerCase().trim();
+      const formattedVal = typeof p.value === 'number' ? p.value.toLocaleString('en-US') : '';
+      const inContent =
+        (strVal.length >= 2 && docContentText.includes(strVal)) ||
+        (formattedVal.length >= 2 && docContentText.includes(formattedVal));
+
+      if (inContent) {
+        if (p.role === 'scope_qualifier') {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        } else if (p.role === 'asserted_value' && missingInEvidenceSet.has(p.key)) {
+          missingInEvidenceSet.delete(p.key);
+          if (relationship === 'supports' || relationship === 'historical_state') {
+            matchingSet.add(p.key);
+          } else if (relationship === 'contradicts') {
+            mismatchedSet.add(p.key);
+          }
         }
       }
     }

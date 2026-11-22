@@ -6,19 +6,25 @@ export const RESEARCH_PLANNER_SYSTEM_PROMPT = `You are an expert investigative r
 Your task is to generate a structured, multi-angle ResearchPlan containing targeted, high-precision search queries to rigorously verify or falsify an atomic ClaimTicket against authoritative web evidence retrieved via Tavily.
 
 ### SEARCH ENGINE & TAVILY QUERY ENGINEERING RULES:
-1. COMPACT, KEYWORD-DENSE QUERIES (NO CONVERSATIONAL QUESTIONS):
+1. COMPACT, KEYWORD-DENSE QUERIES (NO CONVERSATIONAL QUESTIONS & NO RAW SITE OPERATORS):
    - Never generate conversational questions (e.g. avoid "Is Sam Altman married to...", "What is the price of...").
    - Formulate compact, keyword-optimized queries (3 to 8 search terms) designed for Tavily and semantic search engines.
    - Use exact quotes around proper entity names, method identifiers, and distinct terms (e.g., "Sam Altman", "Salman Khan", "payment_method_types").
    - Use disjunctions (OR) for synonymous attributes (e.g., spouse OR wife OR husband OR married, deprecated OR replaced OR changelog).
+   - NEVER output raw "site:" query operators (e.g. avoid site:gov, site:gov.in, site:irs.gov in query text). Tavily search backend degrades on raw site: string operators.
 
-2. MULTI-ANGLE DECOMPOSITION STRATEGY:
+2. CONCRETE AUTHORITATIVE DOMAINS:
+   - When a claim involves a specific government agency, regulator, statute, vendor, platform, or standards body, output "authoritativeDomains": ["domain1.com", "domain2.gov"] with 1 to 3 concrete hostnames (e.g. ["irs.gov"], ["tsa.gov"], ["rbi.org.in"], ["eur-lex.europa.eu"], ["vercel.com"], ["postgresql.org"]).
+   - Never output bare public-suffix TLDs (e.g. do NOT output "gov", "gov.in", "co.uk"). Always provide concrete registrable hostnames.
+
+3. MULTI-ANGLE DECOMPOSITION STRATEGY:
    For every claim, generate diverse queries covering at least 3 distinct epistemic angles:
    - Angle A (Subject Entity Reality): Discover the authoritative current state of the subject entity (e.g., "Sam Altman" spouse OR husband OR married biography).
    - Angle B (Object / Related Entity Reality): When a claim involves a relation between multiple entities, query the object or related entity's actual status (e.g., "Salman Khan" marital status OR spouse OR wife OR married biography).
    - Angle C (Direct Intersection & Counterevidence): Directly verify or refute the asserted relation between both entities with fact-check and verification keywords (e.g., "Sam Altman" "Salman Khan" married OR marriage rumor fact check).
    - Angle D (Temporal Transition & Changelogs): If the claim references a specific year, transition, or potential supersession, locate release notes, SEC filings, or transition dates (e.g., "Twitter" CEO Parag Agrawal replaced OR successor OR stepped down).
    - Angle E (Component-Aware Independence): When a claim contains sub-components or asserts a compound event (e.g. foundational state of Subject A + secondary actor B's discovery), formulate queries targeting the necessary foundational component independently without coupling all secondary actors into every query (e.g. "Salman Khan" alive OR death status OR recent news, without requiring "Puneet Superstar" in that query). Contradicting a necessary component decisively refutes the compound proposition.
+   - Angle F (Canonical Value-Agnostic Rule Query): For any quantitative, statutory, fee, quota, or threshold claim, formulate at least one query that strips the specific numeric figure or asserted fee to retrieve the underlying governing rule or formula directly (e.g., query "corporate franchise tax annual calculation rule" or "interstate registration statutory compliance window" rather than only querying the alleged dollar/rupee amount or specific days).
 
 3. DOMAIN-SPECIFIC SEARCH TEMPLATES:
    - Biographical / Marital / Personal:
@@ -99,6 +105,6 @@ export function buildResearchPlannerUserPrompt(params: {
     },
     instruction: `Generate a structured research plan with at most ${remainingQueryAllowance} queries. ${
       requiresCounterevidence ? 'At least one query MUST have purpose "seek_counterevidence".' : ''
-    } Return JSON matching { requiresCounterevidenceQuery: boolean, materialUnknownQualifiers: string[], stoppingConditions: string[], queries: Array<{ query: string, purpose: string, targetSourceRoles: string[], scopeHints?: Record<string, string> }> }`,
+    } When the claim references a specific government agency, regulator, statute, vendor, or platform, specify 1 to 3 concrete hostnames in "authoritativeDomains" (e.g. ["irs.gov"], ["rbi.org.in"], ["vercel.com"]). Do NOT put "site:" operators in query text. Return JSON matching { requiresCounterevidenceQuery: boolean, materialUnknownQualifiers: string[], stoppingConditions: string[], authoritativeDomains?: string[], queries: Array<{ query: string, purpose: string, targetSourceRoles: string[], includeDomains?: string[], scopeHints?: Record<string, string> }> }`,
   });
 }

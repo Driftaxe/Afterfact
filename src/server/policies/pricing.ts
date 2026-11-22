@@ -24,6 +24,8 @@ const PRICING_ASSERTED_KEYS = new Set([
   'price',
   'cost',
   'fee',
+  'feeamount',
+  'fee_amount',
   'rate',
   'amount',
   'monthly_price',
@@ -36,10 +38,20 @@ const PRICING_ASSERTED_KEYS = new Set([
   'percentage_decrease',
   'increase',
   'discount',
+  'pricing_structure',
+  'tier_fee',
 ]);
 
 const PRICING_TERMS_REGEX = /\b(price|pricing|costs?|fees?|rate|rates?|subscription|\/mo|\/month|\/year|per month|per year|billing)\b/i;
 const CAPABILITY_TERMS_REGEX = /\b(supports?|streaming|endpoint|method|sdk|parameter|feature|integrat(e|ion))\b/i;
+
+// Public-sector levies, statutory charges, government fees, and regulatory penalties
+const STATUTORY_PUBLIC_LEVY_REGEX =
+  /\b(tax|taxes|taxation|levy|levies|duty|duties|tariff|tariffs|statutory|ordinance|statute|ministry|department|challan|court fee|filing fee|licensing fee|registration fee|permit fee|fine|fines|penalty|penalties)\b/i;
+
+// Commercial payments, SaaS subscriptions, and developer platform fee signals
+const COMMERCIAL_FEE_CONTEXT_REGEX =
+  /\b(stripe|paypal|square|braintree|adyen|interchange|merchant|transaction fee|processing fee|card fee|overage|api fee|saas|subscription|cloud|aws|gcp|azure|datadog|twilio|github|seat|plan tier|per user|per month|\/mo)\b/i;
 
 export class PricingPolicy implements DomainPolicyModule {
   public readonly domainId = 'pricing' as const;
@@ -56,6 +68,12 @@ export class PricingPolicy implements DomainPolicyModule {
     // A capability statement on a tiered product (e.g. "Enterprise tier supports streaming")
     // is an API/Software capability assertion, not a pricing proposition.
     if (CAPABILITY_TERMS_REGEX.test(statement) && !/\$\d|£\d|€\d|\bcosts?\b/i.test(statement)) {
+      return false;
+    }
+
+    // Public sector levies, statutory taxes, government duties, and regulatory fines/fees
+    // belong to RegulationPolicy, unless explicitly situated in a commercial SaaS/payment fee context.
+    if (STATUTORY_PUBLIC_LEVY_REGEX.test(statement) && !COMMERCIAL_FEE_CONTEXT_REGEX.test(statement)) {
       return false;
     }
 
@@ -97,6 +115,8 @@ export class PricingPolicy implements DomainPolicyModule {
         role = 'asserted_value';
       } else if (explicitScope.has(prop.key)) {
         role = 'scope_qualifier';
+      } else if (prop.role === 'asserted_value' || prop.role === 'scope_qualifier') {
+        role = prop.role;
       } else if (PRICING_ASSERTED_KEYS.has(prop.key.toLowerCase()) || props.length === 1) {
         role = 'asserted_value';
       } else {

@@ -26,6 +26,7 @@ export const ClaimStateSchema = z.enum([
   'researching',
   'assessed',
   'failed',
+  'skipped',
 ]);
 
 export type ClaimState = z.infer<typeof ClaimStateSchema>;
@@ -224,12 +225,30 @@ export const InProgressClaimResultSchema = z.object({
 export type InProgressClaimResult = z.infer<typeof InProgressClaimResultSchema>;
 
 /**
+ * Skipped claim result item: indicates claim was skipped due to budget limits.
+ */
+export const SkippedClaimResultSchema = z.object({
+  ...BaseClaimFields,
+  state: z.literal('skipped'),
+  verdict: z.literal('insufficient_evidence').optional(),
+  score: z.null().optional(),
+  scoreReason: z.string().nullable().optional(),
+  reasonCode: z.string().optional(),
+  evidenceIds: z.array(z.string()).default([]),
+  timeline: z.array(TimelineEntrySchema).optional(),
+  correction: z.null().optional(),
+});
+
+export type SkippedClaimResult = z.infer<typeof SkippedClaimResultSchema>;
+
+/**
  * Discriminated union of all claim states in a report.
  */
 export const ClaimResultItemSchema = z.discriminatedUnion('state', [
   AssessedClaimResultSchema,
   FailedClaimResultSchema,
   InProgressClaimResultSchema,
+  SkippedClaimResultSchema,
 ]);
 
 export type ClaimResultItem = z.infer<typeof ClaimResultItemSchema>;

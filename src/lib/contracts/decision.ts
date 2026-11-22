@@ -544,16 +544,18 @@ export function validateDecisionRecordReferences(
     }
   }
 
-  // 4. Outdated verdict structural prerequisite: at least one primary assessment must be historical
+  // 4. Outdated verdict structural prerequisite: at least one primary assessment must be historical or transitionEventDate is established
   if (record.verdict === 'outdated') {
-    const hasHistoricalSupport = record.primaryEvidenceIds.some((id) => {
-      const asm = assessmentMap.get(id);
-      return (
-        asm &&
-        (asm.relationship === 'historical_state' ||
-          asm.temporalApplicability === 'historical_prior')
-      );
-    });
+    const hasHistoricalSupport =
+      Boolean(record.temporalBasis.transitionEventDate) ||
+      record.primaryEvidenceIds.some((id) => {
+        const asm = assessmentMap.get(id);
+        return (
+          asm &&
+          (asm.relationship === 'historical_state' ||
+            asm.temporalApplicability === 'historical_prior')
+        );
+      });
 
     if (!hasHistoricalSupport) {
       return {

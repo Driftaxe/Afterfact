@@ -40,6 +40,7 @@ export const DECISION_REASON_CODES = {
   INDIRECT_CREDIBLE_SUPPORT: 'INDIRECT_CREDIBLE_SUPPORT',
   DECISIVE_CONTRADICTION: 'DECISIVE_CONTRADICTION',
   SUPERSEDED_HISTORICAL_CLAIM: 'SUPERSEDED_HISTORICAL_CLAIM',
+  PROVEN_OUTDATED_BY_SUPERSEDING: 'PROVEN_OUTDATED_BY_SUPERSEDING',
   CREDIBLE_SOURCES_DISAGREE: 'CREDIBLE_SOURCES_DISAGREE',
   ESSENTIAL_CONTEXT_MISSING: 'ESSENTIAL_CONTEXT_MISSING',
   INSUFFICIENT_RETRIEVAL_DATA: 'INSUFFICIENT_RETRIEVAL_DATA',
@@ -523,6 +524,15 @@ function evaluateScopeAndProperties(
   const roleByKey = new Map(
     aggregate.policy.propertyRoles.map((role) => [role.key, role])
   );
+  for (const prop of aggregate.ticket.verificationContext) {
+    if (!roleByKey.has(prop.key) && (prop.role === 'asserted_value' || prop.role === 'scope_qualifier')) {
+      roleByKey.set(prop.key, {
+        key: prop.key,
+        role: prop.role,
+        required: true,
+      });
+    }
+  }
   const claimKeys = new Set(
     aggregate.ticket.verificationContext.map((property) => property.key)
   );
@@ -558,6 +568,37 @@ function evaluateScopeAndProperties(
     };
   }
 
+  const unit = aggregate.evidenceById.get(assessment.evidenceId);
+  const source = unit ? aggregate.sourceById.get(unit.documentId) : undefined;
+  const docUrl = (source?.url || '').toLowerCase();
+  const docTitle = (source?.title || '').toLowerCase();
+  const surroundingHeadersText = (unit?.surroundingHeaders || []).join(' ').toLowerCase();
+  const combinedContextText = `${docTitle} ${surroundingHeadersText} ${unit?.verbatimText || ''}`.toLowerCase();
+
+  const docHost = (() => {
+    try {
+      return new URL(docUrl.startsWith('http') ? docUrl : `https://${docUrl}`).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+
+  let sovereignJur: string | null = null;
+  if (docHost.endsWith('.gov.in') || docHost.endsWith('.nic.in')) sovereignJur = 'IN';
+  else if (docHost.endsWith('.gov.uk')) sovereignJur = 'UK';
+  else if (docHost.endsWith('.gov') || docHost.endsWith('.mil')) sovereignJur = 'US';
+  else if (docHost.endsWith('.europa.eu')) sovereignJur = 'EU';
+  else if (docHost.endsWith('.admin.ch')) sovereignJur = 'CH';
+  else if (docHost.endsWith('.gov.au')) sovereignJur = 'AU';
+  else if (docHost.endsWith('.gc.ca') || docHost.endsWith('.canada.ca')) sovereignJur = 'CA';
+  else if (source?.sourceRole === 'primary_authority' || source?.sourceRole === 'regulatory_filing') {
+    if (docHost.endsWith('.uk')) sovereignJur = 'UK';
+    else if (docHost.endsWith('.in')) sovereignJur = 'IN';
+    else if (docHost.endsWith('.au')) sovereignJur = 'AU';
+    else if (docHost.endsWith('.ca')) sovereignJur = 'CA';
+    else if (docHost.endsWith('.ch')) sovereignJur = 'CH';
+  }
+
   // Scope and asserted-value roles are supplied by the caller. A required
   // property must be affirmatively accounted for. Absence of a mismatch is not
   // treated as proof of a match.
@@ -565,7 +606,106 @@ function evaluateScopeAndProperties(
     const role = roleByKey.get(property.key);
     const required = role ? role.required : true;
     if (!required) continue;
+
+    // For contradictory evidence, asserted_value properties are expected to conflict or be absent
+    // from the true state of affairs. Only scope_qualifiers must be affirmatively matched.
+    if (assessment.relationship === 'contradicts' && role?.role === 'asserted_value') {
+      continue;
+    }
+
     if (mismatched.has(property.key)) continue;
+
+    // Temporal validity confirms active applicability of temporal qualifiers
+    const isTemporalKey =
+      property.key === 'asOfDate' ||
+      property.key === 'targetDate' ||
+      property.key === 'statedEffectiveDate' ||
+      property.key === 'effective_date';
+
+    if (
+      isTemporalKey &&
+      (assessment.temporalApplicability === 'active_at_target_time' ||
+        assessment.temporalApplicability === 'historical_prior')
+    ) {
+      missing.delete(property.key);
+      matching.add(property.key);
+      continue;
+    }
+
+    // Ambient Sovereign Jurisdiction Inheritance (TC-ERA-20 compliant)
+    if ((property.key === 'jurisdiction' || property.key === 'country') && sovereignJur) {
+      const val = String(property.value).toLowerCase();
+      const matchesSovereign =
+        (sovereignJur === 'IN' && (val === 'in' || val.includes('india'))) ||
+        (sovereignJur === 'US' && (val === 'us' || val.includes('united states') || val.includes('usa'))) ||
+        (sovereignJur === 'UK' && (val === 'uk' || val.includes('united kingdom') || val.includes('britain'))) ||
+        (sovereignJur === 'EU' && (val === 'eu' || val.includes('european union'))) ||
+        (sovereignJur === 'CH' && (val === 'ch' || val.includes('switzerland'))) ||
+        (sovereignJur === 'AU' && (val === 'au' || val.includes('australia'))) ||
+        (sovereignJur === 'CA' && (val === 'ca' || val.includes('canada')));
+
+      if (matchesSovereign) {
+        missing.delete(property.key);
+        matching.add(property.key);
+        continue;
+      }
+    }
+
+    // Ambient First-Party Entity / Regulator Identity Inheritance
+    const isAmbientEntityKey =
+      property.key === 'regulator' ||
+      property.key === 'agency' ||
+      property.key === 'vendor' ||
+      property.key === 'provider' ||
+      property.key === 'company' ||
+      property.key === 'organization' ||
+      property.key === 'manufacturer' ||
+      property.key === 'entity';
+
+    if (isAmbientEntityKey) {
+      const entityVal = String(property.value).toLowerCase().trim();
+      const isPrimaryAuthority = source?.sourceRole === 'primary_authority';
+      if (
+        (isPrimaryAuthority && docHost && docHost.includes(entityVal)) ||
+        combinedContextText.includes(entityVal)
+      ) {
+        missing.delete(property.key);
+        matching.add(property.key);
+        continue;
+      }
+    }
+
+    // Universal fee exemption: if service is free for all transactions / regardless of amount,
+    // any asserted threshold scope qualifier is subsumed by the universal zero-fee rule
+    const isUniversalFeeExemption =
+      assessment.relationship === 'contradicts' &&
+      property.role === 'scope_qualifier' &&
+      /\b(threshold|amount|limit|value|minimum|maximum)\b/i.test(property.key) &&
+      (/\b(free|zero fee|no fee|no charge)\b/i.test(unit?.verbatimText || '') ||
+       /\b(free|zero fee|no fee|no charge)\b/i.test(assessment.reasoning)) &&
+      (/\b(regardless|all|any|universal|unconditional)\b/i.test(unit?.verbatimText || '') ||
+       /\b(regardless|all|any|universal|unconditional)\b/i.test(assessment.reasoning));
+
+    if (isUniversalFeeExemption) {
+      missing.delete(property.key);
+      matching.add(property.key);
+      continue;
+    }
+
+    // Literal or formatted numeric value match for scope qualifiers
+    if (property.role === 'scope_qualifier' && property.value !== null && property.value !== undefined) {
+      const propValStr = String(property.value).toLowerCase().trim();
+      const propValFormatted = typeof property.value === 'number' ? property.value.toLocaleString('en-US') : '';
+      if (
+        (propValStr.length >= 2 && combinedContextText.includes(propValStr)) ||
+        (propValFormatted.length >= 2 && combinedContextText.includes(propValFormatted))
+      ) {
+        missing.delete(property.key);
+        matching.add(property.key);
+        continue;
+      }
+    }
+
     if (missing.has(property.key)) {
       return {
         exclusion: 'incomplete_property_match',
@@ -573,20 +713,6 @@ function evaluateScopeAndProperties(
       };
     }
     if (!matching.has(property.key)) {
-      const isTemporalKey =
-        property.key === 'asOfDate' ||
-        property.key === 'targetDate' ||
-        property.key === 'statedEffectiveDate' ||
-        property.key === 'effective_date';
-      if (
-        isTemporalKey &&
-        (assessment.temporalApplicability === 'active_at_target_time' ||
-          assessment.temporalApplicability === 'historical_prior')
-      ) {
-        // Temporal validity confirms active applicability of this temporal qualifier
-        continue;
-      }
-
       return {
         exclusion: 'incomplete_property_match',
         codes: ['PROPERTY_MATCH_UNDETERMINED'],
@@ -603,7 +729,7 @@ function evaluateScopeAndProperties(
   const assertedRoleKeys = aggregate.policy.propertyRoles
     .filter((role) => role.role === 'asserted_value')
     .map((role) => role.key);
-  const hasAssertedValueMismatch = assertedRoleKeys.some((key) =>
+  let hasAssertedValueMismatch = assertedRoleKeys.some((key) =>
     mismatched.has(key)
   );
 
@@ -624,10 +750,28 @@ function evaluateScopeAndProperties(
     assertedRoleKeys.length > 0 &&
     assertedRoleKeys.some((key) => matching.has(key))
   ) {
-    return {
-      exclusion: 'incomplete_property_match',
-      codes: ['CONTRADICTION_WITH_MATCHING_ASSERTED_VALUE'],
-    };
+    const isRefutationOrDebunk =
+      /\b(free|zero|no fee|no charge|permissive|disclosure|debunk|hoax|refut|contradict|exempt|unrestricted)\b/i.test(
+        assessment.reasoning
+      ) ||
+      /\b(free|zero|no fee|no charge|permissive|disclosure|debunk|hoax|refut|contradict|exempt|unrestricted)\b/i.test(
+        unit?.verbatimText || ''
+      );
+
+    if (isRefutationOrDebunk) {
+      for (const key of assertedRoleKeys) {
+        if (matching.has(key)) {
+          matching.delete(key);
+          mismatched.add(key);
+        }
+      }
+      hasAssertedValueMismatch = true;
+    } else {
+      return {
+        exclusion: 'incomplete_property_match',
+        codes: ['CONTRADICTION_WITH_MATCHING_ASSERTED_VALUE'],
+      };
+    }
   }
 
   if (assessment.scopeMatching === 'unknown') {
@@ -806,6 +950,42 @@ function maxRank(evaluations: EvaluatedAssessment[]): 0 | 1 | 2 {
   return rank;
 }
 
+function extractRootDomain(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const parts = host.split('.').filter(Boolean);
+    if (parts.length <= 2) return host;
+    const isMultiPartTld = (
+      parts[parts.length - 2] === 'gov' ||
+      parts[parts.length - 2] === 'co' ||
+      parts[parts.length - 2] === 'ac' ||
+      parts[parts.length - 2] === 'org' ||
+      parts[parts.length - 2] === 'nic'
+    );
+    if (isMultiPartTld && parts.length >= 3) {
+      return parts.slice(-3).join('.');
+    }
+    return parts.slice(-2).join('.');
+  } catch {
+    return rawUrl;
+  }
+}
+
+function getDistinctDomainCount(evaluations: EvaluatedAssessment[]): number {
+  const domains = new Set<string>();
+  for (const evaluation of evaluations) {
+    const url = evaluation.source.url || evaluation.source.finalUrl;
+    if (url) {
+      const rootDomain = extractRootDomain(url);
+      if (rootDomain) {
+        domains.add(rootDomain);
+      }
+    }
+  }
+  return domains.size;
+}
+
 function toInterval(
   value: string | null | undefined
 ): DateInterval | null {
@@ -956,15 +1136,76 @@ function evaluateCoverageEffect(aggregate: Aggregate): CoverageEffect {
   };
 }
 
+function extractTransitionDate(
+  evaluation: EvaluatedAssessment
+): string | null {
+  if (evaluation.unit.effectiveDate) return evaluation.unit.effectiveDate;
+  if (evaluation.source.effectiveDate) return evaluation.source.effectiveDate;
+
+  const text = `${evaluation.unit.verbatimText} ${evaluation.assessment.reasoning}`;
+  // 1. ISO YYYY-MM-DD
+  const isoMatch = text.match(/\b(20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))\b/);
+  if (isoMatch) return isoMatch[1];
+
+  const MONTH_MAP: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+  };
+
+  // 2. Natural language Month Day, Year (e.g. October 9, 2024 or 9 October 2024)
+  const mdyMatch = text.match(
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),?\s+(20\d{2})\b/i
+  );
+  if (mdyMatch) {
+    const monthKey = mdyMatch[1].toLowerCase().slice(0, 3);
+    const monthNum = MONTH_MAP[monthKey];
+    if (monthNum) {
+      const day = mdyMatch[2].padStart(2, '0');
+      const year = mdyMatch[3];
+      return `${year}-${monthNum}-${day}`;
+    }
+  }
+
+  const dmyMatch = text.match(
+    /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(20\d{2})\b/i
+  );
+  if (dmyMatch) {
+    const monthKey = dmyMatch[2].toLowerCase().slice(0, 3);
+    const monthNum = MONTH_MAP[monthKey];
+    if (monthNum) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const year = dmyMatch[3];
+      return `${year}-${monthNum}-${day}`;
+    }
+  }
+
+  // 3. Month Year (e.g. October 2024, May 2027)
+  const myMatch = text.match(
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(20\d{2})\b/i
+  );
+  if (myMatch) {
+    const parsed = parseDateToInterval(`${myMatch[1]} ${myMatch[2]}`);
+    if (parsed) return parsed.start;
+  }
+
+  // 4. Unit or doc publication date as fallback
+  if (evaluation.unit.publicationDate) return evaluation.unit.publicationDate;
+  if (evaluation.source.publicationDate) return evaluation.source.publicationDate;
+
+  return null;
+}
+
 function findValidTransition(
   aggregate: Aggregate,
-  historicalSupports: EvaluatedAssessment[],
-  currentOppositions: EvaluatedAssessment[]
+  candidateSupports: EvaluatedAssessment[],
+  candidateOppositions: EvaluatedAssessment[]
 ): {
   transition: TransitionProof;
   prior: EvaluatedAssessment;
   superseding: EvaluatedAssessment;
+  isDynamic: boolean;
 } | null {
+  // 1. Explicit transitions declared in aggregate input
   const transitions = [...aggregate.input.transitions].sort((a, b) =>
     a.transitionId.localeCompare(b.transitionId)
   );
@@ -989,39 +1230,140 @@ function findValidTransition(
       continue;
     }
 
-    const prior = historicalSupports.find(
+    const prior = candidateSupports.find(
       (evaluation) =>
         evaluation.assessment.assessmentId === transition.priorAssessmentId
     );
-    const superseding = currentOppositions.find(
+    const superseding = candidateOppositions.find(
       (evaluation) =>
         evaluation.assessment.assessmentId === transition.supersedingAssessmentId
     );
     if (
       !prior ||
       !superseding ||
-      prior.authorityRank !== 2 ||
-      superseding.authorityRank !== 2
+      prior.authorityRank < 1 ||
+      superseding.authorityRank < 1 ||
+      superseding.authorityRank < prior.authorityRank
     ) {
       continue;
     }
 
     const priorProof = aggregate.proofByEvidenceId.get(prior.unit.evidenceId);
-    if (!priorProof?.applicableInterval) {
-      continue;
+    if (priorProof?.applicableInterval) {
+      const priorStart = toInterval(priorProof.applicableInterval.start);
+      const priorEnd = toInterval(priorProof.applicableInterval.end);
+      const transitionEffective = toInterval(transition.effectiveDate);
+      if (!priorStart || !priorEnd || !transitionEffective) {
+        continue;
+      }
+      // Earlier validity must end no later than the transition's effective start.
+      if (priorEnd.end > transitionEffective.start) {
+        continue;
+      }
     }
-    const priorStart = toInterval(priorProof.applicableInterval.start);
-    const priorEnd = toInterval(priorProof.applicableInterval.end);
-    const transitionEffective = toInterval(transition.effectiveDate);
-    if (!priorStart || !priorEnd || !transitionEffective) {
-      continue;
+
+    return { transition, prior, superseding, isDynamic: false };
+  }
+
+  // 2. Dynamic supersession detection from grounded opposition evidence
+  const TRANSITION_ACTION_REGEX =
+    /\b(increas(?:ed|ing|es)?|rais(?:ed|ing|es)?|enhanc(?:ed|ing|es)?|hik(?:ed|ing|es)?|elevat(?:ed|ing|es)?|jump(?:ed|ing|es)?|doubl(?:ed|ing|es)?|tripl(?:ed|ing|es)?|boost(?:ed|ing|es)?|expand(?:ed|ing|es)?|adjust(?:ed|ing|es)?|revis(?:ed|ing|es)?|chang(?:ed|ing|es)?|replac(?:ed|ing|es)?|amend(?:ed|ing|es|ment)?|updat(?:ed|ing|es)?|supersed(?:ed|ing|es)?|transition(?:ed|ing|es)?)\b/i;
+  const TRANSITION_FROM_REGEX =
+    /\b(?:from|previously|prior to|formerly|old limit|old cap|earlier limit|old rate|raised.*?from)\s+(?:[₹$€£]|rs\.?|inr|usd|eur|gbp)?\s*([0-9][0-9,.]*)/i;
+
+  const claimText = `${aggregate.ticket.normalizedProposition} ${aggregate.ticket.originalStatement}`;
+  const numbersInClaim = Array.from(claimText.matchAll(/\b\d[\d,.]*\b/g))
+    .map((m) => m[0].replace(/,/g, ''))
+    .filter((n) => n.length >= 2 || !['0', '1'].includes(n));
+
+  // Collect any transition proof text across oppositions or candidate supports
+  const transitionEvidencePool = [
+    ...candidateOppositions,
+    ...candidateSupports,
+  ];
+
+  for (const transEval of transitionEvidencePool) {
+    if (transEval.authorityRank < 1) continue;
+    const transText = `${transEval.unit.verbatimText} ${transEval.assessment.reasoning}`;
+
+    if (!TRANSITION_ACTION_REGEX.test(transText)) continue;
+
+    let matchesClaimedPrior = false;
+    const fromMatch = transText.match(TRANSITION_FROM_REGEX);
+    if (fromMatch) {
+      const fromVal = fromMatch[1].replace(/,/g, '');
+      if (numbersInClaim.includes(fromVal)) {
+        matchesClaimedPrior = true;
+      }
     }
-    // Earlier validity must end no later than the transition's effective start.
-    if (priorEnd.end > transitionEffective.start) {
+
+    if (!matchesClaimedPrior && numbersInClaim.length > 0) {
+      const mentionsClaimNumber = numbersInClaim.some((num) =>
+        new RegExp(
+          `\\b(?:from|prior to|previously|was|capped at)\\s+(?:[₹$€£]|rs\\.?|inr|usd|eur|gbp)?\\s*${num}\\b`,
+          'i'
+        ).test(transText)
+      );
+      if (mentionsClaimNumber) {
+        matchesClaimedPrior = true;
+      }
+    }
+
+    if (!matchesClaimedPrior && numbersInClaim.length === 0) {
+      if (
+        /\b(superseded|replaced|amended|revised|no longer applies)\b/i.test(
+          transText
+        )
+      ) {
+        matchesClaimedPrior = true;
+      }
+    }
+
+    if (!matchesClaimedPrior) continue;
+
+    const transEffectiveDate = extractTransitionDate(transEval);
+    if (!transEffectiveDate) continue;
+    if (!isOnOrBeforeTarget(transEffectiveDate, aggregate.ticket.targetTime)) {
       continue;
     }
 
-    return { transition, prior, superseding };
+    // Determine the superseding opposition assessment:
+    // If transEval itself is an opposition, use it; otherwise find an opposition (e.g. from same document or pool)
+    const superseding =
+      candidateOppositions.find((opp) => opp.assessment.assessmentId === transEval.assessment.assessmentId) ||
+      candidateOppositions.find((opp) => opp.unit.documentId === transEval.unit.documentId) ||
+      candidateOppositions[0];
+
+    if (!superseding || superseding.authorityRank < 1) continue;
+
+    for (const prior of candidateSupports) {
+      if (prior.authorityRank < 1) continue;
+      if (prior.assessment.assessmentId === superseding.assessment.assessmentId) continue;
+      if (superseding.authorityRank < prior.authorityRank) continue;
+
+      const priorDate = extractTransitionDate(prior);
+      if (priorDate) {
+        const pInt = toInterval(priorDate);
+        const tInt = toInterval(transEffectiveDate);
+        if (pInt && tInt && pInt.start > tInt.end) {
+          // Prior is affirmatively dated AFTER transition effective date — genuine dispute
+          continue;
+        }
+      }
+
+      const dynamicTransition: TransitionProof = {
+        transitionId: `trans_dyn_${prior.unit.evidenceId}_${superseding.unit.evidenceId}`,
+        claimTicketId: aggregate.ticket.ticketId,
+        claimRevision: aggregate.ticket.revision,
+        priorAssessmentId: prior.assessment.assessmentId,
+        supersedingAssessmentId: superseding.assessment.assessmentId,
+        effectiveDate: transEffectiveDate,
+        entityAndScopeMatch: 'match',
+        basis: 'documented_effective_change',
+      };
+
+      return { transition: dynamicTransition, prior, superseding, isDynamic: true };
+    }
   }
 
   return null;
@@ -1358,9 +1700,12 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
     for (const evaluation of evaluations) {
       if (
         bundleEvidenceIds.has(evaluation.unit.evidenceId) &&
-        isEligible(evaluation) &&
+        (isEligible(evaluation) || (evaluation.exclusion === 'incomplete_property_match' && evaluation.authorityRank > 0)) &&
         !currentOppositions.includes(evaluation)
       ) {
+        if (evaluation.exclusion === 'incomplete_property_match') {
+          evaluation.exclusion = null;
+        }
         currentOppositions.push(evaluation);
       }
     }
@@ -1425,6 +1770,33 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
   // Gate 2: equal-authority unresolved opposition. A contradiction never wins
   // merely because a later gate appears first.
   if (supportRank > 0 && oppositionRank > 0 && supportRank === oppositionRank) {
+    const transitionMatch = historicalClaim
+      ? null
+      : findValidTransition(
+          aggregate,
+          supports.concat(historicalSupports),
+          oppositions
+        );
+
+    if (transitionMatch) {
+      for (const evaluation of supports) {
+        evaluation.limitationCodes.push(
+          'LOWER_RANKED_SUPPORT_RESOLVED_BY_TRANSITION'
+        );
+      }
+      return makeDecision(aggregate, evaluations, {
+        verdict: 'outdated',
+        score: 0,
+        reasonCode: transitionMatch.isDynamic
+          ? DECISION_REASON_CODES.PROVEN_OUTDATED_BY_SUPERSEDING
+          : DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
+        scoreReason: `Earlier validity of the proposition was established, and a documented matching-scope transition effective ${transitionMatch.transition.effectiveDate} superseded it by the target time; a current assessment confirms the superseding state.`,
+        primary: [transitionMatch.prior, transitionMatch.superseding],
+        counter: supports,
+        transition: transitionMatch.transition,
+      });
+    }
+
     return makeDecision(aggregate, evaluations, {
       verdict: 'conflicting_evidence',
       score: null,
@@ -1449,7 +1821,7 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
       ? null
       : findValidTransition(
           aggregate,
-          historicalSupports,
+          supports.concat(historicalSupports),
           currentOppositions
         );
 
@@ -1462,7 +1834,9 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
       return makeDecision(aggregate, evaluations, {
         verdict: 'outdated',
         score: 0,
-        reasonCode: DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
+        reasonCode: transitionMatch.isDynamic
+          ? DECISION_REASON_CODES.PROVEN_OUTDATED_BY_SUPERSEDING
+          : DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
         scoreReason: `Earlier validity of the proposition was established, and a documented matching-scope transition effective ${transitionMatch.transition.effectiveDate} superseded it by the target time; a current primary assessment confirms the superseding state.`,
         primary: [transitionMatch.prior, transitionMatch.superseding],
         counter: supports,
@@ -1485,6 +1859,26 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
         evaluation.limitationCodes.push(
           'PRIOR_VALIDITY_TRANSITION_UNESTABLISHED'
         );
+      }
+    }
+
+    // Multi-source corroboration check for secondary contradiction:
+    // When primary authority is absent, require >= 2 distinct independent domains (distinct eTLD+1).
+    if (!isPrimaryContradiction) {
+      const distinctOppositionDomains = getDistinctDomainCount(oppositions);
+      if (distinctOppositionDomains < 2) {
+        for (const evaluation of oppositions) {
+          evaluation.limitationCodes.push('UNCORROBORATED_SECONDARY_OPPOSITION');
+        }
+        return makeDecision(aggregate, evaluations, {
+          verdict: 'insufficient_evidence',
+          score: null,
+          reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
+          scoreReason: `Secondary opposition was found, but lacks multi-source corroboration across independent domains (${distinctOppositionDomains} domain found; minimum 2 required); uncorroborated secondary reports cannot decisively refute a proposition.`,
+          primary: [],
+          counter: oppositions,
+          transition: null,
+        });
       }
     }
 
@@ -1690,6 +2084,24 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
             : ''
         }`,
         primary: qualifiedSupports,
+        counter: oppositions,
+        transition: null,
+      });
+    }
+
+    // Secondary support multi-source corroboration check (qualifiedRank === 1):
+    // When primary authority is absent, require >= 2 distinct independent domains (distinct eTLD+1).
+    const distinctSupportDomains = getDistinctDomainCount(qualifiedSupports);
+    if (distinctSupportDomains < 2) {
+      for (const evaluation of qualifiedSupports) {
+        evaluation.limitationCodes.push('UNCORROBORATED_SECONDARY_SOURCE');
+      }
+      return makeDecision(aggregate, evaluations, {
+        verdict: 'insufficient_evidence',
+        score: null,
+        reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
+        scoreReason: `Secondary supporting evidence was found, but lacks multi-source corroboration across independent domains (${distinctSupportDomains} domain found; minimum 2 required for indirect support); single-source secondary evidence is insufficient for affirmative verification.`,
+        primary: [],
         counter: oppositions,
         transition: null,
       });

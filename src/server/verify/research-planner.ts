@@ -103,6 +103,83 @@ function cleanJsonOutput(text: string): string {
  * Generates an auditable ResearchPlan containing targeted search queries
  * to verify or falsify an atomic ClaimTicket against web evidence.
  */
+/**
+ * Strips raw search operators (such as 'site:...') from query text to prevent Tavily backend degradation.
+ */
+export function sanitizeQueryText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\bsite:[^\s]+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Validates whether a domain candidate is a concrete, registrable hostname suitable for Tavily's include_domains.
+ * Rejects bare public-suffix TLDs (e.g. 'gov', 'gov.in'), UGC sites, and malformed strings.
+ */
+export function validateAuthoritativeDomain(domain: string): string | null {
+  if (!domain || typeof domain !== 'string') return null;
+  let cleaned = domain.trim().toLowerCase();
+  cleaned = cleaned.replace(/^https?:\/\//, '');
+  cleaned = cleaned.replace(/^www\./, '');
+  cleaned = cleaned.split('/')[0].split('?')[0].split('#')[0].trim();
+
+  if (!cleaned.includes('.')) return null;
+  if (isBareTldSuffix(cleaned)) return null;
+
+  const ugcHosts = new Set([
+    'reddit.com',
+    'quora.com',
+    'stackoverflow.com',
+    'medium.com',
+    'facebook.com',
+    'twitter.com',
+    'x.com',
+    'instagram.com',
+    'linkedin.com',
+    'youtube.com',
+    'tiktok.com',
+    'pinterest.com',
+  ]);
+  if (ugcHosts.has(cleaned)) return null;
+
+  const hostRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+  if (!hostRegex.test(cleaned)) return null;
+
+  return cleaned;
+}
+
+/**
+ * Determines whether a domain string is a bare public suffix / multi-tenant TLD namespace
+ * (e.g. 'gov', 'gov.in', 'nic.in', 'gov.au', 'gob.es', 'admin.ch') rather than a concrete host.
+ * Tavily's include_domains fails silently (returns 0 results) when passed bare public suffixes.
+ */
+export function isBareTldSuffix(domain: string): boolean {
+  if (!domain) return false;
+  const d = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  if (
+    d === 'gov' ||
+    d === 'mil' ||
+    d === 'edu' ||
+    d === 'gov.in' ||
+    d === 'nic.in' ||
+    d === 'gov.au' ||
+    d === 'gov.za' ||
+    d === 'gob.es' ||
+    d === 'gouv.fr' ||
+    d === 'admin.ch' ||
+    d === 'co.in' ||
+    d === 'org.in' ||
+    d === 'ac.uk' ||
+    /^[a-z]{2,3}$/.test(d) ||
+    (/^(gov|gob|gouv|nic|ac|co|org)\.[a-z]{2,}$/.test(d) && d !== 'gov.uk')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function generateResearchPlan(
   params: GenerateResearchPlanParams
 ): Promise<ResearchPlanOutcome> {
@@ -200,13 +277,28 @@ export async function generateResearchPlan(
     };
   }
 
+  // Extract and validate authoritativeDomains suggested by the model
+  const rawAuthoritative = Array.isArray(parsedPayload.authoritativeDomains)
+    ? parsedPayload.authoritativeDomains
+    : [];
+  const modelAuthoritativeDomains: string[] = [];
+  for (const d of rawAuthoritative) {
+    if (typeof d === 'string') {
+      const valid = validateAuthoritativeDomain(d);
+      if (valid && !modelAuthoritativeDomains.includes(valid)) {
+        modelAuthoritativeDomains.push(valid);
+      }
+    }
+  }
+
   // Bound queries to remaining allowance
   const boundedRawQueries = rawQueries.slice(0, effectiveAllowance);
 
   const queries: PlannedQuery[] = [];
   for (let idx = 0; idx < boundedRawQueries.length; idx++) {
     const rawQ = boundedRawQueries[idx];
-    const queryString = String(rawQ.query || '').trim().slice(0, MAX_QUERY_LENGTH);
+    const rawQueryString = String(rawQ.query || '').trim().slice(0, MAX_QUERY_LENGTH);
+    const queryString = sanitizeQueryText(rawQueryString);
     if (!queryString) continue;
 
     // Validate purpose
@@ -225,6 +317,19 @@ export async function generateResearchPlan(
     const targetSourceRoles: SourceRole[] =
       validRoles.length > 0 ? validRoles : ['primary_authority', 'reputable_secondary'];
 
+    // Collect query-level includeDomains if present and valid
+    let queryIncludeDomains: string[] | undefined = undefined;
+    if (Array.isArray(rawQ.includeDomains)) {
+      const validated: string[] = [];
+      for (const d of rawQ.includeDomains) {
+        if (typeof d === 'string') {
+          const v = validateAuthoritativeDomain(d);
+          if (v && !validated.includes(v)) validated.push(v);
+        }
+      }
+      if (validated.length > 0) queryIncludeDomains = validated;
+    }
+
     const plannedQuery: PlannedQuery = {
       queryId: `qry_${ticket.ticketId}_r${round}_${idx + 1}`,
       claimTicketId: ticket.ticketId,
@@ -232,6 +337,7 @@ export async function generateResearchPlan(
       purpose,
       targetSourceRoles,
       round,
+      includeDomains: queryIncludeDomains,
       scopeHints: typeof rawQ.scopeHints === 'object' && rawQ.scopeHints !== null
         ? (rawQ.scopeHints as Record<string, string>)
         : undefined,
@@ -252,6 +358,19 @@ export async function generateResearchPlan(
     };
   }
 
+  // Attach model-level authoritativeDomains to canonical primary queries
+  // while strictly keeping at least 1-2 open-web queries with NO includeDomains
+  if (modelAuthoritativeDomains.length > 0 && queries.length > 0) {
+    if (!queries[0].includeDomains || queries[0].includeDomains.length === 0) {
+      queries[0].includeDomains = modelAuthoritativeDomains;
+    }
+    // If we have >= 3 queries, queries[0] (and optionally queries[1]) can target authoritative domains,
+    // while the remaining queries (e.g. counterevidence) remain open-web without includeDomains
+    if (queries.length >= 4 && (!queries[1].includeDomains || queries[1].includeDomains.length === 0)) {
+      queries[1].includeDomains = modelAuthoritativeDomains;
+    }
+  }
+
   // 8. Deterministic counterevidence guarantee
   if (requiresCounterevidence) {
     const hasCounter = queries.some((q) => q.purpose === 'seek_counterevidence');
@@ -264,6 +383,122 @@ export async function generateResearchPlan(
         query: counterQueryText.slice(0, MAX_QUERY_LENGTH),
         purpose: 'seek_counterevidence',
         targetSourceRoles: ['primary_authority', 'official_changelog', 'counter_perspective'],
+        round,
+      };
+    }
+  }
+
+  // 8b. Deterministic canonical value-agnostic rule query guarantee
+  const statementForNumbers = `${ticket.originalStatement} ${ticket.normalizedProposition}`;
+  const hasNumericPredicate = /\b(\d+[\d,.]*|\$\d+|€\d+|£\d+|₹\d+)\b/.test(statementForNumbers);
+  const isQuantitativeOrRegulatory = ticket.domain === 'regulation' || ticket.domain === 'pricing' || hasNumericPredicate;
+
+  if (isQuantitativeOrRegulatory && queries.length >= 2) {
+    const numbersInClaim = Array.from(statementForNumbers.matchAll(/\b\d{2,}\b/g)).map((m) => m[0]);
+    const hasValueAgnosticQuery = queries.some((q) => !numbersInClaim.some((num) => q.query.includes(num)));
+
+    if (!hasValueAgnosticQuery && numbersInClaim.length > 0) {
+      const strippedQuery = queries[1].query
+        .replace(/[$€£₹]?\b\d+[\d,.]*\b/g, '')
+        .replace(/\b(flat|fixed|exact|only)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      let sovereignTarget = '';
+      let sovereignIncludeDomains: string[] | undefined = undefined;
+      const jurProp = ticket.verificationContext.find(
+        (p) => p.key === 'jurisdiction' || p.key === 'country'
+      )?.value;
+      const jurStr = typeof jurProp === 'string' ? jurProp.toLowerCase() : '';
+
+      if (jurStr === 'in' || jurStr.includes('india')) {
+        sovereignTarget = 'official rules gazette';
+        sovereignIncludeDomains = ['indiacode.nic.in', 'egazette.gov.in', 'pib.gov.in'];
+      } else if (jurStr === 'us' || jurStr.includes('united states')) {
+        sovereignTarget = 'official statutory code';
+        sovereignIncludeDomains = ['federalregister.gov', 'ecfr.gov'];
+      } else if (jurStr === 'uk' || jurStr.includes('united kingdom')) {
+        sovereignTarget = 'legislation';
+        sovereignIncludeDomains = ['legislation.gov.uk', 'gov.uk'];
+      } else if (jurStr === 'eu' || jurStr.includes('european union')) {
+        sovereignTarget = 'directive';
+        sovereignIncludeDomains = ['eur-lex.europa.eu', 'ec.europa.eu', 'europa.eu'];
+      }
+
+      const canonicalSuffix = ticket.domain === 'regulation'
+        ? (sovereignTarget ? `calculation rule statute ${sovereignTarget}` : 'calculation rule statute')
+        : 'pricing structure calculation';
+
+      const adaptedQuery = `${strippedQuery} ${canonicalSuffix}`.slice(0, MAX_QUERY_LENGTH).trim();
+
+      const sanitizedInclude = sovereignIncludeDomains
+        ? sovereignIncludeDomains.filter((d) => !isBareTldSuffix(d))
+        : undefined;
+
+      queries[1] = {
+        ...queries[1],
+        query: adaptedQuery,
+        purpose: 'investigate_exceptions_or_scope',
+        includeDomains: sanitizedInclude && sanitizedInclude.length > 0 ? sanitizedInclude : undefined,
+        excludeDomains: ['reddit.com', 'quora.com', 'stackoverflow.com'],
+      };
+    }
+  }
+
+  // Attach default UGC exclusions to primary authority and regulatory queries across all queries
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    if (
+      q.targetSourceRoles.includes('primary_authority') ||
+      q.targetSourceRoles.includes('regulatory_filing')
+    ) {
+      if (!q.excludeDomains) {
+        q.excludeDomains = ['reddit.com', 'quora.com', 'stackoverflow.com'];
+      }
+    }
+  }
+
+  // 8c. First-Party Canonical Retrieval Branch Guarantee
+  const entityProp = ticket.verificationContext.find(
+    (p) =>
+      (p.key === 'productName' ||
+        p.key === 'provider' ||
+        p.key === 'vendor' ||
+        p.key === 'company' ||
+        p.key === 'organization' ||
+        p.key === 'regulator' ||
+        p.key === 'agency' ||
+        p.key === 'entity' ||
+        p.key === 'service') &&
+      typeof p.value === 'string' &&
+      p.value.trim().length > 0
+  );
+
+  const rawEntity = entityProp ? String(entityProp.value).trim() : null;
+  if (rawEntity && rawEntity.length >= 3) {
+    const hasOfficialTargetQuery = queries.some(
+      (q) =>
+        (q.targetSourceRoles.includes('primary_authority') || q.targetSourceRoles.includes('official_changelog')) &&
+        (q.query.toLowerCase().includes('official') || q.query.toLowerCase().includes('docs') || q.query.toLowerCase().includes('pricing'))
+    );
+
+    if (!hasOfficialTargetQuery && queries.length > 0) {
+      let officialSuffix = 'official documentation specification';
+      if (ticket.domain === 'pricing') {
+        officialSuffix = 'official pricing plans -calculator -review -blog';
+      } else if (ticket.domain === 'regulation') {
+        officialSuffix = 'official regulation circular gazette';
+      }
+
+      const officialQueryText = `${rawEntity} ${officialSuffix}`.slice(0, MAX_QUERY_LENGTH).trim();
+      const targetIdx = queries.length >= 3 ? 0 : queries.length - 1;
+
+      queries[targetIdx] = {
+        queryId: `qry_${ticket.ticketId}_r${round}_fp`,
+        claimTicketId: ticket.ticketId,
+        query: officialQueryText,
+        purpose: 'establish_current_state',
+        targetSourceRoles: ['primary_authority'],
         round,
       };
     }

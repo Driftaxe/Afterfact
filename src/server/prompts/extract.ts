@@ -41,6 +41,9 @@ Your job is to read candidate source text and extract discrete, atomic, verifiab
      * statement: The exact verbatim excerpt from the source text representing the assertion or clause. MUST match the source text character-for-character without alterations. NEVER resolve pronouns (e.g. do not change "its" to "Birch" or "he" to a person's name) inside statement. NEVER restore elided verbs or subjects (e.g. if the source says "Cedar on Sep 2, Willow on Nov 10", the statement for Willow is "Willow on Nov 10", NOT "Example Labs released Willow on Nov 10"). Keep statement strictly verbatim!
      * normalizedProposition: A clear, self-contained, disambiguated natural language statement asserting the fact independently (resolving pronouns, incorporating shared sentence subjects, and stating full context). This is where all pronoun resolution and restored subjects belong.
      * domain: A concise domain category string (e.g., 'pricing', 'api', 'regulation', 'leadership', 'software', 'cloud', 'generic'). Support arbitrary domains.
+       - Strict Domain Boundary:
+         • 'pricing': Commercial product, SaaS subscription, API overage, cloud service, and merchant transaction fees.
+         • 'regulation': Sovereign taxes, statutory levies, public licensing charges, court filing fees, tariffs, customs, government compliance mandates, and statutory deadlines. Never route sovereign or statutory public levies to 'pricing'.
      * timeSensitivity: 'high' (frequently changing, e.g. prices, leadership, dynamic quotas), 'medium' (e.g. software versions, terms), or 'low' (historical dates, physical constants).
 
 3. PRESERVATION OF SEMANTIC NUANCE (CRITICAL):
