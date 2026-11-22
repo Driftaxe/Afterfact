@@ -115,6 +115,8 @@ export class PricingPolicy implements DomainPolicyModule {
         role = 'asserted_value';
       } else if (explicitScope.has(prop.key)) {
         role = 'scope_qualifier';
+      } else if (prop.role === 'asserted_value' || prop.role === 'scope_qualifier') {
+        role = prop.role;
       } else if (PRICING_ASSERTED_KEYS.has(prop.key.toLowerCase()) || props.length === 1) {
         role = 'asserted_value';
       } else {

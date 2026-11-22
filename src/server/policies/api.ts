@@ -83,6 +83,8 @@ export class ApiPolicy implements DomainPolicyModule {
         role = 'asserted_value';
       } else if (explicitScope.has(prop.key)) {
         role = 'scope_qualifier';
+      } else if (prop.role === 'asserted_value' || prop.role === 'scope_qualifier') {
+        role = prop.role;
       } else if (prop.key === 'version') {
         role = isAssertingVersionValue ? 'asserted_value' : 'scope_qualifier';
       } else if (

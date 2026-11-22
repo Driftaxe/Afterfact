@@ -524,6 +524,15 @@ function evaluateScopeAndProperties(
   const roleByKey = new Map(
     aggregate.policy.propertyRoles.map((role) => [role.key, role])
   );
+  for (const prop of aggregate.ticket.verificationContext) {
+    if (!roleByKey.has(prop.key) && (prop.role === 'asserted_value' || prop.role === 'scope_qualifier')) {
+      roleByKey.set(prop.key, {
+        key: prop.key,
+        role: prop.role,
+        required: true,
+      });
+    }
+  }
   const claimKeys = new Set(
     aggregate.ticket.verificationContext.map((property) => property.key)
   );
@@ -681,6 +690,20 @@ function evaluateScopeAndProperties(
       missing.delete(property.key);
       matching.add(property.key);
       continue;
+    }
+
+    // Literal or formatted numeric value match for scope qualifiers
+    if (property.role === 'scope_qualifier' && property.value !== null && property.value !== undefined) {
+      const propValStr = String(property.value).toLowerCase().trim();
+      const propValFormatted = typeof property.value === 'number' ? property.value.toLocaleString('en-US') : '';
+      if (
+        (propValStr.length >= 2 && combinedContextText.includes(propValStr)) ||
+        (propValFormatted.length >= 2 && combinedContextText.includes(propValFormatted))
+      ) {
+        missing.delete(property.key);
+        matching.add(property.key);
+        continue;
+      }
     }
 
     if (missing.has(property.key)) {

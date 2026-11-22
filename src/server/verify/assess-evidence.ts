@@ -518,11 +518,19 @@ export async function assessEvidenceAgainstClaim(
       }
     }
 
-    // When an excerpt documents a transition or historical proposal mentioning the asserted value
+    // When an excerpt documents a transition or context property mentioning a verified value
     for (const p of ticket.verificationContext) {
-      if (p.role === 'asserted_value' && missingInEvidenceSet.has(p.key)) {
-        const strVal = String(p.value).toLowerCase().trim();
-        if (strVal.length > 0 && docContentText.includes(strVal)) {
+      const strVal = String(p.value).toLowerCase().trim();
+      const formattedVal = typeof p.value === 'number' ? p.value.toLocaleString('en-US') : '';
+      const inContent =
+        (strVal.length >= 2 && docContentText.includes(strVal)) ||
+        (formattedVal.length >= 2 && docContentText.includes(formattedVal));
+
+      if (inContent) {
+        if (p.role === 'scope_qualifier') {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        } else if (p.role === 'asserted_value' && missingInEvidenceSet.has(p.key)) {
           missingInEvidenceSet.delete(p.key);
           if (relationship === 'supports' || relationship === 'historical_state') {
             matchingSet.add(p.key);

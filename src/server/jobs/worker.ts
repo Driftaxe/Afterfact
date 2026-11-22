@@ -1408,7 +1408,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
 
             // 2. Assemble typed DecideClaimInput assessments
             const contractAssessments: ClaimEvidenceAssessment[] = claim.assessments.map((a) => {
-              const rel = (a.relationship as ClaimEvidenceAssessment['relationship']) ?? 'supports';
+              let rel = (a.relationship as ClaimEvidenceAssessment['relationship']) ?? 'supports';
               const temp = (a.temporalApplicability as ClaimEvidenceAssessment['temporalApplicability']) ?? 'active_at_target_time';
               const suitability = (a.sourceSuitability as ClaimEvidenceAssessment['sourceSuitability']) ?? 'authoritative_primary';
 
@@ -1431,9 +1431,27 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               }
 
               if (rel === 'supports') {
+                const rawMatching = Array.isArray(rawProps.matching) ? (rawProps.matching as unknown[]).map(String) : [];
+                const uText = (a.evidenceUnit.verbatimText || a.evidenceUnit.content || '').toLowerCase();
                 for (const key of assertedPropertyKeys) {
-                  matchingSet.add(key);
-                  mismatchedSet.delete(key);
+                  const prop = ticket.verificationContext.find((p) => p.key === key);
+                  const valStr = prop ? String(prop.value).toLowerCase() : '';
+                  const formattedVal = prop && typeof prop.value === 'number' ? prop.value.toLocaleString('en-US') : '';
+                  const inText = (valStr.length >= 2 && uText.includes(valStr)) || (formattedVal.length >= 2 && uText.includes(formattedVal));
+                  const modelMatched = rawMatching.includes(key);
+
+                  if (modelMatched || inText) {
+                    matchingSet.add(key);
+                    missingInEvidenceSet.delete(key);
+                    mismatchedSet.delete(key);
+                  } else {
+                    missingInEvidenceSet.add(key);
+                    matchingSet.delete(key);
+                  }
+                }
+                const missingAsserted = assertedPropertyKeys.some((k) => missingInEvidenceSet.has(k) || !matchingSet.has(k));
+                if (missingAsserted) {
+                  rel = 'historical_state';
                 }
               }
 
