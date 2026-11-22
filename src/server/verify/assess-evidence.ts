@@ -485,15 +485,26 @@ export async function assessEvidenceAgainstClaim(
         p.key === 'vendor' ||
         p.key === 'provider' ||
         p.key === 'regulator' ||
+        p.key === 'regulatoryBody' ||
+        p.key === 'regulatory_body' ||
         p.key === 'agency' ||
         p.key === 'entity' ||
         (p.label && /\b(regulatory|agency|vendor|company|provider)\b/i.test(p.label))
       ) {
         const entityVal = String(p.value).toLowerCase().trim();
         const isPrimaryDoc = parentDoc?.sourceRole === 'primary_authority';
+
+        const isSovereignAgencyMatch =
+          Boolean(sovereignJur) &&
+          ((sovereignJur === 'UK' && (entityVal.includes('uk') || entityVal.includes('home office') || entityVal.includes('hmrc'))) ||
+           (sovereignJur === 'US' && (entityVal.includes('us') || entityVal.includes('united states') || entityVal.includes('dhs') || entityVal.includes('tsa') || entityVal.includes('irs') || entityVal.includes('sec') || entityVal.includes('fda') || entityVal.includes('ftc'))) ||
+           (sovereignJur === 'IN' && (entityVal.includes('india') || entityVal.includes('rbi') || entityVal.includes('npci') || entityVal.includes('uidai'))) ||
+           (sovereignJur === 'EU' && (entityVal.includes('eu') || entityVal.includes('european') || entityVal.includes('commission'))));
+
         if (
           (entityVal.length >= 2 && docContentText.includes(entityVal)) ||
-          (isPrimaryDoc && docHost && docHost.includes(entityVal))
+          (isPrimaryDoc && docHost && docHost.includes(entityVal)) ||
+          isSovereignAgencyMatch
         ) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
