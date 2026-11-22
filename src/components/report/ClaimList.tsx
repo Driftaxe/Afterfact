@@ -76,6 +76,9 @@ export function ClaimList({
             else if (claim.verdict === 'insufficient_evidence') verdictLabel = 'Insufficient';
 
             scoreText = claim.score !== null ? `${claim.score}` : '—';
+          } else if (claim.state === 'skipped' || claim.reasonCode === 'UNVERIFIED_CLAIM_BUDGET_EXCEEDED') {
+            verdictStatus = 'unresolved';
+            verdictLabel = 'Not verified (claim limit)';
           } else if (claim.state === 'failed') {
             verdictStatus = 'unresolved';
             verdictLabel = 'Failed';

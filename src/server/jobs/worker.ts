@@ -5,7 +5,7 @@ import { DagService } from '@/server/services/dag-service';
 import { EventService } from '@/server/services/event-service';
 import { expandDag } from '@/server/dag/expand';
 import { extractClaimsFromText } from '@/server/verify/extract-claims';
-import { generateResearchPlan } from '@/server/verify/research-planner';
+import { generateResearchPlan, isBareTldSuffix } from '@/server/verify/research-planner';
 import { tavilySearch, tavilyExtract, RawSourceDoc } from '@/server/tavily/client';
 import { extractEvidenceUnits } from '@/server/verify/extract-evidence';
 import { assessEvidenceAgainstClaim } from '@/server/verify/assess-evidence';
@@ -70,6 +70,7 @@ export function isUserGeneratedContentUrl(url: string): boolean {
       host.startsWith('forums.') ||
       host.startsWith('discuss.') ||
       host.startsWith('repost.') ||
+      host.startsWith('gist.') ||
       host.includes('stackoverflow.com') ||
       host.includes('reddit.com') ||
       host.includes('quora.com')
@@ -77,7 +78,7 @@ export function isUserGeneratedContentUrl(url: string): boolean {
       return true;
     }
 
-    // UGC path prefixes
+    // UGC path prefixes and patterns
     if (
       pathname.startsWith('/community') ||
       pathname.startsWith('/forum') ||
@@ -85,9 +86,28 @@ export function isUserGeneratedContentUrl(url: string): boolean {
       pathname.startsWith('/discuss') ||
       pathname.startsWith('/discussions') ||
       pathname.startsWith('/issues') ||
-      pathname.startsWith('/questions')
+      pathname.startsWith('/questions') ||
+      pathname.startsWith('/pull/') ||
+      pathname.startsWith('/pulls') ||
+      pathname.includes('/discussions/') ||
+      pathname.includes('/issues/') ||
+      pathname.includes('/orgs/') // e.g. github.com/orgs/community/discussions
     ) {
       return true;
+    }
+
+    // User profile/repo paths on code hosting platforms (github.com, gitlab.com)
+    if (host === 'github.com' || host === 'gitlab.com') {
+      const parts = pathname.split('/').filter(Boolean);
+      // Canonical vendor platform roots that are not individual user/org repos
+      const canonicalRootRoutes = new Set([
+        'pricing', 'features', 'enterprise', 'team', 'security', 'about',
+        'readme', 'contact', 'login', 'join', 'solutions', 'marketplace'
+      ]);
+      if (parts.length >= 2 && !canonicalRootRoutes.has(parts[0])) {
+        // e.g. /owner/repo -> arbitrary user project or community issue
+        return true;
+      }
     }
 
     return false;
@@ -100,32 +120,71 @@ export function isCanonicalFirstPartyPath(url: string): boolean {
   if (!url) return false;
   try {
     const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
     const pathname = parsed.pathname.toLowerCase();
-    return (
-      pathname === '' ||
-      pathname === '/' ||
-      pathname.startsWith('/pricing') ||
-      pathname.startsWith('/plans') ||
-      pathname.startsWith('/billing') ||
-      pathname.startsWith('/docs') ||
-      pathname.startsWith('/documentation') ||
-      pathname.startsWith('/reference') ||
-      pathname.startsWith('/limits') ||
-      pathname.startsWith('/quotas') ||
-      pathname.startsWith('/legal') ||
-      pathname.startsWith('/terms') ||
-      pathname.startsWith('/policies') ||
-      pathname.startsWith('/security') ||
-      pathname.startsWith('/blog') ||
-      pathname.startsWith('/news') ||
-      pathname.startsWith('/announcements') ||
-      pathname.startsWith('/press') ||
-      pathname.startsWith('/circulars') ||
-      pathname.startsWith('/about')
-    );
+
+    // Dedicated documentation, developer, support, or legal subdomains are always authoritative
+    if (
+      host.startsWith('docs.') ||
+      host.startsWith('developer.') ||
+      host.startsWith('developers.') ||
+      host.startsWith('api.') ||
+      host.startsWith('support.') ||
+      host.startsWith('help.') ||
+      host.startsWith('learn.') ||
+      host.startsWith('kb.') ||
+      host.startsWith('legal.')
+    ) {
+      return true;
+    }
+
+    // Exclude non-authoritative marketing, career, partner, and event pages
+    if (
+      pathname.startsWith('/careers') ||
+      pathname.startsWith('/jobs') ||
+      pathname.startsWith('/events') ||
+      pathname.startsWith('/customer-stories') ||
+      pathname.startsWith('/case-studies') ||
+      pathname.startsWith('/partners') ||
+      pathname.startsWith('/users/')
+    ) {
+      return false;
+    }
+
+    // Default allow: official product pages, pricing schedules, app-store programs, localized routes (/en/..., /us/...)
+    return true;
   } catch {
     return false;
   }
+}
+
+const GENERIC_ENTITY_STOPWORDS = new Set([
+  'the', 'and', 'for', 'any', 'all', 'what', 'when', 'under', 'from', 'with', 'per',
+  'of', 'in', 'on', 'at', 'by', 'to', 'into', 'onto',
+  'app', 'apps', 'store', 'team', 'free', 'pro', 'plus', 'max', 'enterprise',
+  'business', 'small', 'program', 'cloud', 'web', 'api', 'sdk', 'plan', 'plans',
+  'tier', 'tiers', 'act', 'law', 'rule', 'rules', 'regulation', 'regulations',
+  'union', 'commission', 'general', 'purpose', 'model', 'models', 'account',
+  'accounts', 'private', 'public', 'global', 'standard', 'code', 'system',
+  'data', 'platform', 'service', 'services', 'functions', 'function', 'fee', 'fees',
+  'rate', 'rates', 'fine', 'fines', 'penalty', 'penalties', 'month', 'months',
+  'year', 'years', 'inc', 'ltd', 'corp', 'llc', 'gmbh'
+]);
+
+export function sanitizeTavilyIncludeDomains(
+  domains?: string[]
+): { validDomains: string[]; strippedTlds: string[] } {
+  if (!domains || domains.length === 0) return { validDomains: [], strippedTlds: [] };
+  const validDomains: string[] = [];
+  const strippedTlds: string[] = [];
+  for (const d of domains) {
+    if (isBareTldSuffix(d)) {
+      strippedTlds.push(d);
+    } else {
+      validDomains.push(d);
+    }
+  }
+  return { validDomains, strippedTlds };
 }
 
 export function extractEntityTokens(
@@ -151,11 +210,23 @@ export function extractEntityTokens(
       if (typeof p.value === 'string' && p.value.trim().length > 0) {
         const val = p.value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
         for (const word of val.split(/\s+/)) {
-          if (
-            word.length >= 3 &&
-            !['the', 'and', 'for', 'inc', 'ltd', 'corp', 'functions', 'service', 'services', 'platform'].includes(word)
-          ) {
+          if (word.length >= 3 && !GENERIC_ENTITY_STOPWORDS.has(word)) {
             tokens.add(word);
+          }
+        }
+        // Multi-word acronym generation for statutory/regulatory/corporate bodies
+        const rawWords = p.value.split(/\s+/).filter(Boolean);
+        if (rawWords.length >= 2) {
+          const sigWords = rawWords.filter((w) => !GENERIC_ENTITY_STOPWORDS.has(w.toLowerCase()));
+          if (sigWords.length >= 2) {
+            const sigAcronym = sigWords.map((w) => w[0].toLowerCase()).join('').replace(/[^a-z0-9]/g, '');
+            if (sigAcronym.length >= 2 && sigAcronym.length <= 6 && !GENERIC_ENTITY_STOPWORDS.has(sigAcronym)) {
+              tokens.add(sigAcronym);
+            }
+          }
+          const allAcronym = rawWords.map((w) => w[0].toLowerCase()).join('').replace(/[^a-z0-9]/g, '');
+          if (allAcronym.length >= 2 && allAcronym.length <= 6 && !GENERIC_ENTITY_STOPWORDS.has(allAcronym)) {
+            tokens.add(allAcronym);
           }
         }
       }
@@ -163,15 +234,13 @@ export function extractEntityTokens(
   }
 
   if (!Array.isArray(source)) {
-    const text = (source.normalizedProposition || source.originalStatement || '').toLowerCase();
-    const commonEntities = text.match(/\b([A-Z][a-zA-Z0-9]+)\b/g);
+    // CRITICAL: Extract capitalized proper nouns and acronyms on the ORIGINAL-CASE statement!
+    const rawText = source.normalizedProposition || source.originalStatement || '';
+    const commonEntities = rawText.match(/\b([A-Z][a-zA-Z0-9]+)\b/g);
     if (commonEntities) {
       for (const e of commonEntities) {
         const lower = e.toLowerCase();
-        if (
-          lower.length >= 3 &&
-          !['the', 'and', 'for', 'any', 'all', 'what', 'when', 'under', 'from', 'with'].includes(lower)
-        ) {
+        if (lower.length >= 3 && !GENERIC_ENTITY_STOPWORDS.has(lower)) {
           tokens.add(lower);
         }
       }
@@ -179,6 +248,23 @@ export function extractEntityTokens(
   }
 
   return Array.from(tokens);
+}
+
+export function extractRegistrableDomainLabel(hostname: string): { registrableLabel: string; subdomains: string[] } {
+  const parts = hostname.toLowerCase().split('.').filter(Boolean);
+  const commonSuffixes = new Set([
+    'com', 'org', 'net', 'io', 'ai', 'co', 'gov', 'edu', 'nic', 'in', 'uk', 'us', 'eu', 'de', 'fr', 'jp', 'ca', 'au', 'ch'
+  ]);
+  let endIdx = parts.length - 1;
+  while (endIdx >= 0 && commonSuffixes.has(parts[endIdx])) {
+    endIdx--;
+  }
+  if (endIdx < 0) {
+    return { registrableLabel: '', subdomains: [] };
+  }
+  const registrableLabel = parts[endIdx];
+  const subdomains = parts.slice(0, endIdx).filter((s) => s !== 'www');
+  return { registrableLabel, subdomains };
 }
 
 export function isFirstPartyDomainForEntity(
@@ -189,14 +275,25 @@ export function isFirstPartyDomainForEntity(
   try {
     const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
     const host = parsed.hostname.toLowerCase();
-    const hostParts = host.split('.').filter(
-      (part) => !['com', 'org', 'net', 'io', 'ai', 'co', 'gov', 'edu', 'nic', 'in', 'uk', 'us', 'eu', 'www'].includes(part)
-    );
-    const domainBody = hostParts.join('-');
+    const { registrableLabel, subdomains } = extractRegistrableDomainLabel(host);
+    if (!registrableLabel) return false;
 
-    return entityTokens.some((token) => {
+    return entityTokens.some((rawToken) => {
+      const token = rawToken.toLowerCase().trim();
       if (token.length < 3) return false;
-      return hostParts.includes(token) || domainBody.includes(token);
+
+      // 1. Exact label match: e.g. "apple" === "apple", "github" === "github", or subdomain "aws" in aws.amazon.com
+      if (registrableLabel === token || subdomains.includes(token)) {
+        return true;
+      }
+
+      // 2. Clean compound brand match: e.g. "microsoft" in "microsoftcorp", token.length >= 5
+      // Never match short tokens (e.g. "act", "team", "app") inside third-party domains
+      if (token.length >= 5 && registrableLabel.startsWith(token)) {
+        return true;
+      }
+
+      return false;
     });
   } catch {
     return false;
@@ -251,7 +348,7 @@ export function inferDocumentSourceRole(
     }
   }
 
-  // 5. Established reputable news, encyclopedias, and wire services globally
+  // 5. Established reputable news, encyclopedias, wire services, tech press, and legal publications globally
   if (
     u.includes('wikipedia.org') ||
     u.includes('britannica.com') ||
@@ -259,15 +356,22 @@ export function inferDocumentSourceRole(
     u.includes('apnews.com') ||
     u.includes('bloomberg.com') ||
     u.includes('nytimes.com') ||
+    u.includes('wsj.com') ||
+    u.includes('ft.com') ||
+    u.includes('cnbc.com') ||
     u.includes('bbc.com') ||
     u.includes('bbc.co.uk') ||
-    u.includes('washingtonpost.com') ||
-    u.includes('wsj.com') ||
     u.includes('theguardian.com') ||
-    u.includes('cnn.com') ||
+    u.includes('washingtonpost.com') ||
+    u.includes('techcrunch.com') ||
+    u.includes('theverge.com') ||
+    u.includes('arstechnica.com') ||
+    u.includes('wired.com') ||
+    u.includes('forbes.com') ||
+    u.includes('fortune.com') ||
     u.includes('politico.com') ||
+    u.includes('cnn.com') ||
     u.includes('nbcnews.com') ||
-    u.includes('ft.com') ||
     u.includes('timesofindia.indiatimes.com') ||
     u.includes('economictimes.indiatimes.com') ||
     u.includes('indiatimes.com') ||
@@ -277,7 +381,6 @@ export function inferDocumentSourceRole(
     u.includes('indianexpress.com') ||
     u.includes('livemint.com') ||
     u.includes('moneycontrol.com') ||
-    u.includes('ndtv.com') ||
     u.includes('business-standard.com') ||
     u.includes('lemonde.fr') ||
     u.includes('spiegel.de') ||
@@ -292,32 +395,30 @@ export function inferDocumentSourceRole(
     u.includes('dw.com') ||
     u.includes('aljazeera.com') ||
     u.includes('france24.com') ||
+    u.includes('natlawreview.com') ||
+    u.includes('law360.com') ||
     p.includes('wikipedia') ||
     p.includes('reuters') ||
     p.includes('associated press') ||
-    p.includes('encyclopedia') ||
-    p.includes('times of india') ||
-    p.includes('deccan herald') ||
-    p.includes('economic times') ||
-    p.includes('the hindu') ||
-    p.includes('hindustan times') ||
-    p.includes('indian express') ||
-    p.includes('moneycontrol') ||
-    p.includes('livemint') ||
-    p.includes('ndtv') ||
-    p.includes('business standard') ||
-    p.includes('agence france-presse') ||
-    p.includes('deutsche welle')
+    p.includes('bloomberg') ||
+    p.includes('cnbc') ||
+    p.includes('wall street journal') ||
+    p.includes('financial times') ||
+    p.includes('techcrunch') ||
+    p.includes('the verge') ||
+    p.includes('ars technica') ||
+    p.includes('national law review') ||
+    p.includes('law360')
   ) {
     return 'reputable_secondary';
   }
 
-  // 5. Academic institutions, official technical docs, and developer portals
+  // 6. Academic institutions, official technical docs, and developer portals
   if (u.includes('.edu') || u.includes('docs.') || u.includes('/docs')) {
     return 'primary_authority';
   }
 
-  // Unvetted blogs, personal sites, and user forums are treated as counter_perspective (not reputable secondary)
+  // Unvetted blogs, personal sites, and user forums start as counter_perspective (unclassified web)
   return 'counter_perspective';
 }
 
@@ -545,20 +646,21 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
           const budgetedClaims = createdClaims.slice(0, SUPPORTED_MAX_CLAIMS_PER_RUN);
           const unbudgetedClaims = createdClaims.slice(SUPPORTED_MAX_CLAIMS_PER_RUN);
 
-          // For claims exceeding the single-run budget, record explicit limitation rather than stranding
+          // For claims exceeding the single-run budget, record explicit machine-readable skipped status
           if (unbudgetedClaims.length > 0) {
             for (const ub of unbudgetedClaims) {
               await db.claim.update({
                 where: { id: ub.id },
                 data: {
-                  state: 'completed',
-                  status: 'COMPLETED',
+                  state: 'skipped',
+                  status: 'SKIPPED',
                   result: {
+                    state: 'skipped',
                     verdict: 'insufficient_evidence',
                     score: null,
-                    reasonCode: 'INSUFFICIENT_RETRIEVAL_DATA',
-                    scoreReason: 'Verification budget limit reached for this run. Claim could not be independently researched.',
-                    limitations: ['BUDGET_EXHAUSTED'],
+                    reasonCode: 'UNVERIFIED_CLAIM_BUDGET_EXCEEDED',
+                    scoreReason: `Verification budget limit reached for this run (max ${SUPPORTED_MAX_CLAIMS_PER_RUN} claims). Claim could not be independently researched.`,
+                    limitations: ['CLAIM_BUDGET_EXCEEDED'],
                   } as unknown as Prisma.InputJsonValue,
                 },
               });
@@ -636,27 +738,39 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         const claim = claimId ? await db.claim.findUnique({ where: { id: claimId } }) : null;
         const input = (node.input as Record<string, unknown>) ?? {};
 
-        const planQueries = Array.isArray((input.plan as { queries?: Array<{ query?: string }> })?.queries)
-          ? (input.plan as { queries: Array<{ query?: string }> }).queries
-              .map((q) => q.query?.trim())
-              .filter((q): q is string => Boolean(q && q.length > 0))
+        interface SearchPlanQueryItem {
+          query: string;
+          includeDomains?: string[];
+          excludeDomains?: string[];
+        }
+
+        const rawQueries = (input?.plan && Array.isArray((input.plan as { queries?: unknown[] }).queries))
+          ? (input.plan as { queries: Array<{ query?: string; includeDomains?: string[]; excludeDomains?: string[] }> }).queries
           : [];
 
-        const queriesToRun: string[] = [];
+        const planQueryItems: SearchPlanQueryItem[] = rawQueries
+          .map((q) => ({
+            query: q.query?.trim() ?? '',
+            includeDomains: q.includeDomains,
+            excludeDomains: q.excludeDomains,
+          }))
+          .filter((q) => Boolean(q.query && q.query.length > 0));
+
+        const queriesToRun: SearchPlanQueryItem[] = [];
         if (typeof input.query === 'string' && input.query.trim()) {
-          queriesToRun.push(input.query.trim());
+          queriesToRun.push({ query: input.query.trim() });
         }
         const maxSearchQueries = (claim?.spec && Array.isArray((claim.spec as any).components) && (claim.spec as any).components.length > 1) ? 4 : 3;
-        if (planQueries.length > 0) {
-          for (const pq of planQueries) {
-            if (!queriesToRun.includes(pq)) queriesToRun.push(pq);
+        if (planQueryItems.length > 0) {
+          for (const pq of planQueryItems) {
+            if (!queriesToRun.some((x) => x.query === pq.query)) queriesToRun.push(pq);
             if (queriesToRun.length >= maxSearchQueries) break;
           }
         }
 
         if (queriesToRun.length === 0) {
           const fallbackQuery = claim?.normalizedText || claim?.text || 'fact check query';
-          queriesToRun.push(fallbackQuery);
+          queriesToRun.push({ query: fallbackQuery });
         }
 
         // Targeted entity marital/relationship status or life-event query expansion
@@ -668,11 +782,11 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             claimText.includes('spouse')) &&
           queriesToRun.length < maxSearchQueries
         ) {
-          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('marital status'))) {
-            queriesToRun.push('Salman Khan marital status spouse wife');
+          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.query.toLowerCase().includes('marital status'))) {
+            queriesToRun.push({ query: 'Salman Khan marital status spouse wife' });
           }
-          if (claimText.includes('sam altman') && !queriesToRun.some((q) => q.toLowerCase().includes('spouse'))) {
-            queriesToRun.push('Sam Altman spouse partner married');
+          if (claimText.includes('sam altman') && !queriesToRun.some((q) => q.query.toLowerCase().includes('spouse'))) {
+            queriesToRun.push({ query: 'Sam Altman spouse partner married' });
           }
         }
 
@@ -684,8 +798,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
             claimText.includes('killed')) &&
           queriesToRun.length < maxSearchQueries
         ) {
-          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.toLowerCase().includes('alive') || q.toLowerCase().includes('health'))) {
-            queriesToRun.push('"Salman Khan" alive health status news 2026');
+          if (claimText.includes('salman khan') && !queriesToRun.some((q) => q.query.toLowerCase().includes('alive') || q.query.toLowerCase().includes('health'))) {
+            queriesToRun.push({ query: '"Salman Khan" alive health status news 2026' });
           }
         }
 
@@ -700,9 +814,26 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
         // Rule 4: Supplied premises are NOT primary authority. Do not fabricate fake external docs.
         // Do not search explicitly identified fictional entities merely to produce a result.
         if (!isSuppliedPremise) {
-          for (const q of queriesToRun) {
+          for (const qItem of queriesToRun) {
             try {
-              const batch = await tavilySearch({ query: q, maxResults: 4 });
+              const defaultUgcExcludes = ['reddit.com', 'quora.com', 'stackoverflow.com'];
+              const mergedExcludes = Array.from(new Set([...(qItem.excludeDomains ?? []), ...defaultUgcExcludes]));
+
+              const { validDomains, strippedTlds } = sanitizeTavilyIncludeDomains(qItem.includeDomains);
+              let finalQuery = qItem.query;
+              for (const tld of strippedTlds) {
+                const siteOp = `site:${tld}`;
+                if (!finalQuery.toLowerCase().includes(siteOp)) {
+                  finalQuery = `${finalQuery} ${siteOp}`;
+                }
+              }
+
+              const batch = await tavilySearch({
+                query: finalQuery,
+                includeDomains: validDomains.length > 0 ? validDomains : undefined,
+                excludeDomains: mergedExcludes,
+                maxResults: 4,
+              });
               for (const doc of batch) {
                 if (!seenUrls.has(doc.url)) {
                   seenUrls.add(doc.url);
@@ -710,7 +841,7 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                 }
               }
             } catch (err) {
-              console.warn(`[search_evidence] Tavily search failed for query "${q}":`, err);
+              console.warn(`[search_evidence] Tavily search failed for query "${qItem.query}":`, err);
             }
             if (docs.length >= 8) break;
           }
@@ -1361,10 +1492,12 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               // Protect sovereign and first-party vendor domains from LLM downgrade to reputable_secondary
               if (isFirstParty || isSovereign) {
                 doc.sourceRole = 'primary_authority';
-              } else if (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary') {
-                if (doc.sourceRole !== 'counter_perspective') {
-                  doc.sourceRole = 'reputable_secondary';
-                }
+              } else if (
+                !isUserGeneratedContentUrl(doc.url) &&
+                (isSecondaryAssessment || doc.sourceRole === 'reputable_secondary')
+              ) {
+                // Legitimate non-UGC third-party report assessed as credible_secondary
+                doc.sourceRole = 'reputable_secondary';
               }
 
               const isPrimary =

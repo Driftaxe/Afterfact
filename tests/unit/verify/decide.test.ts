@@ -151,6 +151,7 @@ interface EvidenceOptions {
   effectiveDate?: string | null;
   modelConfidence?: number | null;
   runId?: string;
+  url?: string;
 }
 
 function defaultAuthorityBasis(sourceRole: SourceRole): AuthorityBasis {
@@ -178,11 +179,12 @@ function addEvidence(
     options.assessmentId ?? `asm_${options.evidenceId.replace(/^evi_/, '')}`;
   const runId = options.runId ?? input.ticket.runId;
 
+  const sourceUrl = options.url ?? `https://example.com/${options.documentId}`;
   const source: SourceDocument = {
     documentId: options.documentId,
     runId,
-    url: `https://example.com/${options.documentId}`,
-    finalUrl: `https://example.com/${options.documentId}`,
+    url: sourceUrl,
+    finalUrl: sourceUrl,
     retrievedContentHash: `hash_${options.documentId}_v1`,
     retrievedAt: '2026-11-12T00:00:00Z',
     rawText: options.text,
@@ -318,11 +320,19 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       expect(decision.primaryEvidenceIds).toEqual(['asm_official']);
     });
 
-    it('AC02: credible secondary support yields supported/75', () => {
+    it('AC02: credible secondary support yields supported/75 with 2 independent domains', () => {
       const input = emptyInput();
       addEvidence(input, {
-        evidenceId: 'evi_secondary',
-        documentId: 'doc_secondary',
+        evidenceId: 'evi_secondary_1',
+        documentId: 'doc_secondary_1',
+        url: 'https://reuters.com/tech',
+        text: CLAIM_TEXT,
+        sourceRole: 'reputable_secondary',
+      });
+      addEvidence(input, {
+        evidenceId: 'evi_secondary_2',
+        documentId: 'doc_secondary_2',
+        url: 'https://bloomberg.com/tech',
         text: CLAIM_TEXT,
         sourceRole: 'reputable_secondary',
       });
@@ -332,6 +342,26 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       expect(decision.verdict).toBe('supported');
       expect(decision.score).toBe(75);
       expect(decision.reasonCode).toBe('INDIRECT_CREDIBLE_SUPPORT');
+    });
+
+    it('AC02b: single uncorroborated secondary source fails closed to insufficient_evidence', () => {
+      const input = emptyInput();
+      addEvidence(input, {
+        evidenceId: 'evi_secondary_single',
+        documentId: 'doc_secondary_single',
+        url: 'https://reuters.com/tech',
+        text: CLAIM_TEXT,
+        sourceRole: 'reputable_secondary',
+      });
+
+      const decision = expectDecided(decideClaim(input));
+
+      expect(decision.verdict).toBe('insufficient_evidence');
+      expect(decision.score).toBeNull();
+      expect(decision.reasonCode).toBe('INSUFFICIENT_RETRIEVAL_DATA');
+      expect(decision.limitations).toContain(
+        'UNCORROBORATED_SECONDARY_SOURCE: asm_secondary_single'
+      );
     });
 
     it('AC03: an authoritative label without claim-specific provenance cannot grant 100', () => {
@@ -452,11 +482,27 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       expect(mislabeledDecision.score).toBe(0);
     });
 
-    it('AC05c: grounded credible-secondary contradiction with zero support yields contradicted (not insufficient_evidence)', () => {
+    it('AC05c: grounded credible-secondary contradiction with 2 independent domains yields contradicted', () => {
       const input = emptyInput();
       addEvidence(input, {
-        evidenceId: 'evi_secondary_contradiction',
-        documentId: 'doc_secondary_contradiction',
+        evidenceId: 'evi_secondary_contradiction_1',
+        documentId: 'doc_secondary_contradiction_1',
+        url: 'https://apnews.com/article1',
+        sourceRole: 'reputable_secondary',
+        authorityBasis: 'independent_secondary_report',
+        text: 'Salman Khan has never been married and remains a bachelor with no spouse.',
+        relationship: 'contradicts',
+        scopeMatching: 'match',
+        propertyMatchStatus: {
+          matching: ['jurisdiction', 'plan_tier', 'billing_term'],
+          mismatched: ['price'],
+          missingInEvidence: [],
+        },
+      });
+      addEvidence(input, {
+        evidenceId: 'evi_secondary_contradiction_2',
+        documentId: 'doc_secondary_contradiction_2',
+        url: 'https://thehindu.com/article2',
         sourceRole: 'reputable_secondary',
         authorityBasis: 'independent_secondary_report',
         text: 'Salman Khan has never been married and remains a bachelor with no spouse.',
@@ -473,7 +519,33 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       expect(decision.verdict).toBe('contradicted');
       expect(decision.score).toBe(0);
       expect(decision.reasonCode).toBe('DECISIVE_CONTRADICTION');
-      expect(decision.primaryEvidenceIds).toEqual(['asm_secondary_contradiction']);
+    });
+
+    it('AC05d: single uncorroborated secondary contradiction fails closed to insufficient_evidence', () => {
+      const input = emptyInput();
+      addEvidence(input, {
+        evidenceId: 'evi_secondary_contradiction_single',
+        documentId: 'doc_secondary_contradiction_single',
+        url: 'https://apnews.com/article1',
+        sourceRole: 'reputable_secondary',
+        authorityBasis: 'independent_secondary_report',
+        text: 'Salman Khan has never been married and remains a bachelor with no spouse.',
+        relationship: 'contradicts',
+        scopeMatching: 'match',
+        propertyMatchStatus: {
+          matching: ['jurisdiction', 'plan_tier', 'billing_term'],
+          mismatched: ['price'],
+          missingInEvidence: [],
+        },
+      });
+
+      const decision = expectDecided(decideClaim(input));
+      expect(decision.verdict).toBe('insufficient_evidence');
+      expect(decision.score).toBeNull();
+      expect(decision.reasonCode).toBe('INSUFFICIENT_RETRIEVAL_DATA');
+      expect(decision.limitations).toContain(
+        'UNCORROBORATED_SECONDARY_OPPOSITION: asm_secondary_contradiction_single'
+      );
     });
 
     it('AC06: a different jurisdiction cannot directly contradict the UK claim', () => {
@@ -1185,11 +1257,20 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       addEvidence(input, {
         evidenceId: 'evi_primary',
         documentId: 'doc_primary',
+        url: 'https://official-vendor.com/pricing',
         text: CLAIM_TEXT,
       });
       addEvidence(input, {
-        evidenceId: 'evi_secondary',
-        documentId: 'doc_secondary',
+        evidenceId: 'evi_secondary_1',
+        documentId: 'doc_secondary_1',
+        url: 'https://reuters.com/tech',
+        text: CLAIM_TEXT,
+        sourceRole: 'reputable_secondary',
+      });
+      addEvidence(input, {
+        evidenceId: 'evi_secondary_2',
+        documentId: 'doc_secondary_2',
+        url: 'https://bloomberg.com/tech',
         text: CLAIM_TEXT,
         sourceRole: 'reputable_secondary',
       });
@@ -1204,7 +1285,7 @@ describe('Stage 4: Deterministic Decision Gate (decideClaim)', () => {
       expect(decision.verdict).toBe('supported');
       expect(decision.score).toBe(75);
       expect(decision.reasonCode).toBe('INDIRECT_CREDIBLE_SUPPORT');
-      expect(decision.primaryEvidenceIds).toEqual(['asm_secondary']);
+      expect(decision.primaryEvidenceIds).toEqual(['asm_secondary_1', 'asm_secondary_2']);
       expect(decision.limitations).toContain(
         'MATERIAL_COVERAGE_LIMITATION_UNRESOLVED: asm_primary'
       );

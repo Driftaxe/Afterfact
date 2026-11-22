@@ -103,6 +103,36 @@ function cleanJsonOutput(text: string): string {
  * Generates an auditable ResearchPlan containing targeted search queries
  * to verify or falsify an atomic ClaimTicket against web evidence.
  */
+/**
+ * Determines whether a domain string is a bare public suffix / multi-tenant TLD namespace
+ * (e.g. 'gov', 'gov.in', 'nic.in', 'gov.au', 'gob.es', 'admin.ch') rather than a concrete host.
+ * Tavily's include_domains fails silently (returns 0 results) when passed bare public suffixes.
+ */
+export function isBareTldSuffix(domain: string): boolean {
+  if (!domain) return false;
+  const d = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  if (
+    d === 'gov' ||
+    d === 'mil' ||
+    d === 'edu' ||
+    d === 'gov.in' ||
+    d === 'nic.in' ||
+    d === 'gov.au' ||
+    d === 'gov.za' ||
+    d === 'gob.es' ||
+    d === 'gouv.fr' ||
+    d === 'admin.ch' ||
+    d === 'co.in' ||
+    d === 'org.in' ||
+    d === 'ac.uk' ||
+    /^[a-z]{2,3}$/.test(d) ||
+    (/^(gov|gob|gouv|nic|ac|co|org)\.[a-z]{2,}$/.test(d) && d !== 'gov.uk')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function generateResearchPlan(
   params: GenerateResearchPlanParams
 ): Promise<ResearchPlanOutcome> {
@@ -286,19 +316,24 @@ export async function generateResearchPlan(
         .trim();
 
       let sovereignTarget = '';
+      let sovereignIncludeDomains: string[] | undefined = undefined;
       const jurProp = ticket.verificationContext.find(
         (p) => p.key === 'jurisdiction' || p.key === 'country'
       )?.value;
       const jurStr = typeof jurProp === 'string' ? jurProp.toLowerCase() : '';
 
       if (jurStr === 'in' || jurStr.includes('india')) {
-        sovereignTarget = 'official rules gazette gov.in';
+        sovereignTarget = 'official rules gazette site:gov.in';
+        sovereignIncludeDomains = ['indiacode.nic.in', 'egazette.gov.in', 'pib.gov.in'];
       } else if (jurStr === 'us' || jurStr.includes('united states')) {
         sovereignTarget = 'official statutory code site:gov';
+        sovereignIncludeDomains = ['federalregister.gov', 'ecfr.gov'];
       } else if (jurStr === 'uk' || jurStr.includes('united kingdom')) {
         sovereignTarget = 'legislation site:gov.uk';
+        sovereignIncludeDomains = ['legislation.gov.uk', 'gov.uk'];
       } else if (jurStr === 'eu' || jurStr.includes('european union')) {
         sovereignTarget = 'directive site:europa.eu';
+        sovereignIncludeDomains = ['eur-lex.europa.eu', 'ec.europa.eu', 'europa.eu'];
       }
 
       const canonicalSuffix = ticket.domain === 'regulation'
@@ -307,11 +342,30 @@ export async function generateResearchPlan(
 
       const adaptedQuery = `${strippedQuery} ${canonicalSuffix}`.slice(0, MAX_QUERY_LENGTH).trim();
 
+      const sanitizedInclude = sovereignIncludeDomains
+        ? sovereignIncludeDomains.filter((d) => !isBareTldSuffix(d))
+        : undefined;
+
       queries[1] = {
         ...queries[1],
         query: adaptedQuery,
         purpose: 'investigate_exceptions_or_scope',
+        includeDomains: sanitizedInclude && sanitizedInclude.length > 0 ? sanitizedInclude : undefined,
+        excludeDomains: ['reddit.com', 'quora.com', 'stackoverflow.com'],
       };
+    }
+  }
+
+  // Attach default UGC exclusions to primary authority and regulatory queries across all queries
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    if (
+      q.targetSourceRoles.includes('primary_authority') ||
+      q.targetSourceRoles.includes('regulatory_filing')
+    ) {
+      if (!q.excludeDomains) {
+        q.excludeDomains = ['reddit.com', 'quora.com', 'stackoverflow.com'];
+      }
     }
   }
 

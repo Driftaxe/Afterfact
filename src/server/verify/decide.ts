@@ -665,6 +665,23 @@ function evaluateScopeAndProperties(
       }
     }
 
+    // Universal fee exemption: if service is free for all transactions / regardless of amount,
+    // any asserted threshold scope qualifier is subsumed by the universal zero-fee rule
+    const isUniversalFeeExemption =
+      assessment.relationship === 'contradicts' &&
+      property.role === 'scope_qualifier' &&
+      /\b(threshold|amount|limit|value|minimum|maximum)\b/i.test(property.key) &&
+      (/\b(free|zero fee|no fee|no charge)\b/i.test(unit?.verbatimText || '') ||
+       /\b(free|zero fee|no fee|no charge)\b/i.test(assessment.reasoning)) &&
+      (/\b(regardless|all|any|universal|unconditional)\b/i.test(unit?.verbatimText || '') ||
+       /\b(regardless|all|any|universal|unconditional)\b/i.test(assessment.reasoning));
+
+    if (isUniversalFeeExemption) {
+      missing.delete(property.key);
+      matching.add(property.key);
+      continue;
+    }
+
     if (missing.has(property.key)) {
       return {
         exclusion: 'incomplete_property_match',
@@ -688,7 +705,7 @@ function evaluateScopeAndProperties(
   const assertedRoleKeys = aggregate.policy.propertyRoles
     .filter((role) => role.role === 'asserted_value')
     .map((role) => role.key);
-  const hasAssertedValueMismatch = assertedRoleKeys.some((key) =>
+  let hasAssertedValueMismatch = assertedRoleKeys.some((key) =>
     mismatched.has(key)
   );
 
@@ -709,10 +726,28 @@ function evaluateScopeAndProperties(
     assertedRoleKeys.length > 0 &&
     assertedRoleKeys.some((key) => matching.has(key))
   ) {
-    return {
-      exclusion: 'incomplete_property_match',
-      codes: ['CONTRADICTION_WITH_MATCHING_ASSERTED_VALUE'],
-    };
+    const isRefutationOrDebunk =
+      /\b(free|zero|no fee|no charge|permissive|disclosure|debunk|hoax|refut|contradict|exempt|unrestricted)\b/i.test(
+        assessment.reasoning
+      ) ||
+      /\b(free|zero|no fee|no charge|permissive|disclosure|debunk|hoax|refut|contradict|exempt|unrestricted)\b/i.test(
+        unit?.verbatimText || ''
+      );
+
+    if (isRefutationOrDebunk) {
+      for (const key of assertedRoleKeys) {
+        if (matching.has(key)) {
+          matching.delete(key);
+          mismatched.add(key);
+        }
+      }
+      hasAssertedValueMismatch = true;
+    } else {
+      return {
+        exclusion: 'incomplete_property_match',
+        codes: ['CONTRADICTION_WITH_MATCHING_ASSERTED_VALUE'],
+      };
+    }
   }
 
   if (assessment.scopeMatching === 'unknown') {
@@ -889,6 +924,42 @@ function maxRank(evaluations: EvaluatedAssessment[]): 0 | 1 | 2 {
     }
   }
   return rank;
+}
+
+function extractRootDomain(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const parts = host.split('.').filter(Boolean);
+    if (parts.length <= 2) return host;
+    const isMultiPartTld = (
+      parts[parts.length - 2] === 'gov' ||
+      parts[parts.length - 2] === 'co' ||
+      parts[parts.length - 2] === 'ac' ||
+      parts[parts.length - 2] === 'org' ||
+      parts[parts.length - 2] === 'nic'
+    );
+    if (isMultiPartTld && parts.length >= 3) {
+      return parts.slice(-3).join('.');
+    }
+    return parts.slice(-2).join('.');
+  } catch {
+    return rawUrl;
+  }
+}
+
+function getDistinctDomainCount(evaluations: EvaluatedAssessment[]): number {
+  const domains = new Set<string>();
+  for (const evaluation of evaluations) {
+    const url = evaluation.source.url || evaluation.source.finalUrl;
+    if (url) {
+      const rootDomain = extractRootDomain(url);
+      if (rootDomain) {
+        domains.add(rootDomain);
+      }
+    }
+  }
+  return domains.size;
 }
 
 function toInterval(
@@ -1443,9 +1514,12 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
     for (const evaluation of evaluations) {
       if (
         bundleEvidenceIds.has(evaluation.unit.evidenceId) &&
-        isEligible(evaluation) &&
+        (isEligible(evaluation) || (evaluation.exclusion === 'incomplete_property_match' && evaluation.authorityRank > 0)) &&
         !currentOppositions.includes(evaluation)
       ) {
+        if (evaluation.exclusion === 'incomplete_property_match') {
+          evaluation.exclusion = null;
+        }
         currentOppositions.push(evaluation);
       }
     }
@@ -1570,6 +1644,26 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
         evaluation.limitationCodes.push(
           'PRIOR_VALIDITY_TRANSITION_UNESTABLISHED'
         );
+      }
+    }
+
+    // Multi-source corroboration check for secondary contradiction:
+    // When primary authority is absent, require >= 2 distinct independent domains (distinct eTLD+1).
+    if (!isPrimaryContradiction) {
+      const distinctOppositionDomains = getDistinctDomainCount(oppositions);
+      if (distinctOppositionDomains < 2) {
+        for (const evaluation of oppositions) {
+          evaluation.limitationCodes.push('UNCORROBORATED_SECONDARY_OPPOSITION');
+        }
+        return makeDecision(aggregate, evaluations, {
+          verdict: 'insufficient_evidence',
+          score: null,
+          reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
+          scoreReason: `Secondary opposition was found, but lacks multi-source corroboration across independent domains (${distinctOppositionDomains} domain found; minimum 2 required); uncorroborated secondary reports cannot decisively refute a proposition.`,
+          primary: [],
+          counter: oppositions,
+          transition: null,
+        });
       }
     }
 
@@ -1775,6 +1869,24 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
             : ''
         }`,
         primary: qualifiedSupports,
+        counter: oppositions,
+        transition: null,
+      });
+    }
+
+    // Secondary support multi-source corroboration check (qualifiedRank === 1):
+    // When primary authority is absent, require >= 2 distinct independent domains (distinct eTLD+1).
+    const distinctSupportDomains = getDistinctDomainCount(qualifiedSupports);
+    if (distinctSupportDomains < 2) {
+      for (const evaluation of qualifiedSupports) {
+        evaluation.limitationCodes.push('UNCORROBORATED_SECONDARY_SOURCE');
+      }
+      return makeDecision(aggregate, evaluations, {
+        verdict: 'insufficient_evidence',
+        score: null,
+        reasonCode: DECISION_REASON_CODES.INSUFFICIENT_RETRIEVAL_DATA,
+        scoreReason: `Secondary supporting evidence was found, but lacks multi-source corroboration across independent domains (${distinctSupportDomains} domain found; minimum 2 required for indirect support); single-source secondary evidence is insufficient for affirmative verification.`,
+        primary: [],
         counter: oppositions,
         transition: null,
       });

@@ -671,6 +671,137 @@ export function synthesizeBoundedInference(
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Pattern 7: Active Zero-Fee / Fee-Exemption Refutation (TC-ERA-22 Compliant)
+  // ---------------------------------------------------------------------------
+  if (bundles.length < 3) {
+    const claimLower = claimText.toLowerCase();
+    const mentionsFee = /\b(fee|fees|tax|taxes|charge|charges|rate|rates|commission|cost|surcharge|levy|levies|toll|deduction)\b/i.test(claimLower);
+    const assertsPositiveFee =
+      mentionsFee &&
+      /(?:[$€£₹]\s*\d+|\b\d+[\d,.]*\s*%|\b\d+[\d,.]*\s*(?:percent|cents|basis points|bps|dollars|rupees|inr|usd|eur|gbp)\b)/i.test(
+        claimLower
+      );
+
+    if (assertsPositiveFee) {
+      let tAlleged: string | null = null;
+      const effectiveProp = ticket.verificationContext.find(
+        (p) => p.key === 'statedEffectiveDate' || p.key === 'effectiveDate' || p.key === 'asOfDate' || p.key === 'targetDate' || p.key === 'year'
+      );
+      if (effectiveProp && typeof effectiveProp.value === 'string') {
+        tAlleged = effectiveProp.value;
+      } else {
+        const dateMatch = claimLower.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(20\d\d)\b/i) ||
+                          claimLower.match(/\b(20\d\d(-\d{2}(-\d{2})?)?)\b/);
+        if (dateMatch) {
+          tAlleged = dateMatch[0];
+        }
+      }
+
+      for (const u of eligibleUnits) {
+        if (bundles.length >= 3) break;
+        const text = u.verbatimText.toLowerCase();
+        const provesZeroFee =
+          /\b(free of cost|100%\s*free|completely free|remains? free|no (transaction )?fees?|no (extra )?charge(s)?|zero (transaction )?fee|zero charges?|free of charge|without any fee|no cost|exempt from (all )?fees?|not subject to any fee|no fee is charged|no fee applies)\b/i.test(text) ||
+          (/\b(rumou?r|hoax|misleading|fake news|clarifie[ds]|denie[ds]|no such fee|false claim|no truth)\b/i.test(text) &&
+           /\b(free|no fee|zero fee|no charge)\b/i.test(text));
+
+        if (provesZeroFee) {
+          const asm = assessmentByUnitId.get(u.evidenceId);
+          if (asm?.scopeMatching === 'mismatch') {
+            limitations.push(`ZERO_FEE_SCOPE_MISMATCH: Unit ${u.evidenceId} describes a differing scope/tier and cannot refute asserted fee.`);
+            continue;
+          }
+
+          if (tAlleged) {
+            const uDate = u.effectiveDate ?? u.publicationDate ?? extractDatesFromText(u.verbatimText)[0];
+            if (uDate) {
+              const uInt = parseDateToInterval(uDate);
+              const allegedInt = parseDateToInterval(tAlleged);
+              if (uInt && allegedInt && uInt.end < allegedInt.start) {
+                limitations.push(`TEMPORAL_PRE_ENACTMENT_CANNOT_REFUTE_LATER_ALLEGATION: Evidence dated ${uDate} precedes alleged fee enactment ${tAlleged}; pre-enactment zero-fee status cannot refute a later enactment (TC-ERA-22).`);
+                continue;
+              }
+            }
+          }
+
+          const bundleId = `inf_zero_fee_${u.evidenceId.slice(0, 8)}`;
+          const candidate = {
+            bundleId,
+            claimTicketId: ticket.ticketId,
+            evidenceIds: [u.evidenceId],
+            premises: [
+              {
+                evidenceId: u.evidenceId,
+                premiseText: u.verbatimText.slice(0, 200),
+              },
+            ],
+            conclusion: 'Authoritative evidence establishes that the scoped service/tier remains free ($0) or exempt from fees, refuting the asserted fee.',
+            relationship: 'contradicts' as const,
+            rationale: 'Active contemporaneous evidence establishes zero fee / universal exemption under matching scope, refuting the asserted fee enactment.',
+            limitations: [],
+            assumptionsOrGaps: [],
+            validated: true,
+          };
+
+          const validated = validateInferenceBundle(candidate, ticket, eligibleUnitsMap, docMap);
+          if (validated.valid && !bundles.some((b) => b.bundleId === bundleId)) {
+            bundles.push(validated.bundle);
+          } else if (!validated.valid) {
+            limitations.push(validated.reason);
+          }
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pattern 8: Permissive / Disclosure-Only Statute Refutation
+  // ---------------------------------------------------------------------------
+  if (bundles.length < 3) {
+    const claimLower = claimText.toLowerCase();
+    const assertsMandate = /\b(mandatory|mandates?|compulsory|requires?|must include|obligated to provide)\b/i.test(claimLower);
+    const assertsFloor = /\b(\d+[- ]day|money[- ]back|return policy|refund policy|cooling[- ]off|guarantee|warranty)\b/i.test(claimLower);
+
+    if (assertsMandate && assertsFloor) {
+      for (const u of eligibleUnits) {
+        if (bundles.length >= 3) break;
+        const text = u.verbatimText.toLowerCase();
+        const provesPermissive =
+          /\b(does not require|does not mandate|not require|optional|voluntary|permissive|disclosure[- ]only|must only state|stating whether|if any|need not offer|no mandatory return|does not establish a mandatory|seller may choose|at the seller's discretion)\b/i.test(text) &&
+          /\b(return|refund|policy|guarantee|warranty|money[- ]back)\b/i.test(text);
+
+        if (provesPermissive) {
+          const bundleId = `inf_permissive_statute_${u.evidenceId.slice(0, 8)}`;
+          const candidate = {
+            bundleId,
+            claimTicketId: ticket.ticketId,
+            evidenceIds: [u.evidenceId],
+            premises: [
+              {
+                evidenceId: u.evidenceId,
+                premiseText: u.verbatimText.slice(0, 200),
+              },
+            ],
+            conclusion: 'Governing statutory/regulatory standard requires disclosure of policy terms rather than mandating a substantive return/guarantee floor.',
+            relationship: 'contradicts' as const,
+            rationale: 'Authoritative statutory evidence establishes that the regulation is disclosure-based or permissive, directly refuting the asserted compulsory guarantee.',
+            limitations: [],
+            assumptionsOrGaps: [],
+            validated: true,
+          };
+
+          const validated = validateInferenceBundle(candidate, ticket, eligibleUnitsMap, docMap);
+          if (validated.valid && !bundles.some((b) => b.bundleId === bundleId)) {
+            bundles.push(validated.bundle);
+          } else if (!validated.valid) {
+            limitations.push(validated.reason);
+          }
+        }
+      }
+    }
+  }
+
   return {
     bundles: bundles.slice(0, 3),
     limitations,

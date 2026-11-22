@@ -346,7 +346,7 @@ export function ClaimDetail({
     const transitionEntry = claim.timeline?.find((e) => e.state === 'transition');
     if (transitionEntry?.summary) return transitionEntry.summary;
 
-    if (claim.state === 'assessed' && claim.scoreReason) {
+    if ((claim.state === 'assessed' || claim.state === 'skipped') && claim.scoreReason) {
       return claim.scoreReason;
     }
     return '';
@@ -382,6 +382,11 @@ export function ClaimDetail({
       scoreText = 'Unresolved (—)';
       scoreClass = 'text-status-unresolved-text';
     }
+  } else if (claim.state === 'skipped' || claim.reasonCode === 'UNVERIFIED_CLAIM_BUDGET_EXCEEDED') {
+    verdictStatus = 'unresolved';
+    verdictLabel = 'Not verified (claim limit)';
+    scoreText = '—';
+    scoreClass = 'text-text-muted';
   } else if (claim.state === 'failed') {
     verdictStatus = 'unresolved';
     verdictLabel = 'Failed';
@@ -585,7 +590,7 @@ export function ClaimDetail({
           </div>
         )}
 
-        {claim.state === 'assessed' && claim.scoreReason && (
+        {(claim.state === 'assessed' || claim.state === 'skipped') && claim.scoreReason && (
           <div className="p-3.5 rounded-lg bg-surface-raised/80 border border-border-subtle/80 text-xs text-text-secondary leading-relaxed space-y-1.5">
             <div className="flex items-center gap-2 text-[11px] font-mono text-text-muted">
               <span className="uppercase tracking-wider">Decision Reason</span>
