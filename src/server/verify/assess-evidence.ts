@@ -417,28 +417,68 @@ export async function assessEvidenceAgainstClaim(
       else if (docHost.endsWith('.ch')) sovereignJur = 'CH';
     }
 
-    if (sovereignJur) {
-      for (const p of ticket.verificationContext) {
-        if (p.key === 'jurisdiction' || p.key === 'country') {
-          const val = String(p.value).toLowerCase();
-          if (
-            (sovereignJur === 'IN' && (val === 'in' || val.includes('india'))) ||
-            (sovereignJur === 'US' && (val === 'us' || val.includes('united states') || val.includes('usa'))) ||
-            (sovereignJur === 'UK' && (val === 'uk' || val.includes('united kingdom') || val.includes('britain'))) ||
-            (sovereignJur === 'EU' && (val === 'eu' || val.includes('european union'))) ||
-            (sovereignJur === 'CH' && (val === 'ch' || val.includes('switzerland'))) ||
-            (sovereignJur === 'AU' && (val === 'au' || val.includes('australia')))
-          ) {
-            matchingSet.add(p.key);
-            missingInEvidenceSet.delete(p.key);
-          }
-        }
-      }
-    }
+    const docContentText = [
+      parentDoc?.title,
+      unit.verbatimText,
+      ...(unit.surroundingHeaders || []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
 
-    // Grounded document metadata: if entity/manufacturer/regulator is established by doc content/title/url, mark matching
+    // Grounded document metadata & jurisdiction inheritance
     for (const p of ticket.verificationContext) {
-      if (
+      if (p.key === 'jurisdiction' || p.key === 'country') {
+        const val = String(p.value).toLowerCase().trim();
+        const isIndiaMatch =
+          (val === 'in' || val.includes('india') || val.includes('reserve bank')) &&
+          (sovereignJur === 'IN' ||
+            /\b(india|indian|rbi|npci|inr|rs\.?|rupees?|₹)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isUSMatch =
+          (val === 'us' || val.includes('united states') || val.includes('usa')) &&
+          (sovereignJur === 'US' ||
+            /\b(united states|u\.s\.?|usa|irs|tsa|fdic|sec|ftc|usd|\$|dollars?)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isUKMatch =
+          (val === 'uk' || val.includes('united kingdom') || val.includes('britain')) &&
+          (sovereignJur === 'UK' ||
+            /\b(united kingdom|u\.k\.?|britain|british|hmrc|fca|gbp|£|pounds?)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isEUMatch =
+          (val === 'eu' || val.includes('european union')) &&
+          (sovereignJur === 'EU' ||
+            /\b(european union|eu|ec|euro|euros?|€|eur-lex)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isCHMatch =
+          (val === 'ch' || val.includes('switzerland')) &&
+          (sovereignJur === 'CH' ||
+            /\b(switzerland|swiss|chf)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        const isAUMatch =
+          (val === 'au' || val.includes('australia')) &&
+          (sovereignJur === 'AU' ||
+            /\b(australia|australian|aud|asic|apra)\b/i.test(docContentText) ||
+            docContentText.includes(val));
+
+        if (
+          isIndiaMatch ||
+          isUSMatch ||
+          isUKMatch ||
+          isEUMatch ||
+          isCHMatch ||
+          isAUMatch ||
+          (val.length >= 2 && docContentText.includes(val))
+        ) {
+          matchingSet.add(p.key);
+          missingInEvidenceSet.delete(p.key);
+        }
+      } else if (
         p.key === 'manufacturer' ||
         p.key === 'company' ||
         p.key === 'organization' ||
@@ -446,20 +486,15 @@ export async function assessEvidenceAgainstClaim(
         p.key === 'provider' ||
         p.key === 'regulator' ||
         p.key === 'agency' ||
-        p.key === 'entity'
+        p.key === 'entity' ||
+        (p.label && /\b(regulatory|agency|vendor|company|provider)\b/i.test(p.label))
       ) {
         const entityVal = String(p.value).toLowerCase().trim();
-        const docText = [
-          parentDoc?.title,
-          unit.verbatimText,
-          ...(unit.surroundingHeaders || []),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-
         const isPrimaryDoc = parentDoc?.sourceRole === 'primary_authority';
-        if (docText.includes(entityVal) || (isPrimaryDoc && docHost && docHost.includes(entityVal))) {
+        if (
+          (entityVal.length >= 2 && docContentText.includes(entityVal)) ||
+          (isPrimaryDoc && docHost && docHost.includes(entityVal))
+        ) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
         }
@@ -468,6 +503,21 @@ export async function assessEvidenceAgainstClaim(
         if (parentDoc?.publisher && parentDoc.publisher.toLowerCase().includes(pubVal)) {
           matchingSet.add(p.key);
           missingInEvidenceSet.delete(p.key);
+        }
+      }
+    }
+
+    // When an excerpt documents a transition or historical proposal mentioning the asserted value
+    for (const p of ticket.verificationContext) {
+      if (p.role === 'asserted_value' && missingInEvidenceSet.has(p.key)) {
+        const strVal = String(p.value).toLowerCase().trim();
+        if (strVal.length > 0 && docContentText.includes(strVal)) {
+          missingInEvidenceSet.delete(p.key);
+          if (relationship === 'supports' || relationship === 'historical_state') {
+            matchingSet.add(p.key);
+          } else if (relationship === 'contradicts') {
+            mismatchedSet.add(p.key);
+          }
         }
       }
     }

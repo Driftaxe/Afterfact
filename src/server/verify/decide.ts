@@ -1253,14 +1253,20 @@ function findValidTransition(
     .map((m) => m[0].replace(/,/g, ''))
     .filter((n) => n.length >= 2 || !['0', '1'].includes(n));
 
-  for (const superseding of candidateOppositions) {
-    if (superseding.authorityRank < 1) continue;
-    const oppText = `${superseding.unit.verbatimText} ${superseding.assessment.reasoning}`;
+  // Collect any transition proof text across oppositions or candidate supports
+  const transitionEvidencePool = [
+    ...candidateOppositions,
+    ...candidateSupports,
+  ];
 
-    if (!TRANSITION_ACTION_REGEX.test(oppText)) continue;
+  for (const transEval of transitionEvidencePool) {
+    if (transEval.authorityRank < 1) continue;
+    const transText = `${transEval.unit.verbatimText} ${transEval.assessment.reasoning}`;
+
+    if (!TRANSITION_ACTION_REGEX.test(transText)) continue;
 
     let matchesClaimedPrior = false;
-    const fromMatch = oppText.match(TRANSITION_FROM_REGEX);
+    const fromMatch = transText.match(TRANSITION_FROM_REGEX);
     if (fromMatch) {
       const fromVal = fromMatch[1].replace(/,/g, '');
       if (numbersInClaim.includes(fromVal)) {
@@ -1273,7 +1279,7 @@ function findValidTransition(
         new RegExp(
           `\\b(?:from|prior to|previously|was|capped at)\\s+(?:[₹$€£]|rs\\.?|inr|usd|eur|gbp)?\\s*${num}\\b`,
           'i'
-        ).test(oppText)
+        ).test(transText)
       );
       if (mentionsClaimNumber) {
         matchesClaimedPrior = true;
@@ -1283,7 +1289,7 @@ function findValidTransition(
     if (!matchesClaimedPrior && numbersInClaim.length === 0) {
       if (
         /\b(superseded|replaced|amended|revised|no longer applies)\b/i.test(
-          oppText
+          transText
         )
       ) {
         matchesClaimedPrior = true;
@@ -1292,14 +1298,24 @@ function findValidTransition(
 
     if (!matchesClaimedPrior) continue;
 
-    const transEffectiveDate = extractTransitionDate(superseding);
+    const transEffectiveDate = extractTransitionDate(transEval);
     if (!transEffectiveDate) continue;
     if (!isOnOrBeforeTarget(transEffectiveDate, aggregate.ticket.targetTime)) {
       continue;
     }
 
+    // Determine the superseding opposition assessment:
+    // If transEval itself is an opposition, use it; otherwise find an opposition (e.g. from same document or pool)
+    const superseding =
+      candidateOppositions.find((opp) => opp.assessment.assessmentId === transEval.assessment.assessmentId) ||
+      candidateOppositions.find((opp) => opp.unit.documentId === transEval.unit.documentId) ||
+      candidateOppositions[0];
+
+    if (!superseding || superseding.authorityRank < 1) continue;
+
     for (const prior of candidateSupports) {
       if (prior.authorityRank < 1) continue;
+      if (prior.assessment.assessmentId === superseding.assessment.assessmentId) continue;
       if (superseding.authorityRank < prior.authorityRank) continue;
 
       const priorDate = extractTransitionDate(prior);

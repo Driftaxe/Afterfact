@@ -1064,6 +1064,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
                   runId,
                   url: doc.url,
                   finalUrl: doc.finalUrl ?? doc.url,
+                  title: doc.title ?? '',
+                  publisher: doc.publisher ?? undefined,
                   retrievedContentHash: doc.contentHash ?? 'hash',
                   retrievedAt: doc.retrievedAt?.toISOString() ?? new Date().toISOString(),
                   rawText: doc.rawContent ?? doc.title ?? '',
