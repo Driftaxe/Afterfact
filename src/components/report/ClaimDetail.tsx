@@ -45,6 +45,7 @@ export interface ClaimDetailProps {
   clarification?: ClaimClarificationContext;
   onClarificationSuccess?: () => void;
   runId?: string;
+  runState?: string;
   className?: string;
 }
 
@@ -333,6 +334,7 @@ export function ClaimDetail({
   clarification,
   onClarificationSuccess,
   runId,
+  runState,
   className = '',
 }: ClaimDetailProps) {
   const driftDiscoveredText = useMemo(() => {
@@ -346,9 +348,6 @@ export function ClaimDetail({
     const transitionEntry = claim.timeline?.find((e) => e.state === 'transition');
     if (transitionEntry?.summary) return transitionEntry.summary;
 
-    if ((claim.state === 'assessed' || claim.state === 'skipped') && claim.scoreReason) {
-      return claim.scoreReason;
-    }
     return '';
   }, [claim]);
 
@@ -414,6 +413,14 @@ export function ClaimDetail({
     claim.verdict === 'contradicted' ||
     claim.verdict === 'depends_on_context' ||
     Boolean(claim.timeline && claim.timeline.some((e) => e.state === 'transition' || e.state === 'current'));
+
+  // Diff loading state: claim is assessed as contradicted/outdated but surgical correction or transition is still in-flight
+  const isDiffLoading =
+    needsDriftAnalysis &&
+    !driftDiscoveredText &&
+    runState !== 'completed' &&
+    runState !== 'failed' &&
+    claim.state === 'assessed';
 
   const driftOriginalText = claim.correction?.originalText || claim.rawText;
 
@@ -644,8 +651,43 @@ export function ClaimDetail({
         </div>
       )}
 
+      {/* Word-by-Word Context Drift Analysis Loading Skeleton (while surgical correction is synthesizing) */}
+      {isDiffLoading && (
+        <div
+          data-testid="context-comparison-loading"
+          className="rounded-xl border border-border-subtle/80 bg-surface-raised/40 p-5 space-y-4 shadow-xs animate-pulse"
+        >
+          <div className="flex items-center justify-between border-b border-border-subtle/60 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
+                Word-by-Word Context Drift Analysis
+              </h4>
+              <span className="rounded bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-mono text-accent">
+                Synthesizing verified diff...
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Evaluating verified replacement proposition and computing surgical token diff...
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="rounded-xl border border-border-subtle bg-surface p-4 space-y-2">
+                <div className="h-3 w-32 rounded bg-surface-raised" />
+                <div className="h-10 rounded bg-surface-raised/60" />
+              </div>
+              <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-2">
+                <div className="h-3 w-32 rounded bg-accent/20" />
+                <div className="h-10 rounded bg-accent/10" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Word-by-Word Context Drift Analysis */}
-      {needsDriftAnalysis && driftDiscoveredText && (
+      {!isDiffLoading && needsDriftAnalysis && driftDiscoveredText && (
         <ContextComparison
           title="Word-by-Word Context Drift Analysis"
           originalText={driftOriginalText}
