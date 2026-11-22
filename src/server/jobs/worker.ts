@@ -5,7 +5,7 @@ import { DagService } from '@/server/services/dag-service';
 import { EventService } from '@/server/services/event-service';
 import { expandDag } from '@/server/dag/expand';
 import { extractClaimsFromText } from '@/server/verify/extract-claims';
-import { generateResearchPlan, isBareTldSuffix } from '@/server/verify/research-planner';
+import { generateResearchPlan, isBareTldSuffix, sanitizeQueryText } from '@/server/verify/research-planner';
 import { tavilySearch, tavilyExtract, RawSourceDoc } from '@/server/tavily/client';
 import { extractEvidenceUnits } from '@/server/verify/extract-evidence';
 import { assessEvidenceAgainstClaim } from '@/server/verify/assess-evidence';
@@ -168,7 +168,15 @@ const GENERIC_ENTITY_STOPWORDS = new Set([
   'accounts', 'private', 'public', 'global', 'standard', 'code', 'system',
   'data', 'platform', 'service', 'services', 'functions', 'function', 'fee', 'fees',
   'rate', 'rates', 'fine', 'fines', 'penalty', 'penalties', 'month', 'months',
-  'year', 'years', 'inc', 'ltd', 'corp', 'llc', 'gmbh'
+  'year', 'years', 'inc', 'ltd', 'corp', 'llc', 'gmbh',
+  // Generic nouns, agencies, and geographic descriptors
+  'bank', 'banks', 'banking', 'board', 'council', 'authority', 'department',
+  'administration', 'agency', 'india', 'indian', 'america', 'american',
+  'national', 'federal', 'central'
+]);
+
+const PREPOSITION_WORDS = new Set([
+  'of', 'and', 'for', 'the', 'in', 'on', 'at', 'by', 'to', 'with', 'from', 'de', 'du', 'des', 'und', 'et'
 ]);
 
 export function sanitizeTavilyIncludeDomains(
@@ -217,9 +225,10 @@ export function extractEntityTokens(
         // Multi-word acronym generation for statutory/regulatory/corporate bodies
         const rawWords = p.value.split(/\s+/).filter(Boolean);
         if (rawWords.length >= 2) {
-          const sigWords = rawWords.filter((w) => !GENERIC_ENTITY_STOPWORDS.has(w.toLowerCase()));
-          if (sigWords.length >= 2) {
-            const sigAcronym = sigWords.map((w) => w[0].toLowerCase()).join('').replace(/[^a-z0-9]/g, '');
+          // Exclude grammatical prepositions to form clean acronyms (e.g. "Reserve Bank of India" -> "rbi", "Food and Drug Administration" -> "fda")
+          const nonPrepWords = rawWords.filter((w) => !PREPOSITION_WORDS.has(w.toLowerCase()));
+          if (nonPrepWords.length >= 2) {
+            const sigAcronym = nonPrepWords.map((w) => w[0].toLowerCase()).join('').replace(/[^a-z0-9]/g, '');
             if (sigAcronym.length >= 2 && sigAcronym.length <= 6 && !GENERIC_ENTITY_STOPWORDS.has(sigAcronym)) {
               tokens.add(sigAcronym);
             }
@@ -253,7 +262,8 @@ export function extractEntityTokens(
 export function extractRegistrableDomainLabel(hostname: string): { registrableLabel: string; subdomains: string[] } {
   const parts = hostname.toLowerCase().split('.').filter(Boolean);
   const commonSuffixes = new Set([
-    'com', 'org', 'net', 'io', 'ai', 'co', 'gov', 'edu', 'nic', 'in', 'uk', 'us', 'eu', 'de', 'fr', 'jp', 'ca', 'au', 'ch'
+    'com', 'org', 'net', 'io', 'ai', 'co', 'gov', 'edu', 'nic', 'in', 'uk', 'us', 'eu', 'de', 'fr', 'jp', 'ca', 'au', 'ch',
+    'bank', 'int', 'mil', 'ac', 'gob', 'gouv', 'biz', 'info'
   ]);
   let endIdx = parts.length - 1;
   while (endIdx >= 0 && commonSuffixes.has(parts[endIdx])) {
@@ -819,14 +829,8 @@ export async function processWorkerJob(runId: string, nodeId: string): Promise<v
               const defaultUgcExcludes = ['reddit.com', 'quora.com', 'stackoverflow.com'];
               const mergedExcludes = Array.from(new Set([...(qItem.excludeDomains ?? []), ...defaultUgcExcludes]));
 
-              const { validDomains, strippedTlds } = sanitizeTavilyIncludeDomains(qItem.includeDomains);
-              let finalQuery = qItem.query;
-              for (const tld of strippedTlds) {
-                const siteOp = `site:${tld}`;
-                if (!finalQuery.toLowerCase().includes(siteOp)) {
-                  finalQuery = `${finalQuery} ${siteOp}`;
-                }
-              }
+              const { validDomains } = sanitizeTavilyIncludeDomains(qItem.includeDomains);
+              const finalQuery = sanitizeQueryText(qItem.query);
 
               const batch = await tavilySearch({
                 query: finalQuery,

@@ -17,6 +17,7 @@ import {
   DecisionCoverage,
   AssessmentGrounding,
   InferenceBundle,
+  TransitionProof,
 } from '@/lib/contracts/decision';
 import { isValidCalendarDate, isValidIsoTimestamp } from '@/lib/contracts/dates';
 import { parseDateToInterval } from './temporal';
@@ -205,6 +206,7 @@ export interface BuildDecideClaimInputParams {
   contractSourceDocuments: SourceDocument[];
   policyResult: PolicyEvaluationResult;
   inferenceBundles?: InferenceBundle[];
+  transitions?: TransitionProof[];
   runId: string;
   nodeId: string;
 }
@@ -337,7 +339,7 @@ export function buildDecideClaimInput(params: BuildDecideClaimInputParams): Deci
     assessmentGrounding,
     evidenceTemporalProofs,
     sourceAuthority,
-    transitions: [],
+    transitions: params.transitions ?? [],
     inferenceBundles: params.inferenceBundles ?? [],
     coverage,
     policy: policyResult.policy,

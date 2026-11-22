@@ -40,6 +40,7 @@ export const DECISION_REASON_CODES = {
   INDIRECT_CREDIBLE_SUPPORT: 'INDIRECT_CREDIBLE_SUPPORT',
   DECISIVE_CONTRADICTION: 'DECISIVE_CONTRADICTION',
   SUPERSEDED_HISTORICAL_CLAIM: 'SUPERSEDED_HISTORICAL_CLAIM',
+  PROVEN_OUTDATED_BY_SUPERSEDING: 'PROVEN_OUTDATED_BY_SUPERSEDING',
   CREDIBLE_SOURCES_DISAGREE: 'CREDIBLE_SOURCES_DISAGREE',
   ESSENTIAL_CONTEXT_MISSING: 'ESSENTIAL_CONTEXT_MISSING',
   INSUFFICIENT_RETRIEVAL_DATA: 'INSUFFICIENT_RETRIEVAL_DATA',
@@ -1112,15 +1113,76 @@ function evaluateCoverageEffect(aggregate: Aggregate): CoverageEffect {
   };
 }
 
+function extractTransitionDate(
+  evaluation: EvaluatedAssessment
+): string | null {
+  if (evaluation.unit.effectiveDate) return evaluation.unit.effectiveDate;
+  if (evaluation.source.effectiveDate) return evaluation.source.effectiveDate;
+
+  const text = `${evaluation.unit.verbatimText} ${evaluation.assessment.reasoning}`;
+  // 1. ISO YYYY-MM-DD
+  const isoMatch = text.match(/\b(20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))\b/);
+  if (isoMatch) return isoMatch[1];
+
+  const MONTH_MAP: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+  };
+
+  // 2. Natural language Month Day, Year (e.g. October 9, 2024 or 9 October 2024)
+  const mdyMatch = text.match(
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),?\s+(20\d{2})\b/i
+  );
+  if (mdyMatch) {
+    const monthKey = mdyMatch[1].toLowerCase().slice(0, 3);
+    const monthNum = MONTH_MAP[monthKey];
+    if (monthNum) {
+      const day = mdyMatch[2].padStart(2, '0');
+      const year = mdyMatch[3];
+      return `${year}-${monthNum}-${day}`;
+    }
+  }
+
+  const dmyMatch = text.match(
+    /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(20\d{2})\b/i
+  );
+  if (dmyMatch) {
+    const monthKey = dmyMatch[2].toLowerCase().slice(0, 3);
+    const monthNum = MONTH_MAP[monthKey];
+    if (monthNum) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const year = dmyMatch[3];
+      return `${year}-${monthNum}-${day}`;
+    }
+  }
+
+  // 3. Month Year (e.g. October 2024, May 2027)
+  const myMatch = text.match(
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(20\d{2})\b/i
+  );
+  if (myMatch) {
+    const parsed = parseDateToInterval(`${myMatch[1]} ${myMatch[2]}`);
+    if (parsed) return parsed.start;
+  }
+
+  // 4. Unit or doc publication date as fallback
+  if (evaluation.unit.publicationDate) return evaluation.unit.publicationDate;
+  if (evaluation.source.publicationDate) return evaluation.source.publicationDate;
+
+  return null;
+}
+
 function findValidTransition(
   aggregate: Aggregate,
-  historicalSupports: EvaluatedAssessment[],
-  currentOppositions: EvaluatedAssessment[]
+  candidateSupports: EvaluatedAssessment[],
+  candidateOppositions: EvaluatedAssessment[]
 ): {
   transition: TransitionProof;
   prior: EvaluatedAssessment;
   superseding: EvaluatedAssessment;
+  isDynamic: boolean;
 } | null {
+  // 1. Explicit transitions declared in aggregate input
   const transitions = [...aggregate.input.transitions].sort((a, b) =>
     a.transitionId.localeCompare(b.transitionId)
   );
@@ -1145,39 +1207,124 @@ function findValidTransition(
       continue;
     }
 
-    const prior = historicalSupports.find(
+    const prior = candidateSupports.find(
       (evaluation) =>
         evaluation.assessment.assessmentId === transition.priorAssessmentId
     );
-    const superseding = currentOppositions.find(
+    const superseding = candidateOppositions.find(
       (evaluation) =>
         evaluation.assessment.assessmentId === transition.supersedingAssessmentId
     );
     if (
       !prior ||
       !superseding ||
-      prior.authorityRank !== 2 ||
-      superseding.authorityRank !== 2
+      prior.authorityRank < 1 ||
+      superseding.authorityRank < 1 ||
+      superseding.authorityRank < prior.authorityRank
     ) {
       continue;
     }
 
     const priorProof = aggregate.proofByEvidenceId.get(prior.unit.evidenceId);
-    if (!priorProof?.applicableInterval) {
-      continue;
+    if (priorProof?.applicableInterval) {
+      const priorStart = toInterval(priorProof.applicableInterval.start);
+      const priorEnd = toInterval(priorProof.applicableInterval.end);
+      const transitionEffective = toInterval(transition.effectiveDate);
+      if (!priorStart || !priorEnd || !transitionEffective) {
+        continue;
+      }
+      // Earlier validity must end no later than the transition's effective start.
+      if (priorEnd.end > transitionEffective.start) {
+        continue;
+      }
     }
-    const priorStart = toInterval(priorProof.applicableInterval.start);
-    const priorEnd = toInterval(priorProof.applicableInterval.end);
-    const transitionEffective = toInterval(transition.effectiveDate);
-    if (!priorStart || !priorEnd || !transitionEffective) {
-      continue;
+
+    return { transition, prior, superseding, isDynamic: false };
+  }
+
+  // 2. Dynamic supersession detection from grounded opposition evidence
+  const TRANSITION_ACTION_REGEX =
+    /\b(increas(?:ed|ing|es)?|rais(?:ed|ing|es)?|enhanc(?:ed|ing|es)?|hik(?:ed|ing|es)?|elevat(?:ed|ing|es)?|jump(?:ed|ing|es)?|doubl(?:ed|ing|es)?|tripl(?:ed|ing|es)?|boost(?:ed|ing|es)?|expand(?:ed|ing|es)?|adjust(?:ed|ing|es)?|revis(?:ed|ing|es)?|chang(?:ed|ing|es)?|replac(?:ed|ing|es)?|amend(?:ed|ing|es|ment)?|updat(?:ed|ing|es)?|supersed(?:ed|ing|es)?|transition(?:ed|ing|es)?)\b/i;
+  const TRANSITION_FROM_REGEX =
+    /\b(?:from|previously|prior to|formerly|old limit|old cap|earlier limit|old rate|raised.*?from)\s+(?:[₹$€£]|rs\.?|inr|usd|eur|gbp)?\s*([0-9][0-9,.]*)/i;
+
+  const claimText = `${aggregate.ticket.normalizedProposition} ${aggregate.ticket.originalStatement}`;
+  const numbersInClaim = Array.from(claimText.matchAll(/\b\d[\d,.]*\b/g))
+    .map((m) => m[0].replace(/,/g, ''))
+    .filter((n) => n.length >= 2 || !['0', '1'].includes(n));
+
+  for (const superseding of candidateOppositions) {
+    if (superseding.authorityRank < 1) continue;
+    const oppText = `${superseding.unit.verbatimText} ${superseding.assessment.reasoning}`;
+
+    if (!TRANSITION_ACTION_REGEX.test(oppText)) continue;
+
+    let matchesClaimedPrior = false;
+    const fromMatch = oppText.match(TRANSITION_FROM_REGEX);
+    if (fromMatch) {
+      const fromVal = fromMatch[1].replace(/,/g, '');
+      if (numbersInClaim.includes(fromVal)) {
+        matchesClaimedPrior = true;
+      }
     }
-    // Earlier validity must end no later than the transition's effective start.
-    if (priorEnd.end > transitionEffective.start) {
+
+    if (!matchesClaimedPrior && numbersInClaim.length > 0) {
+      const mentionsClaimNumber = numbersInClaim.some((num) =>
+        new RegExp(
+          `\\b(?:from|prior to|previously|was|capped at)\\s+(?:[₹$€£]|rs\\.?|inr|usd|eur|gbp)?\\s*${num}\\b`,
+          'i'
+        ).test(oppText)
+      );
+      if (mentionsClaimNumber) {
+        matchesClaimedPrior = true;
+      }
+    }
+
+    if (!matchesClaimedPrior && numbersInClaim.length === 0) {
+      if (
+        /\b(superseded|replaced|amended|revised|no longer applies)\b/i.test(
+          oppText
+        )
+      ) {
+        matchesClaimedPrior = true;
+      }
+    }
+
+    if (!matchesClaimedPrior) continue;
+
+    const transEffectiveDate = extractTransitionDate(superseding);
+    if (!transEffectiveDate) continue;
+    if (!isOnOrBeforeTarget(transEffectiveDate, aggregate.ticket.targetTime)) {
       continue;
     }
 
-    return { transition, prior, superseding };
+    for (const prior of candidateSupports) {
+      if (prior.authorityRank < 1) continue;
+      if (superseding.authorityRank < prior.authorityRank) continue;
+
+      const priorDate = extractTransitionDate(prior);
+      if (priorDate) {
+        const pInt = toInterval(priorDate);
+        const tInt = toInterval(transEffectiveDate);
+        if (pInt && tInt && pInt.start > tInt.end) {
+          // Prior is affirmatively dated AFTER transition effective date — genuine dispute
+          continue;
+        }
+      }
+
+      const dynamicTransition: TransitionProof = {
+        transitionId: `trans_dyn_${prior.unit.evidenceId}_${superseding.unit.evidenceId}`,
+        claimTicketId: aggregate.ticket.ticketId,
+        claimRevision: aggregate.ticket.revision,
+        priorAssessmentId: prior.assessment.assessmentId,
+        supersedingAssessmentId: superseding.assessment.assessmentId,
+        effectiveDate: transEffectiveDate,
+        entityAndScopeMatch: 'match',
+        basis: 'documented_effective_change',
+      };
+
+      return { transition: dynamicTransition, prior, superseding, isDynamic: true };
+    }
   }
 
   return null;
@@ -1584,6 +1731,33 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
   // Gate 2: equal-authority unresolved opposition. A contradiction never wins
   // merely because a later gate appears first.
   if (supportRank > 0 && oppositionRank > 0 && supportRank === oppositionRank) {
+    const transitionMatch = historicalClaim
+      ? null
+      : findValidTransition(
+          aggregate,
+          supports.concat(historicalSupports),
+          oppositions
+        );
+
+    if (transitionMatch) {
+      for (const evaluation of supports) {
+        evaluation.limitationCodes.push(
+          'LOWER_RANKED_SUPPORT_RESOLVED_BY_TRANSITION'
+        );
+      }
+      return makeDecision(aggregate, evaluations, {
+        verdict: 'outdated',
+        score: 0,
+        reasonCode: transitionMatch.isDynamic
+          ? DECISION_REASON_CODES.PROVEN_OUTDATED_BY_SUPERSEDING
+          : DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
+        scoreReason: `Earlier validity of the proposition was established, and a documented matching-scope transition effective ${transitionMatch.transition.effectiveDate} superseded it by the target time; a current assessment confirms the superseding state.`,
+        primary: [transitionMatch.prior, transitionMatch.superseding],
+        counter: supports,
+        transition: transitionMatch.transition,
+      });
+    }
+
     return makeDecision(aggregate, evaluations, {
       verdict: 'conflicting_evidence',
       score: null,
@@ -1608,7 +1782,7 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
       ? null
       : findValidTransition(
           aggregate,
-          historicalSupports,
+          supports.concat(historicalSupports),
           currentOppositions
         );
 
@@ -1621,7 +1795,9 @@ export function decideClaim(input: unknown): DecideClaimOutcome {
       return makeDecision(aggregate, evaluations, {
         verdict: 'outdated',
         score: 0,
-        reasonCode: DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
+        reasonCode: transitionMatch.isDynamic
+          ? DECISION_REASON_CODES.PROVEN_OUTDATED_BY_SUPERSEDING
+          : DECISION_REASON_CODES.SUPERSEDED_HISTORICAL_CLAIM,
         scoreReason: `Earlier validity of the proposition was established, and a documented matching-scope transition effective ${transitionMatch.transition.effectiveDate} superseded it by the target time; a current primary assessment confirms the superseding state.`,
         primary: [transitionMatch.prior, transitionMatch.superseding],
         counter: supports,

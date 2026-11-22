@@ -104,6 +104,53 @@ function cleanJsonOutput(text: string): string {
  * to verify or falsify an atomic ClaimTicket against web evidence.
  */
 /**
+ * Strips raw search operators (such as 'site:...') from query text to prevent Tavily backend degradation.
+ */
+export function sanitizeQueryText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\bsite:[^\s]+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Validates whether a domain candidate is a concrete, registrable hostname suitable for Tavily's include_domains.
+ * Rejects bare public-suffix TLDs (e.g. 'gov', 'gov.in'), UGC sites, and malformed strings.
+ */
+export function validateAuthoritativeDomain(domain: string): string | null {
+  if (!domain || typeof domain !== 'string') return null;
+  let cleaned = domain.trim().toLowerCase();
+  cleaned = cleaned.replace(/^https?:\/\//, '');
+  cleaned = cleaned.replace(/^www\./, '');
+  cleaned = cleaned.split('/')[0].split('?')[0].split('#')[0].trim();
+
+  if (!cleaned.includes('.')) return null;
+  if (isBareTldSuffix(cleaned)) return null;
+
+  const ugcHosts = new Set([
+    'reddit.com',
+    'quora.com',
+    'stackoverflow.com',
+    'medium.com',
+    'facebook.com',
+    'twitter.com',
+    'x.com',
+    'instagram.com',
+    'linkedin.com',
+    'youtube.com',
+    'tiktok.com',
+    'pinterest.com',
+  ]);
+  if (ugcHosts.has(cleaned)) return null;
+
+  const hostRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+  if (!hostRegex.test(cleaned)) return null;
+
+  return cleaned;
+}
+
+/**
  * Determines whether a domain string is a bare public suffix / multi-tenant TLD namespace
  * (e.g. 'gov', 'gov.in', 'nic.in', 'gov.au', 'gob.es', 'admin.ch') rather than a concrete host.
  * Tavily's include_domains fails silently (returns 0 results) when passed bare public suffixes.
@@ -230,13 +277,28 @@ export async function generateResearchPlan(
     };
   }
 
+  // Extract and validate authoritativeDomains suggested by the model
+  const rawAuthoritative = Array.isArray(parsedPayload.authoritativeDomains)
+    ? parsedPayload.authoritativeDomains
+    : [];
+  const modelAuthoritativeDomains: string[] = [];
+  for (const d of rawAuthoritative) {
+    if (typeof d === 'string') {
+      const valid = validateAuthoritativeDomain(d);
+      if (valid && !modelAuthoritativeDomains.includes(valid)) {
+        modelAuthoritativeDomains.push(valid);
+      }
+    }
+  }
+
   // Bound queries to remaining allowance
   const boundedRawQueries = rawQueries.slice(0, effectiveAllowance);
 
   const queries: PlannedQuery[] = [];
   for (let idx = 0; idx < boundedRawQueries.length; idx++) {
     const rawQ = boundedRawQueries[idx];
-    const queryString = String(rawQ.query || '').trim().slice(0, MAX_QUERY_LENGTH);
+    const rawQueryString = String(rawQ.query || '').trim().slice(0, MAX_QUERY_LENGTH);
+    const queryString = sanitizeQueryText(rawQueryString);
     if (!queryString) continue;
 
     // Validate purpose
@@ -255,6 +317,19 @@ export async function generateResearchPlan(
     const targetSourceRoles: SourceRole[] =
       validRoles.length > 0 ? validRoles : ['primary_authority', 'reputable_secondary'];
 
+    // Collect query-level includeDomains if present and valid
+    let queryIncludeDomains: string[] | undefined = undefined;
+    if (Array.isArray(rawQ.includeDomains)) {
+      const validated: string[] = [];
+      for (const d of rawQ.includeDomains) {
+        if (typeof d === 'string') {
+          const v = validateAuthoritativeDomain(d);
+          if (v && !validated.includes(v)) validated.push(v);
+        }
+      }
+      if (validated.length > 0) queryIncludeDomains = validated;
+    }
+
     const plannedQuery: PlannedQuery = {
       queryId: `qry_${ticket.ticketId}_r${round}_${idx + 1}`,
       claimTicketId: ticket.ticketId,
@@ -262,6 +337,7 @@ export async function generateResearchPlan(
       purpose,
       targetSourceRoles,
       round,
+      includeDomains: queryIncludeDomains,
       scopeHints: typeof rawQ.scopeHints === 'object' && rawQ.scopeHints !== null
         ? (rawQ.scopeHints as Record<string, string>)
         : undefined,
@@ -280,6 +356,19 @@ export async function generateResearchPlan(
       error: 'All proposed queries failed schema validation or were empty',
       details: parsedPayload,
     };
+  }
+
+  // Attach model-level authoritativeDomains to canonical primary queries
+  // while strictly keeping at least 1-2 open-web queries with NO includeDomains
+  if (modelAuthoritativeDomains.length > 0 && queries.length > 0) {
+    if (!queries[0].includeDomains || queries[0].includeDomains.length === 0) {
+      queries[0].includeDomains = modelAuthoritativeDomains;
+    }
+    // If we have >= 3 queries, queries[0] (and optionally queries[1]) can target authoritative domains,
+    // while the remaining queries (e.g. counterevidence) remain open-web without includeDomains
+    if (queries.length >= 4 && (!queries[1].includeDomains || queries[1].includeDomains.length === 0)) {
+      queries[1].includeDomains = modelAuthoritativeDomains;
+    }
   }
 
   // 8. Deterministic counterevidence guarantee
@@ -323,16 +412,16 @@ export async function generateResearchPlan(
       const jurStr = typeof jurProp === 'string' ? jurProp.toLowerCase() : '';
 
       if (jurStr === 'in' || jurStr.includes('india')) {
-        sovereignTarget = 'official rules gazette site:gov.in';
+        sovereignTarget = 'official rules gazette';
         sovereignIncludeDomains = ['indiacode.nic.in', 'egazette.gov.in', 'pib.gov.in'];
       } else if (jurStr === 'us' || jurStr.includes('united states')) {
-        sovereignTarget = 'official statutory code site:gov';
+        sovereignTarget = 'official statutory code';
         sovereignIncludeDomains = ['federalregister.gov', 'ecfr.gov'];
       } else if (jurStr === 'uk' || jurStr.includes('united kingdom')) {
-        sovereignTarget = 'legislation site:gov.uk';
+        sovereignTarget = 'legislation';
         sovereignIncludeDomains = ['legislation.gov.uk', 'gov.uk'];
       } else if (jurStr === 'eu' || jurStr.includes('european union')) {
-        sovereignTarget = 'directive site:europa.eu';
+        sovereignTarget = 'directive';
         sovereignIncludeDomains = ['eur-lex.europa.eu', 'ec.europa.eu', 'europa.eu'];
       }
 
