@@ -234,6 +234,7 @@ export function ReportView({ report, onBack, className = '' }: ReportViewProps) 
             evidenceMap={evidenceMap}
             clarification={activeClarification}
             runId={report.id}
+            runState={report.state}
           />
         </div>
       </div>

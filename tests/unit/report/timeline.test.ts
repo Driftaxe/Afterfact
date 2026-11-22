@@ -445,4 +445,87 @@ describe('Task C05: Then vs. Now Timeline & Scheduled Changes', () => {
       expect(html).toContain('Mixed / Inconclusive Authority');
     });
   });
+
+  describe('ClaimDetail Side-by-Side Diff Loading & Decision Reason Decoupling', () => {
+    const baseClaim = {
+      id: 'test_diff_1',
+      claimId: 'test_diff_1',
+      parentClaimId: null,
+      ordinal: 0,
+      rawText: 'MegaPay charges 1.5% plus 10 cents per transaction on its standard tier.',
+      statement: 'MegaPay charges 1.5% plus 10 cents per transaction on its standard tier.',
+      state: 'assessed' as const,
+      verdict: 'contradicted' as const,
+      score: 0 as const,
+      reasonCode: 'DECISIVE_CONTRADICTION',
+      scoreReason: 'A grounded claim-applicable primary assessment directly contradicts the proposition under matching scope and applicable time; no equal-authority support remained unresolved.',
+      evidenceIds: [],
+    };
+
+    it('renders the "Synthesizing verified diff..." loading skeleton during active runs and NEVER leaks scoreReason into the diff viewer', () => {
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim: baseClaim,
+          evidenceMap: new Map(),
+          runState: 'running',
+        })
+      );
+
+      // Decision reason box must still display the scoreReason
+      expect(html).toContain('Decision Reason');
+      expect(html).toContain('A grounded claim-applicable primary assessment directly contradicts');
+
+      // The diff loading skeleton must be displayed
+      expect(html).toContain('Synthesizing verified diff...');
+      expect(html).toContain('Evaluating verified replacement proposition and computing surgical token diff...');
+
+      // Invariant: ContextComparison mock MUST NOT render with scoreReason as discoveredText
+      expect(html).not.toContain('data-testid="context-comparison"');
+    });
+
+    it('renders ContextComparison with verified replacementText once correction is populated', () => {
+      const claimWithCorrection = {
+        ...baseClaim,
+        correction: {
+          originalText: 'MegaPay charges 1.5% plus 10 cents per transaction on its standard tier.',
+          replacementText: 'MegaPay charges 2.9% plus 30 cents per transaction on its standard tier.',
+          diff: '- 1.5% plus 10 cents\n+ 2.9% plus 30 cents',
+          explanation: 'Official pricing schedule confirms 2.9% + 30c.',
+          verified: true,
+          evidenceIds: [],
+        },
+      };
+
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim: claimWithCorrection,
+          evidenceMap: new Map(),
+          runState: 'running',
+        })
+      );
+
+      // Loading skeleton must be gone
+      expect(html).not.toContain('Synthesizing verified diff...');
+
+      // ContextComparison must render with genuine replacementText
+      expect(html).toContain('data-testid="context-comparison"');
+      expect(html).toContain('MegaPay charges 2.9% plus 30 cents');
+    });
+
+    it('suppresses diff on completed runs when no replacement proposition could be verified', () => {
+      const html = renderToString(
+        React.createElement(ClaimDetail, {
+          claim: baseClaim,
+          evidenceMap: new Map(),
+          runState: 'completed',
+        })
+      );
+
+      // Invariant: No loading skeleton and no ContextComparison diff with scoreReason
+      expect(html).not.toContain('Synthesizing verified diff...');
+      expect(html).not.toContain('data-testid="context-comparison"');
+      // Decision reason is still present in its own card
+      expect(html).toContain('Decision Reason');
+    });
+  });
 });
