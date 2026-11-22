@@ -1,4 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as bifrostClient from '@/server/bifrost/client';
+
+vi.mock('@/server/bifrost/client', () => ({
+  bifrostChat: vi.fn(),
+  BifrostError: class BifrostError extends Error {},
+}));
 import { isBareTldSuffix, generateResearchPlan } from '@/server/verify/research-planner';
 import { sanitizeTavilyIncludeDomains, extractEntityTokens } from '@/server/jobs/worker';
 import { synthesizeBoundedInference } from '@/server/verify/inference-synthesizer';
@@ -84,6 +90,26 @@ describe('Surgical Polish: Sovereign TLD Retrieval & Active-Status Refutation', 
         ],
         missingMaterialContext: [],
       };
+
+      vi.mocked(bifrostClient.bifrostChat).mockResolvedValueOnce(
+        JSON.stringify({
+          requiresCounterevidenceQuery: false,
+          materialUnknownQualifiers: [],
+          stoppingConditions: ['SEBI statutory circular found'],
+          queries: [
+            {
+              query: 'SEBI same day settlement 2026 regulations',
+              purpose: 'establish_current_state',
+              targetSourceRoles: ['primary_authority'],
+            },
+            {
+              query: 'SEBI 2026 mandatory settlement rule circular',
+              purpose: 'investigate_exceptions_or_scope',
+              targetSourceRoles: ['primary_authority'],
+            },
+          ],
+        })
+      );
 
       const outcome = await generateResearchPlan({ ticket, round: 1 });
       expect(outcome.status).toBe('success');

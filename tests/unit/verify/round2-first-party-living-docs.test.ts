@@ -1,4 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as bifrostClient from '@/server/bifrost/client';
+
+vi.mock('@/server/bifrost/client', () => ({
+  bifrostChat: vi.fn(),
+  BifrostError: class BifrostError extends Error {},
+}));
 import {
   inferDocumentSourceRole,
   isUserGeneratedContentUrl,
@@ -121,6 +127,26 @@ describe('Round 2 Engine Enhancements: First-Party Authority, Living Docs, Ambie
           },
         ],
       };
+
+      vi.mocked(bifrostClient.bifrostChat).mockResolvedValueOnce(
+        JSON.stringify({
+          requiresCounterevidenceQuery: false,
+          materialUnknownQualifiers: [],
+          stoppingConditions: ['Official vendor pricing documentation found'],
+          queries: [
+            {
+              query: 'MegaPay standard tier pricing transaction',
+              purpose: 'establish_current_state',
+              targetSourceRoles: ['reputable_secondary'],
+            },
+            {
+              query: 'MegaPay transaction fee discount',
+              purpose: 'investigate_exceptions_or_scope',
+              targetSourceRoles: ['reputable_secondary'],
+            },
+          ],
+        })
+      );
 
       const plan = await generateResearchPlan({ ticket, round: 1 });
       expect(plan.status).toBe('success');
